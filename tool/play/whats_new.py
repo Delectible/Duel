@@ -15,8 +15,9 @@ def whats_new(src):
     version = re.search(r"static const version = '([^']+)'", src).group(1)
     block = src[src.index('static const latest'):]
     block = block[:block.index(';')]
-    parts = re.findall(r"'((?:[^'\\]|\\.)*)'", block)
-    line = re.sub(r"\\(.)", r"\1", ''.join(parts)).strip()
+    # Dart string pieces in either quote style ('...' or "...").
+    parts = re.findall(r"'((?:[^'\\]|\\.)*)'|\"((?:[^\"\\]|\\.)*)\"", block)
+    line = re.sub(r"\\(.)", r"\1", ''.join(a or b for a, b in parts)).strip()
     text = f'{version}: {line}'
     return text if len(text) <= 500 else text[:497].rstrip() + '...'
 
