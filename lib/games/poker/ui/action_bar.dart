@@ -60,10 +60,30 @@ class _ActionBarState extends State<ActionBar> {
       alignment: Alignment.bottomCenter,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        child: c.yourTurn ? (_raising ? _raisePanel() : _buttons()) : _status(),
+        child: c.phase == TablePhase.shuffle
+            ? _dealButton()
+            : (c.yourTurn ? (_raising ? _raisePanel() : _buttons()) : _status()),
       ),
     );
   }
+
+  /// Your deal: Deal lights up once you've shuffled.
+  Widget _dealButton() => SizedBox(
+    height: 60,
+    child: ToonButton(
+      key: const Key('deal'),
+      color: Toon.green,
+      onPressed: c.shuffles > 0 ? c.deal : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.style_rounded),
+          const SizedBox(width: 8),
+          Text(c.shuffles > 0 ? 'Deal' : 'Shuffle first', style: Toon.text(18, weight: FontWeight.w700)),
+        ],
+      ),
+    ),
+  );
 
   Widget _status() {
     String text;

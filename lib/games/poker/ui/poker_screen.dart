@@ -177,7 +177,11 @@ class _Hud extends StatelessWidget {
             color: Toon.card,
             shadow: 3,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            child: Text('Hand ${c.handNumber}', style: Toon.text(14)),
+            // While you shuffle, the coming hand's number.
+            child: Text(
+              'Hand ${c.handNumber + (c.phase == TablePhase.shuffle ? 1 : 0)}',
+              style: Toon.text(14),
+            ),
           ),
         ],
       ),

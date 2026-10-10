@@ -14,6 +14,16 @@ Widget app(int bots, {double pace = 0.05}) => MaterialApp(
 
 bool yourTurn() => find.byKey(const Key('fold')).evaluate().isNotEmpty;
 
+/// On your deal: one shuffle, then Deal. True if it was your deal.
+Future<bool> shuffleAndDeal(WidgetTester tester) async {
+  if (find.byKey(const Key('deck')).evaluate().isEmpty) return false;
+  await tester.tap(find.byKey(const Key('deck')));
+  await tester.pump(const Duration(milliseconds: 800));
+  await tester.tap(find.byKey(const Key('deal')));
+  await tester.pump();
+  return true;
+}
+
 /// Plays your turns until [hands] hands are done or the game ends: calls
 /// or checks, or with [raise] bets the pot whenever it can.
 Future<void> play(WidgetTester tester, {required int hands, bool raise = false}) async {
@@ -23,6 +33,7 @@ Future<void> play(WidgetTester tester, {required int hands, bool raise = false})
     final hand = find.textContaining(RegExp(r'^Hand \d+$'));
     final number = hand.evaluate().isEmpty ? 0 : int.parse(tester.widget<Text>(hand).data!.split(' ').last);
     if (number > hands) return;
+    if (await shuffleAndDeal(tester)) continue;
     if (!yourTurn()) continue;
     final raiseButton = tester.widget<ToonButton>(find.byKey(const Key('raise')));
     if (raise && raiseButton.onPressed != null) {
@@ -59,6 +70,7 @@ void main() {
     await tester.pumpWidget(app(2));
     for (var i = 0; i < 500 && !yourTurn(); i++) {
       await tester.pump(const Duration(milliseconds: 20));
+      await shuffleAndDeal(tester);
     }
     await tester.tap(find.byKey(const Key('raise')));
     await tester.pump();
@@ -98,6 +110,7 @@ void main() {
         final note = find.textContaining(RegExp(r' with [A-Z]'));
         for (var i = 0; i < 20000 && note.evaluate().isEmpty; i++) {
           await tester.pump(const Duration(milliseconds: 20));
+          if (await shuffleAndDeal(tester)) continue;
           if (yourTurn()) await tester.tap(find.byKey(const Key('call')));
         }
         expect(note, findsOneWidget);
@@ -107,4 +120,48 @@ void main() {
       });
     }
   }
+
+  testWidgets('your deal: shuffle the deck, then Deal', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(app(1));
+    // Heads-up the button alternates: your deal comes within two hands.
+    final deck = find.byKey(const Key('deck'));
+    for (var i = 0; i < 4000 && deck.evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      if (yourTurn()) await tester.tap(find.byKey(const Key('call')));
+    }
+    expect(deck, findsOneWidget);
+    expect(find.text('Your deal!'), findsOneWidget);
+    expect(tester.widget<ToonButton>(find.byKey(const Key('deal'))).onPressed, isNull);
+    await tester.tap(deck);
+    await tester.pump(); // the riffle's first frame
+    await tester.pump(const Duration(milliseconds: 280));
+    await shot(tester, 'poker_shuffle');
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Shuffled ×1. Again, or deal'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('deal')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(deck, findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('your hand name opens the cheat sheet with your hand outlined', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(app(3));
+    final chart = find.byKey(const Key('hand chart'));
+    for (var i = 0; i < 4000 && chart.evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      await shuffleAndDeal(tester);
+    }
+    await tester.tap(chart);
+    // The table keeps animating behind the sheet: no pumpAndSettle.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('Poker hands'), findsOneWidget);
+    expect(find.text('You have'), findsOneWidget);
+    expect(find.text('You'), findsWidgets);
+    await shot(tester, 'poker_hand_chart');
+    expect(tester.takeException(), isNull);
+  });
 }

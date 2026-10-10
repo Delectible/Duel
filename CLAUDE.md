@@ -133,7 +133,10 @@ weights cut from the variable font.
   think, collect, payout; `pace` 0.05 in tests), `table_view.dart` (seats
   around the felt, clockwise from you at the bottom; chips fly to the pot
   and winners), `action_bar.dart`, `faces.dart` (bot personas + cartoon
-  faces).
+  faces), `hand_chart.dart` (the hands cheat sheet, opened from your hand's
+  name; `handRanks`), `shuffle_deck.dart` (your deal: the controller's
+  `TablePhase.shuffle` waits for a shuffle and Deal; tests use
+  `shuffleAndDeal`).
 - `lib/features/home/`: home (connection bar + game grid, About),
   `lib/features/party/`: party screen.
 - Tests: engine rules in `test/poker/`; screens at Pixel 9 Pro and 360 dp

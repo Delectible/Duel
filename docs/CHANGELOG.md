@@ -63,3 +63,19 @@ Ships as app version **0.2.0**.
   drawn suits, card backs and bot faces. → 0.2.0 · 2026-10-10
 - [ ] **3.6 Later:** progressive currency across games (replaces the
   fixed buy-in).
+
+## Revision v0.3 (requested 2026-10-10)
+
+Ships as app version **0.3.0**.
+
+### 4. Poker feel
+
+- [x] **4.1 Hand cheat sheet:** the hand name under your cards is bigger
+  and tappable; it opens all ten hands, best first, with examples, your
+  row outlined ("You") and scrolled to, your best five on top.
+  → 0.3.0 · 2026-10-10
+- [x] **4.2 Your deal:** when the button reaches you, tap or swipe the
+  deck to riffle-shuffle (animation + haptics), then Deal (after at least
+  one shuffle). → 0.3.0 · 2026-10-10
+- [x] **4.3 Fix:** "Blinds up!" notice never showed. → 0.3.0 · 2026-10-10
+

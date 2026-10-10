@@ -5,17 +5,19 @@ import '../../../core/cards/cards.dart';
 import '../../../core/theme/toon.dart';
 import '../engine/poker_hand.dart';
 import 'faces.dart';
+import 'hand_chart.dart';
+import 'shuffle_deck.dart';
 import 'poker_controller.dart';
 
 /// Where each seat sits, as fractions of the table area, clockwise from you
 /// at the bottom (action passes to your left, up the left side).
 const _spots = <int, List<Offset>>{
-  2: [Offset(0.5, 0.87), Offset(0.5, 0.13)],
-  3: [Offset(0.5, 0.87), Offset(0.18, 0.2), Offset(0.82, 0.2)],
-  4: [Offset(0.5, 0.87), Offset(0.14, 0.29), Offset(0.5, 0.13), Offset(0.86, 0.29)],
-  5: [Offset(0.5, 0.87), Offset(0.14, 0.65), Offset(0.22, 0.17), Offset(0.78, 0.17), Offset(0.86, 0.65)],
+  2: [Offset(0.5, 0.85), Offset(0.5, 0.13)],
+  3: [Offset(0.5, 0.85), Offset(0.18, 0.2), Offset(0.82, 0.2)],
+  4: [Offset(0.5, 0.85), Offset(0.14, 0.29), Offset(0.5, 0.13), Offset(0.86, 0.29)],
+  5: [Offset(0.5, 0.85), Offset(0.14, 0.65), Offset(0.22, 0.17), Offset(0.78, 0.17), Offset(0.86, 0.65)],
   6: [
-    Offset(0.5, 0.87), Offset(0.14, 0.65), Offset(0.14, 0.29), //
+    Offset(0.5, 0.85), Offset(0.14, 0.65), Offset(0.14, 0.29), //
     Offset(0.5, 0.13), Offset(0.86, 0.29), Offset(0.86, 0.65),
   ],
 };
@@ -42,6 +44,16 @@ class TableView extends StatelessWidget {
         final h = c.hand;
         final boardCard = (size.width * 0.12).clamp(36.0, 56.0);
         final children = <Widget>[Positioned.fill(child: CustomPaint(painter: _FeltPainter()))];
+
+        // Your deal: the deck to shuffle.
+        if (c.phase == TablePhase.shuffle) {
+          children.add(
+            _At(
+              px(_center),
+              child: ShuffleDeck(shuffles: c.shuffles, onShuffle: c.shuffleDeck, cardWidth: boardCard),
+            ),
+          );
+        }
 
         // Board and pot.
         if (h != null) {
@@ -649,7 +661,7 @@ class _YourSeat extends StatelessWidget {
 
     return SizedBox(
       width: 236,
-      height: 112,
+      height: 136,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -664,7 +676,7 @@ class _YourSeat extends StatelessWidget {
               ],
             ),
           ),
-          if (p != null && c.hand!.players[c.hand!.button] == p)
+          if (c.phase == TablePhase.shuffle || (p != null && c.hand!.players[c.hand!.button] == p))
             const Positioned(left: 50, top: 12, child: _DealerButton()),
           if (p?.lastAction != null && c.phase != TablePhase.payout)
             Positioned(left: 4, top: -8, child: _ActionBubble(p!.lastAction!)),
@@ -697,17 +709,39 @@ class _YourSeat extends StatelessWidget {
                 ),
               ),
             ),
+          // Your hand's name: tap for the cheat sheet, your hand outlined.
           if (name != null)
             Positioned(
-              left: 60,
-              right: -20,
-              top: 98,
+              left: 66,
+              right: -30,
+              top: 94,
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: Toon.ink, borderRadius: BorderRadius.circular(10)),
+                child: ToonButton(
+                  key: const Key('hand chart'),
+                  color: Toon.yellow,
+                  radius: 12,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  tooltip: 'Poker hands',
+                  onPressed: () {
+                    final yours = c.yourHand();
+                    showHandChart(
+                      context,
+                      category: yours?.category,
+                      royal: yours?.royal ?? false,
+                      cards: yours?.cards ?? const [],
+                      name: name,
+                    );
+                  },
                   child: FittedBox(
-                    child: Text(name, maxLines: 1, style: Toon.text(13, color: Colors.white)),
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.format_list_numbered_rounded, size: 20),
+                        const SizedBox(width: 6),
+                        Text(name, maxLines: 1, style: Toon.text(16, weight: FontWeight.w700)),
+                      ],
+                    ),
                   ),
                 ),
               ),

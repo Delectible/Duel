@@ -90,10 +90,14 @@ class SitAndGo {
     throw StateError('No players left');
   }
 
+  /// Where the button goes for the next hand (who deals it).
+  int get nextButtonSeat =>
+      handsPlayed > 0 || players[buttonSeat].stack == 0 ? _nextActiveSeat(buttonSeat) : buttonSeat;
+
   /// Moves the button and deals a new hand.
   PokerHand startHand() {
     if (isOver) throw StateError('Tournament is over');
-    if (handsPlayed > 0 || players[buttonSeat].stack == 0) buttonSeat = _nextActiveSeat(buttonSeat);
+    buttonSeat = nextButtonSeat;
     final seats = [
       for (final p in players)
         if (p.stack > 0) p.seat,

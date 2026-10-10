@@ -13,6 +13,9 @@ import '../engine/sit_and_go.dart';
 import 'faces.dart';
 
 enum TablePhase {
+  /// Your deal: shuffle the deck, then tap Deal.
+  shuffle,
+
   /// Cards going out (new hand or new street).
   dealing,
 
@@ -71,6 +74,12 @@ class PokerController extends ChangeNotifier {
   /// Seats that busted in the last hand.
   List<int> justBusted = const [];
 
+  /// Times you've shuffled the deck this deal.
+  int shuffles = 0;
+
+  /// Blind level the last "Blinds up!" was shown for.
+  var _shownLevel = 0;
+
   Timer? _timer;
   var _disposed = false;
 
@@ -117,13 +126,37 @@ class PokerController extends ChangeNotifier {
   }
 
   void _newHand() {
-    final level = game.level;
+    revealed.clear();
+    if (game.nextButtonSeat == 0) {
+      // The button's come round to you: you shuffle and deal.
+      shuffles = 0;
+      phase = TablePhase.shuffle;
+      _notify();
+      return;
+    }
+    _deal();
+  }
+
+  /// One riffle of the deck (your deal).
+  void shuffleDeck() {
+    if (phase != TablePhase.shuffle) return;
+    shuffles++;
+    _notify();
+  }
+
+  /// Deals after you've shuffled at least once.
+  void deal() {
+    if (phase != TablePhase.shuffle || shuffles == 0) return;
+    _deal();
+  }
+
+  void _deal() {
     game.startHand();
     handNumber++;
-    revealed.clear();
     justBusted = const [];
     final (sb, bb) = game.blinds;
-    banner = game.handsPlayed > 0 && game.level > level ? 'Blinds up! ${chips(sb)} / ${chips(bb)}' : null;
+    banner = game.level > _shownLevel ? 'Blinds up! ${chips(sb)} / ${chips(bb)}' : null;
+    _shownLevel = game.level;
     phase = TablePhase.dealing;
     _notify();
     _after(900, _step);
@@ -234,6 +267,21 @@ class PokerController extends ChangeNotifier {
   Set<PlayingCard> winningCards() {
     final hand = this.hand?.result?.pots.first.hand;
     return hand == null ? const {} : hand.cards.toSet();
+  }
+
+  /// Your hand for the cheat sheet: its rank and the cards that make it
+  /// (your best five, or just your two cards before the flop).
+  ({HandCategory category, bool royal, List<PlayingCard> cards})? yourHand() {
+    final me = handPlayer(0);
+    final h = hand;
+    if (me == null || h == null || me.hole.length < 2) return null;
+    if (h.board.length >= 3) {
+      final v = evaluateHand([...me.hole, ...h.board]);
+      final royal = v.category == HandCategory.straightFlush && v.ranks.first == 14;
+      return (category: v.category, royal: royal, cards: v.cards);
+    }
+    final pair = me.hole[0].rank == me.hole[1].rank;
+    return (category: pair ? HandCategory.pair : HandCategory.highCard, royal: false, cards: me.hole);
   }
 
   /// Your hand in words: "Pocket Jacks", "Two pair, Kings and Sevens".
