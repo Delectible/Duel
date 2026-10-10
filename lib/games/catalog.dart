@@ -6,6 +6,7 @@ import '../core/cards/cards.dart';
 import '../core/session/play_setup.dart';
 import '../core/theme/toon.dart';
 import 'crazy_eights/ui/eights_screen.dart';
+import 'go_fish/ui/fish_screen.dart';
 import 'poker/ui/poker_screen.dart';
 import 'previews.dart';
 
@@ -131,6 +132,7 @@ final games = <GameInfo>[
       'Collect all four of a rank to make a book. Most books at the end wins.',
     ],
     minutes: (players) => 5 + players * 2,
+    open: (setup, stake) => FishScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
     id: 'connect4',
