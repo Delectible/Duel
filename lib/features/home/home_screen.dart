@@ -1,48 +1,148 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_info.dart';
+import '../../core/session/play_setup.dart';
+import '../../core/theme/toon.dart';
+import '../../games/catalog.dart';
+import 'connection_bar.dart';
 
-/// The first screen: pick how to play. Both modes are still to come.
+/// The connection bar, then the games. Games that don't fit the table
+/// (you + bots, or your party) are greyed out.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final setup = PlaySetupScope.of(context);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        actions: [
-          IconButton(
-            tooltip: 'About',
-            icon: const Icon(Icons.info_outline),
-            onPressed: () => showAboutSheet(context),
-          ),
-        ],
-      ),
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              sliver: SliverList.list(
+                children: [
+                  const ConnectionBar(),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('Pick a game', style: Toon.text(26, weight: FontWeight.w700)),
+                      ),
+                      IconButton(
+                        tooltip: 'About',
+                        icon: const Icon(Icons.info_outline_rounded, color: Toon.ink),
+                        onPressed: () => showAboutSheet(context),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    setup.mode == PlayMode.bots
+                        ? 'You + ${setup.botCount} ${setup.botCount == 1 ? 'bot' : 'bots'} · ${setup.players} players'
+                        : 'Party of ${setup.partySize}: invite a friend to play',
+                    style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              sliver: SliverGrid.count(
+                crossAxisCount: 2,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 0.82,
+                children: [for (final g in games) _GameTile(game: g, setup: setup)],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GameTile extends StatelessWidget {
+  const _GameTile({required this.game, required this.setup});
+
+  final GameInfo game;
+  final PlaySetup setup;
+
+  @override
+  Widget build(BuildContext context) {
+    final fits = game.fits(setup.players);
+    final online = setup.mode == PlayMode.friends;
+    final playable = game.available && fits && !online;
+    final String? why = !game.available
+        ? 'Soon'
+        : !fits
+        ? (setup.players < game.minPlayers ? 'Needs ${game.minPlayers}+' : 'Max ${game.maxPlayers}')
+        : online
+        ? 'Online soon'
+        : null;
+
+    void tap() {
+      if (playable) {
+        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => game.open!(setup)));
+        return;
+      }
+      final msg = !game.available
+          ? '${game.name} is coming soon.'
+          : !fits
+          ? '${game.name} is for ${game.playersLabel}; you have ${setup.players}.'
+          : 'Playing with friends is coming soon. Switch to Bots to play now.';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(msg)));
+    }
+
+    return Semantics(
+      button: true,
+      enabled: playable,
+      label: '${game.name}, ${game.playersLabel}${why == null ? '' : ', $why'}',
+      child: GestureDetector(
+        onTap: tap,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: playable ? 1 : 0.5,
+          child: ToonBox(
+            color: playable ? game.color : Toon.grey,
+            padding: const EdgeInsets.all(10),
+            child: Stack(
               children: [
-                Text(
-                  AppInfo.name,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.bold),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Toon.paper.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(child: game.art(context)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      game.name,
+                      style: Toon.text(17, weight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(game.playersLabel, style: Toon.text(13, weight: FontWeight.w500)),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Card games, head to head.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 48),
-                const _ModeButton(icon: Icons.public, label: 'Play online'),
-                const SizedBox(height: 16),
-                const _ModeButton(icon: Icons.smart_toy_outlined, label: 'Play vs bot'),
+                if (why != null)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: Toon.box(Toon.card, radius: 8, shadow: 2),
+                      child: Text(why, style: Toon.text(12)),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -52,41 +152,22 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _ModeButton extends StatelessWidget {
-  const _ModeButton({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.icon(
-      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-      icon: Icon(icon),
-      label: Text(label),
-      onPressed: () => ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('$label is coming soon.'))),
-    );
-  }
-}
-
 /// Version and what's new in each version.
 void showAboutSheet(BuildContext context) {
-  final theme = Theme.of(context);
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
+    backgroundColor: Toon.paper,
     builder: (context) => SafeArea(
       child: ListView(
         shrinkWrap: true,
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         children: [
-          Text('${AppInfo.name} ${AppInfo.version}', style: theme.textTheme.titleLarge),
+          Text('${AppInfo.name} ${AppInfo.version}', style: Toon.text(22, weight: FontWeight.w700)),
           const SizedBox(height: 12),
           for (final (version, notes) in AppInfo.revisions) ...[
-            Text(version, style: theme.textTheme.titleSmall),
-            for (final note in notes) Text('• $note'),
+            Text(version, style: Toon.text(16)),
+            for (final note in notes) Text('• $note', style: Toon.text(15, weight: FontWeight.w500)),
             const SizedBox(height: 8),
           ],
         ],

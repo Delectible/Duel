@@ -35,5 +35,31 @@ Running list of requested changes and when each one landed.
 
 - [ ] **2.1 Pick the backend and sign-in** for online play, then update
   `docs/PRIVACY.md` and the Data safety form to match.
-- [ ] **2.2 First card game** vs a bot.
+- [x] **2.2 First card game** vs a bot: Texas Hold'em (see 3.4).
+  → 0.2.0 · 2026-10-10
 - [ ] **2.3 First card game** online.
+
+## Revision v0.2 (requested 2026-10-10)
+
+Ships as app version **0.2.0**.
+
+### 3. Platform and poker
+
+- [x] **3.1 Connection bar** at the top: Bots | Friend. Bots: difficulty
+  (Easy / Normal / Hard, mixed personalities) and bot count 1-5. Friend:
+  Party button. → 0.2.0 · 2026-10-10
+- [x] **3.2 Game picker** greys out games that don't fit the player count
+  (you + bots, or your party). Hold'em, plus Crazy Eights, Go Fish and
+  Four in a Row as "Soon". → 0.2.0 · 2026-10-10
+- [x] **3.3 Party screen** (online later): you as host, Invite a friend,
+  "Who picks the game": Host decides / Vote / First come.
+  → 0.2.0 · 2026-10-10
+- [x] **3.4 Texas Hold'em Sit & Go vs bots**, 2-6 players, no-limit:
+  1,500 chips; blinds up every 6 hands heads-up, 8 at 3-4 players, 10 at
+  5-6. Side pots, all-ins, splits, proper heads-up blinds. Fold / Check or
+  Call / Raise with - and + in big blinds (hold to repeat), Min, 1/2 Pot,
+  Pot, All-in. Bots: Rookie, Rock, Shark, Maniac. → 0.2.0 · 2026-10-10
+- [x] **3.5 Cartoon look:** Fredoka font, thick outlines, chunky buttons,
+  drawn suits, card backs and bot faces. → 0.2.0 · 2026-10-10
+- [ ] **3.6 Later:** progressive currency across games (replaces the
+  fixed buy-in).

@@ -50,8 +50,8 @@ raise it with Luca.
 
 ## Phases
 
-1. **Local:** home page, game picker with player counts, the game plug-in
-   interface, a first game against a bot.
+1. **Local** (0.2.0): home page, game picker with player counts, the game
+   plug-in interface, a first game against bots (Texas Hold'em).
 2. **Online party:** anonymous sign-in, create a party, invite by link /
    code, shared picker, play that game online, back to the picker.
 3. **Friends:** usernames, friends list, invites and "your turn"

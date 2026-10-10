@@ -102,13 +102,41 @@ together, GamePigeon-easy. Let it guide design and development choices.
 
 ## Stack
 
-Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. No packages yet; the
-online backend (provider, sign-in) is still to be chosen.
+Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. No packages yet (state
+is ChangeNotifier + InheritedNotifier); the online backend (provider,
+sign-in) is still to be chosen. Font: Fredoka (assets/fonts, OFL), static
+weights cut from the variable font.
 
 ## App layout
 
-- `lib/main.dart`: `DuelApp` (theme: card-table green).
+- `lib/main.dart`: `DuelApp` (Toon theme, `PlaySetupScope`).
 - `lib/core/app_info.dart`: version, `latest` (Play's What's new),
   `revisions` (About).
-- `lib/features/home/`: home screen (Play online / Play vs bot, both
-  "coming soon"), About sheet.
+- `lib/core/session/`: `PlaySetup` (the connection bar: Bots / Friend,
+  `Difficulty`, bot count, party pick rule), shared by every screen.
+- `lib/core/theme/toon.dart`: the cartoon look (`Toon` colours, `ToonBox`,
+  `ToonButton` with hold-to-repeat, `chips()` formatting). Use these, not
+  stock Material buttons.
+- `lib/core/cards/`: `PlayingCard` / `Deck` and `CardView` (suits are drawn
+  paths; Fredoka has no suit glyphs). Shared by every card game.
+- `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player
+  range, art, `open`; null `open` = "Soon"). Adding a game: its folder in
+  `lib/games/` plus one entry here.
+- `lib/games/poker/engine/`: pure Dart, no Flutter. `hand_eval.dart`
+  (best five of seven, descriptions), `poker_hand.dart` (one no-limit hand:
+  blinds, betting rules incl. incomplete all-in raises, side pots, odd
+  chips), `sit_and_go.dart` (button, blind levels per table size, places),
+  `bot.dart` (Monte Carlo equity + `BotStyle` personalities).
+  `dart run tool/poker/simulate.dart [n] [easy|normal|hard]` plays bot-only
+  Sit & Gos for tuning.
+- `lib/games/poker/ui/`: `PokerController` (paces the table: deals, bots
+  think, collect, payout; `pace` 0.05 in tests), `table_view.dart` (seats
+  around the felt, clockwise from you at the bottom; chips fly to the pot
+  and winners), `action_bar.dart`, `faces.dart` (bot personas + cartoon
+  faces).
+- `lib/features/home/`: home (connection bar + game grid, About),
+  `lib/features/party/`: party screen.
+- Tests: engine rules in `test/poker/`; screens at Pixel 9 Pro and 360 dp
+  with the real fonts (`test/flutter_test_config.dart`); `SHOTS=dir flutter
+  test` saves PNGs of the screens (`test/screens.dart`) to check layouts
+  without a phone.
