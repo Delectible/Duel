@@ -10,7 +10,7 @@ import '../engine/bot.dart';
 import '../engine/hand_eval.dart';
 import '../engine/poker_hand.dart';
 import '../engine/sit_and_go.dart';
-import 'faces.dart';
+import '../../../core/avatars/faces.dart';
 
 enum TablePhase {
   /// Your deal: shuffle the deck, then tap Deal.
@@ -40,22 +40,34 @@ class PokerController extends ChangeNotifier {
     required this.difficulty,
     Random? rng,
     this.pace = 1,
+    this.you = const Persona.you(),
     this.resultTimeout,
   }) : _rng = rng ?? Random(),
        assert(bots >= 1 && bots <= 5) {
-    personas = [const Persona.you(), ...Persona.bots(bots, _rng)];
+    personas = [you, ...Persona.bots(bots, _rng)];
     game = SitAndGo(
       names: [for (final p in personas) p.name],
       config: SitAndGoConfig.forPlayers(bots + 1),
       rng: _rng,
     );
     _bots = [
-      for (final p in personas)
-        p.style == null ? null : PokerBot(style: p.style!, difficulty: difficulty, rng: _rng),
+      for (final (i, p) in personas.indexed)
+        i == 0 ? null : PokerBot(style: _styleFor[p.look]!, difficulty: difficulty, rng: _rng),
     ];
   }
 
   final Difficulty difficulty;
+
+  /// Your face and name at the table.
+  final Persona you;
+
+  /// Each bot look plays its own way.
+  static const _styleFor = {
+    Look.cap: BotStyle.rookie,
+    Look.shades: BotStyle.rock,
+    Look.fin: BotStyle.shark,
+    Look.spiky: BotStyle.maniac,
+  };
 
   /// How long a showdown result waits for Next hand before moving on by
   /// itself: null (bot games) waits for you; online games use 10 seconds so
@@ -297,7 +309,9 @@ class PokerController extends ChangeNotifier {
     for (final (k, pot) in r.pots.indexed) {
       // A side pot only one player is in is an uncalled bet coming back.
       if (k > 0 && pot.eligible.length == 1) continue;
-      final names = pot.winners.map((i) => personas[game.handSeats[i]].name).toList();
+      final names = pot.winners
+          .map((i) => game.handSeats[i] == 0 ? 'You' : personas[game.handSeats[i]].name)
+          .toList();
       final who = names.length == 1
           ? names.first
           : '${names.sublist(0, names.length - 1).join(', ')} & ${names.last}';

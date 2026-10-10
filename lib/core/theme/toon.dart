@@ -5,10 +5,38 @@ import 'package:flutter/services.dart';
 
 /// Duel's cartoon look: flat colours, thick dark outlines, chunky drop
 /// shadows, rounded everything, Fredoka type.
+///
+/// Light and dark: the bright colours and the table stay the same; the
+/// page, panels, text and outlines switch with [dark]. Those are getters,
+/// so they can't go in `const` expressions; after changing [dark] the app
+/// rebuilds every widget (`rebuildAll`).
 abstract final class Toon {
-  static const ink = Color(0xFF2B2D42);
-  static const paper = Color(0xFFFFF6E5);
-  static const card = Color(0xFFFFFDF7);
+  /// Dark mode on (set from Settings / the phone).
+  static var dark = false;
+
+  /// Outlines and drop shadows.
+  static Color get ink => dark ? const Color(0xFF0D0E16) : inkLight;
+
+  /// Text and icons on the page and panels.
+  static Color get fg => dark ? const Color(0xFFF2EDE1) : inkLight;
+
+  /// The page behind everything.
+  static Color get paper => dark ? const Color(0xFF1B1E2B) : const Color(0xFFFFF6E5);
+
+  /// Panels and plain buttons.
+  static Color get card => dark ? const Color(0xFF2B2F42) : const Color(0xFFFFFDF7);
+
+  /// Secondary text.
+  static Color get muted => dark ? const Color(0xFFA19EB2) : const Color(0xFF8A8778);
+
+  /// Turned-off buttons.
+  static Color get grey => dark ? const Color(0xFF4A4D5E) : const Color(0xFFCFCAC0);
+
+  /// Dark text on the bright colours (yellow, green, ...), in both modes.
+  static const inkLight = Color(0xFF2B2D42);
+
+  /// Playing card faces stay white in both modes.
+  static const cardFace = Color(0xFFFFFDF7);
   static const felt = Color(0xFF3DA35D);
   static const feltDark = Color(0xFF2C7A45);
   static const wood = Color(0xFFB0703A);
@@ -20,28 +48,35 @@ abstract final class Toon {
   static const purple = Color(0xFF9B6BFF);
   static const teal = Color(0xFF2EC4B6);
   static const green = Color(0xFF57C27A);
-  static const grey = Color(0xFFCFCAC0);
-  static const muted = Color(0xFF8A8778);
 
   static const outline = 2.5;
   static const radius = 16.0;
   static const font = 'Fredoka';
 
-  static TextStyle text(double size, {FontWeight weight = FontWeight.w600, Color color = ink}) =>
-      TextStyle(fontFamily: font, fontSize: size, fontWeight: weight, color: color, height: 1.1);
+  /// Text that reads on [background]: dark ink on bright colours, [fg] on
+  /// the page and panels.
+  static Color on(Color background) => background.computeLuminance() > 0.35 ? inkLight : fg;
+
+  static TextStyle text(double size, {FontWeight weight = FontWeight.w600, Color? color}) =>
+      TextStyle(fontFamily: font, fontSize: size, fontWeight: weight, color: color ?? fg, height: 1.1);
 
   static ThemeData theme() {
     final base = ThemeData(
       useMaterial3: true,
       fontFamily: font,
-      colorScheme: ColorScheme.fromSeed(seedColor: felt, surface: paper),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: felt,
+        surface: paper,
+        brightness: dark ? Brightness.dark : Brightness.light,
+      ),
       scaffoldBackgroundColor: paper,
     );
     return base.copyWith(
-      textTheme: base.textTheme.apply(bodyColor: ink, displayColor: ink, fontFamily: font),
+      textTheme: base.textTheme.apply(bodyColor: fg, displayColor: fg, fontFamily: font),
+      iconTheme: IconThemeData(color: fg),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: ink,
-        contentTextStyle: text(15, color: paper),
+        backgroundColor: dark ? card : inkLight,
+        contentTextStyle: text(15, color: dark ? fg : paper),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
       ),
@@ -61,25 +96,36 @@ class ToonBox extends StatelessWidget {
   const ToonBox({
     super.key,
     required this.child,
-    this.color = Toon.card,
+    this.color,
     this.radius = Toon.radius,
     this.shadow = 4,
     this.padding = const EdgeInsets.all(12),
   });
 
   final Widget child;
-  final Color color;
+
+  /// Defaults to the panel colour.
+  final Color? color;
   final double radius;
   final double shadow;
   final EdgeInsetsGeometry padding;
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: EdgeInsets.only(bottom: shadow),
-    padding: padding,
-    decoration: Toon.box(color, radius: radius, shadow: shadow),
-    child: child,
-  );
+  Widget build(BuildContext context) {
+    final c = color ?? Toon.card;
+    return Container(
+      margin: EdgeInsets.only(bottom: shadow),
+      padding: padding,
+      decoration: Toon.box(c, radius: radius, shadow: shadow),
+      child: DefaultTextStyle.merge(
+        style: TextStyle(color: Toon.on(c)),
+        child: IconTheme.merge(
+          data: IconThemeData(color: Toon.on(c)),
+          child: child,
+        ),
+      ),
+    );
+  }
 }
 
 /// A chunky button that sinks into its shadow when pressed. Null [onPressed]
@@ -166,10 +212,10 @@ class _ToonButtonState extends State<ToonButton> {
           padding: widget.padding,
           decoration: Toon.box(color, radius: widget.radius, shadow: _down ? 0 : _depth),
           child: DefaultTextStyle.merge(
-            style: Toon.text(17, color: _enabled ? Toon.ink : Toon.muted),
+            style: Toon.text(17, color: _enabled ? Toon.on(color) : Toon.muted),
             textAlign: TextAlign.center,
             child: IconTheme.merge(
-              data: IconThemeData(color: _enabled ? Toon.ink : Toon.muted),
+              data: IconThemeData(color: _enabled ? Toon.on(color) : Toon.muted),
               child: Center(widthFactor: 1, heightFactor: 1, child: widget.child),
             ),
           ),
@@ -190,4 +236,15 @@ String chips(int n) {
     out.write(s[i]);
   }
   return out.toString();
+}
+
+/// Rebuilds every widget in the app, after [Toon.dark] changes (const
+/// widgets would otherwise keep their old colours).
+void rebuildAll() {
+  void mark(Element e) {
+    e.markNeedsBuild();
+    e.visitChildren(mark);
+  }
+
+  WidgetsBinding.instance.rootElement?.visitChildren(mark);
 }

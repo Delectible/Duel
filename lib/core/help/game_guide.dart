@@ -139,7 +139,7 @@ class _Stage extends StatelessWidget {
           color: here ? Toon.yellow : Toon.ink.withValues(alpha: 0.25),
           width: here ? 4 : 1.5,
         ),
-        boxShadow: [if (here) const BoxShadow(color: Toon.ink, spreadRadius: 1.5, offset: Offset(0, 3))],
+        boxShadow: [if (here) BoxShadow(color: Toon.ink, spreadRadius: 1.5, offset: const Offset(0, 3))],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

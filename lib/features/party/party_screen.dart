@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
-import '../../games/poker/ui/faces.dart';
+import '../../core/account/account.dart';
+import '../../core/avatars/faces.dart';
 import 'coin_toss.dart';
 import 'vote.dart';
 
@@ -39,7 +40,7 @@ class PartyScreen extends StatelessWidget {
             ToonBox(
               child: Row(
                 children: [
-                  const Face(Persona.you(), size: 48),
+                  Face(AccountScope.of(context).persona, size: 48),
                   const SizedBox(width: 12),
                   Expanded(child: Text('You', style: Toon.text(18))),
                   Container(

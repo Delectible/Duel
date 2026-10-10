@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/cards/cards.dart';
 import '../../../core/session/difficulty.dart';
-import '../../poker/ui/faces.dart';
+import '../../../core/avatars/faces.dart';
 import '../engine/crazy_eights.dart';
 import '../engine/eights_bot.dart';
 
@@ -26,13 +26,21 @@ enum EightsPhase {
 /// Runs a game of Crazy Eights against bots for the table screen. Seat 0 is
 /// you.
 class EightsController extends ChangeNotifier {
-  EightsController({required int bots, required this.difficulty, Random? rng, this.pace = 1})
-    : _rng = rng ?? Random(),
-      assert(bots >= 1 && bots <= 3) {
+  EightsController({
+    required int bots,
+    required this.difficulty,
+    Random? rng,
+    this.pace = 1,
+    this.you = const Persona.you(),
+  }) : _rng = rng ?? Random(),
+       assert(bots >= 1 && bots <= 3) {
     _start(bots);
   }
 
   final Difficulty difficulty;
+
+  /// Your face and name at the table.
+  final Persona you;
 
   /// Multiplies every delay (tests).
   final double pace;
@@ -63,7 +71,7 @@ class EightsController extends ChangeNotifier {
   List<PlayingCard> get yourPlayable => yourTurn ? game.playable(0) : const [];
 
   void _start(int bots) {
-    personas = [const Persona.you(), ...Persona.bots(bots, _rng)];
+    personas = [you, ...Persona.bots(bots, _rng)];
     game = CrazyEights(players: bots + 1, rng: _rng);
     _bots = [for (var p = 0; p <= bots; p++) p == 0 ? null : EightsBot(difficulty: difficulty, rng: _rng)];
     draws.clear();

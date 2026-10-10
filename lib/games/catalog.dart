@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/account/stake.dart';
 import '../core/cards/card_view.dart';
 import '../core/cards/cards.dart';
 import '../core/session/play_setup.dart';
@@ -42,8 +43,8 @@ class GameInfo {
   /// Rough length of a game for this many players.
   final int Function(int players) minutes;
 
-  /// Opens the game for this setup; null = coming soon.
-  final Widget Function(PlaySetup setup)? open;
+  /// Opens the game for this setup with its stake; null = coming soon.
+  final Widget Function(PlaySetup setup, StakeTicket stake)? open;
 
   bool get available => open != null;
 
@@ -96,7 +97,7 @@ final games = <GameInfo>[
     // Bot-only runs: ~25 hands heads-up to ~65 six-handed; more players,
     // longer hands.
     minutes: (players) => const {2: 10, 3: 15, 4: 20, 5: 30}[players] ?? 35,
-    open: (setup) => PokerScreen(bots: setup.botCount, difficulty: setup.difficulty),
+    open: (setup, stake) => PokerScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
     id: 'crazy8',
@@ -113,7 +114,7 @@ final games = <GameInfo>[
       "Can't play? Draw a card. First to get rid of all their cards wins.",
     ],
     minutes: (players) => 3 + players * 2,
-    open: (setup) => EightsScreen(bots: setup.botCount, difficulty: setup.difficulty),
+    open: (setup, stake) => EightsScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
     id: 'gofish',
@@ -201,7 +202,7 @@ class _Discs extends StatelessWidget {
                     margin: const EdgeInsets.all(1.5),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const [Toon.paper, Toon.red, Toon.yellow][cell],
+                      color: [Toon.cardFace, Toon.red, Toon.yellow][cell],
                       border: Border.all(color: Toon.ink, width: 1.5),
                     ),
                   ),

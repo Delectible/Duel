@@ -187,7 +187,7 @@ class _RankRow extends StatelessWidget {
           color: yours ? Toon.yellow : Toon.ink.withValues(alpha: 0.25),
           width: yours ? 4 : 1.5,
         ),
-        boxShadow: [if (yours) const BoxShadow(color: Toon.ink, spreadRadius: 1.5, offset: Offset(0, 3))],
+        boxShadow: [if (yours) BoxShadow(color: Toon.ink, spreadRadius: 1.5, offset: const Offset(0, 3))],
       ),
       child: Row(
         children: [

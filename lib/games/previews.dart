@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/cards/card_view.dart';
 import '../core/cards/cards.dart';
 import '../core/theme/toon.dart';
-import 'poker/ui/faces.dart';
+import '../core/avatars/faces.dart';
 
 /// Sample boards for the game previews: a still picture of each game in
 /// play, drawn with the same pieces as the games.
@@ -243,7 +243,7 @@ class FourInARowPreview extends StatelessWidget {
                     margin: const EdgeInsets.all(2.5),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const [Toon.paper, Toon.red, Toon.yellow][cell],
+                      color: [Toon.cardFace, Toon.red, Toon.yellow][cell],
                       border: Border.all(color: Toon.ink, width: 2),
                     ),
                   ),

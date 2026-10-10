@@ -4,7 +4,7 @@ import '../theme/toon.dart';
 import 'cards.dart';
 
 const cardRed = Color(0xFFE23B48);
-const cardBlack = Toon.ink;
+const cardBlack = Toon.inkLight;
 
 /// A suit symbol drawn as a path (Fredoka has no suit glyphs), filling a
 /// square of [size].
@@ -130,9 +130,9 @@ class CardView extends StatelessWidget {
       final color = c.suit.isRed ? cardRed : cardBlack;
       face = Container(
         decoration: BoxDecoration(
-          color: Toon.card,
+          color: Toon.cardFace,
           borderRadius: BorderRadius.circular(r),
-          border: Border.all(color: Toon.ink, width: border),
+          border: Border.all(color: Toon.inkLight, width: border),
         ),
         child: Stack(
           children: [
@@ -190,13 +190,13 @@ class _CardBack extends StatelessWidget {
     decoration: BoxDecoration(
       color: Toon.red,
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: Toon.ink, width: border),
+      border: Border.all(color: Toon.inkLight, width: border),
     ),
     padding: EdgeInsets.all(width * 0.08),
     child: Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius * 0.6),
-        border: Border.all(color: Toon.card, width: (width * 0.04).clamp(1, 2)),
+        border: Border.all(color: Toon.cardFace, width: (width * 0.04).clamp(1, 2)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius * 0.6),
@@ -211,7 +211,7 @@ class _BackPattern extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Toon.card.withValues(alpha: 0.35)
+      ..color = Toon.cardFace.withValues(alpha: 0.35)
       ..strokeWidth = size.width * 0.08;
     final step = size.width / 3;
     for (var x = -size.height; x < size.width + size.height; x += step) {

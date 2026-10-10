@@ -6,7 +6,9 @@ import '../../../core/help/game_guide.dart';
 import '../../../core/session/difficulty.dart';
 import '../../../core/theme/toon.dart';
 import 'action_bar.dart';
-import 'faces.dart';
+import '../../../core/account/account.dart';
+import '../../../core/account/stake.dart';
+import '../../../core/avatars/faces.dart';
 import 'poker_guide.dart';
 import 'poker_controller.dart';
 import 'table_view.dart';
@@ -20,6 +22,7 @@ class PokerScreen extends StatefulWidget {
     this.pace = 1,
     this.seed,
     this.resultTimeout,
+    this.stake,
   });
 
   final int bots;
@@ -35,30 +38,61 @@ class PokerScreen extends StatefulWidget {
   /// (bot games). Online games will pass 10 seconds.
   final Duration? resultTimeout;
 
+  /// The stake taken when you hit Play! (null: a free game).
+  final StakeTicket? stake;
+
   @override
   State<PokerScreen> createState() => _PokerScreenState();
 }
 
 class _PokerScreenState extends State<PokerScreen> {
   late PokerController _c;
+  late StakeTicket _ticket;
+  late Account _account;
 
   @override
   void initState() {
     super.initState();
+    _account = AccountScope.maybeRead(context) ?? Account();
+    _ticket =
+        widget.stake ??
+        StakeTicket(
+          account: _account,
+          gameId: 'holdem',
+          stake: 0,
+          opponents: widget.bots,
+          difficulty: widget.difficulty,
+        );
     _c = _newTable();
   }
 
-  PokerController _newTable() => PokerController(
-    bots: widget.bots,
-    difficulty: widget.difficulty,
-    pace: widget.pace,
-    resultTimeout: widget.resultTimeout,
-    rng: widget.seed == null ? null : Random(widget.seed),
-  )..start();
+  /// A fresh table. Stored in [_c] before it starts: [_settle] reads it.
+  PokerController _newTable() {
+    final c = _c = PokerController(
+      bots: widget.bots,
+      difficulty: widget.difficulty,
+      pace: widget.pace,
+      resultTimeout: widget.resultTimeout,
+      rng: widget.seed == null ? null : Random(widget.seed),
+      you: _account.persona,
+    );
+    c
+      ..addListener(_settle)
+      ..start();
+    return c;
+  }
+
+  /// Your tournament's over: win only for first place.
+  void _settle() {
+    if (_c.phase == TablePhase.finished && !_ticket.settled) {
+      _ticket.settle(_c.yourPlace == 1 ? Outcome.win : Outcome.loss);
+    }
+  }
 
   void _playAgain() {
     setState(() {
       _c.dispose();
+      _ticket = _ticket.again();
       _c = _newTable();
     });
   }
@@ -70,53 +104,9 @@ class _PokerScreenState extends State<PokerScreen> {
   }
 
   Future<void> _leave() async {
-    if (_c.phase == TablePhase.finished) {
-      Navigator.of(context).pop();
-      return;
+    if (_c.phase == TablePhase.finished || await confirmLeave(context, _ticket)) {
+      if (mounted) Navigator.of(context).pop();
     }
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: ToonBox(
-          color: Toon.paper,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Leave the table?', style: Toon.text(22, weight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              Text(
-                "Your chips stay behind and this game won't count.",
-                textAlign: TextAlign.center,
-                style: Toon.text(16, weight: FontWeight.w500),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ToonButton(
-                      color: Toon.card,
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Stay'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ToonButton(
-                      color: Toon.red,
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Leave'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (leave == true && mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -134,14 +124,19 @@ class _PokerScreenState extends State<PokerScreen> {
               children: [
                 Column(
                   children: [
-                    _Hud(c: _c, onLeave: _leave),
+                    _Hud(c: _c, ticket: _ticket, onLeave: _leave),
                     Expanded(child: TableView(c: _c)),
                     ActionBar(c: _c),
                   ],
                 ),
                 if (_c.phase == TablePhase.finished)
                   Positioned.fill(
-                    child: _GameOver(c: _c, onAgain: _playAgain, onLeave: () => Navigator.of(context).pop()),
+                    child: _GameOver(
+                      c: _c,
+                      ticket: _ticket,
+                      onAgain: _playAgain,
+                      onLeave: () => Navigator.of(context).pop(),
+                    ),
                   ),
               ],
             ),
@@ -153,9 +148,10 @@ class _PokerScreenState extends State<PokerScreen> {
 }
 
 class _Hud extends StatelessWidget {
-  const _Hud({required this.c, required this.onLeave});
+  const _Hud({required this.c, required this.ticket, required this.onLeave});
 
   final PokerController c;
+  final StakeTicket ticket;
   final VoidCallback onLeave;
 
   @override
@@ -178,7 +174,13 @@ class _Hud extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Texas Hold'em", style: Toon.text(18, weight: FontWeight.w700)),
+                Row(
+                  children: [
+                    Text("Texas Hold'em", style: Toon.text(18, weight: FontWeight.w700)),
+                    const SizedBox(width: 6),
+                    StakeBadge(ticket),
+                  ],
+                ),
                 Text(
                   'Blinds ${chips(sb)} / ${chips(bb)}'
                   '${left == null ? '' : ' · up in $left hand${left == 1 ? '' : 's'}'}',
@@ -206,9 +208,10 @@ class _Hud extends StatelessWidget {
 }
 
 class _GameOver extends StatelessWidget {
-  const _GameOver({required this.c, required this.onAgain, required this.onLeave});
+  const _GameOver({required this.c, required this.ticket, required this.onAgain, required this.onLeave});
 
   final PokerController c;
+  final StakeTicket ticket;
   final VoidCallback onAgain;
   final VoidCallback onLeave;
 
@@ -249,7 +252,9 @@ class _GameOver extends StatelessWidget {
                     '${c.game.handsPlayed} hand${c.game.handsPlayed == 1 ? '' : 's'}',
                     style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+                  StakeResult(ticket),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
                       Expanded(

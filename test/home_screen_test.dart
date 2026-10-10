@@ -1,5 +1,6 @@
 import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/main.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'screens.dart';
@@ -49,8 +50,10 @@ void main() {
   testWidgets('About shows the version', (tester) async {
     usePhone(tester, phones['pixel9pro']!);
     await tester.pumpWidget(DuelApp());
-    await tester.tap(find.byTooltip('About'));
+    await tester.tap(find.byKey(const Key('settings')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Duel 0.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('about')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Duel 0.'), findsWidgets); // the button and the sheet
   });
 }

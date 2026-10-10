@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:duel/core/account/account.dart';
 import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/features/party/coin_toss.dart';
@@ -64,9 +65,12 @@ void main() {
     usePhone(tester, phones['small']!);
     final setup = PlaySetup();
     await tester.pumpWidget(
-      PlaySetupScope(
-        setup: setup,
-        child: MaterialApp(theme: Toon.theme(), home: const PartyScreen()),
+      AccountScope(
+        account: Account(),
+        child: PlaySetupScope(
+          setup: setup,
+          child: MaterialApp(theme: Toon.theme(), home: const PartyScreen()),
+        ),
       ),
     );
     expect(find.byKey(const Key('try coin')), findsNothing);

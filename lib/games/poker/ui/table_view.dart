@@ -4,7 +4,7 @@ import '../../../core/cards/card_view.dart';
 import '../../../core/cards/cards.dart';
 import '../../../core/theme/toon.dart';
 import '../engine/poker_hand.dart';
-import 'faces.dart';
+import '../../../core/avatars/faces.dart';
 import 'hand_chart.dart';
 import 'shuffle_deck.dart';
 import 'poker_controller.dart';
@@ -336,7 +336,7 @@ class _ChipPile extends StatelessWidget {
   final int amount;
   final String label;
 
-  static const _colors = [Toon.red, Toon.blue, Toon.ink, Toon.green];
+  static const _colors = [Toon.red, Toon.blue, Toon.inkLight, Toon.green];
 
   @override
   Widget build(BuildContext context) {
@@ -478,7 +478,7 @@ class _Avatar extends StatelessWidget {
         color: ring,
         shape: BoxShape.circle,
         border: Border.all(color: Toon.ink, width: Toon.outline),
-        boxShadow: const [BoxShadow(color: Toon.ink, offset: Offset(0, 3))],
+        boxShadow: [BoxShadow(color: Toon.ink, offset: const Offset(0, 3))],
       ),
       child: Face(persona, size: size - 11),
     );
@@ -672,7 +672,7 @@ class _YourSeat extends StatelessWidget {
               children: [
                 _Avatar(persona: c.personas[0], size: 54, acting: c.yourTurn, winner: winner),
                 const SizedBox(height: 4),
-                _NamePlate(name: 'You', stack: p?.stack ?? table.stack),
+                _NamePlate(name: c.personas[0].name, stack: p?.stack ?? table.stack),
               ],
             ),
           ),
