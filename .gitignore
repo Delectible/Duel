@@ -1,0 +1,40 @@
+# Flutter / Dart (pubspec.lock is committed: builds use the same packages)
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+*.iml
+.idea/
+.vscode/
+.DS_Store
+coverage/
+__pycache__/
+
+# Android (CI regenerates missing boilerplate with `flutter create`)
+android/.gradle/
+android/local.properties
+android/**/GeneratedPluginRegistrant.java
+android/app/.cxx/
+*.apk
+*.aab
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.*
+
+# Signing keys stay out of the repo (only the public test key is committed).
+# The upload key and its base64 copy must never land here.
+*.jks
+*.keystore
+!android/app/duel-test.jks
+*.jks.base64
+upload*.txt
+key.properties

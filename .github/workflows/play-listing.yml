@@ -1,0 +1,50 @@
+name: Play Store listing
+# Publishes the store listing in fastlane/metadata/android (title, short and
+# full description, icon, feature graphic) to Google Play with the same
+# service account the build uploads with. Runs when those files change on
+# main, or by hand from the Actions tab. App builds are not touched.
+on:
+  push:
+    branches: [main]
+    paths: ['fastlane/metadata/**', '.github/workflows/play-listing.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: play-listing
+  cancel-in-progress: false
+
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    env:
+      SA: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      # Until the app is set up on Play (secret added), pushes skip quietly;
+      # a run started by hand still fails loudly.
+      - name: Look for the Play service account
+        id: sa
+        run: |
+          if [ -n "$SA" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = workflow_dispatch ]; then echo "::error::No PLAY_SERVICE_ACCOUNT_JSON secret."; exit 1
+          else echo "::notice::No PLAY_SERVICE_ACCOUNT_JSON secret: not publishing the listing."; fi
+      - uses: actions/checkout@v4
+        if: steps.sa.outputs.ok == 'true'
+      - run: sudo gem install fastlane --no-document --quiet
+        if: steps.sa.outputs.ok == 'true'
+      - name: Upload the listing
+        if: steps.sa.outputs.ok == 'true'
+        run: |
+          printf '%s' "$SA" > "$RUNNER_TEMP/play.json"
+          # supply attaches the listing to a track's release; production has
+          # none yet, so point it at internal testing.
+          fastlane run supply \
+            package_name:com.dingo.duel \
+            json_key:"$RUNNER_TEMP/play.json" \
+            metadata_path:fastlane/metadata/android \
+            track:internal \
+            skip_upload_apk:true \
+            skip_upload_aab:true \
+            skip_upload_changelogs:true \
+            skip_upload_screenshots:true \
+            sync_image_upload:true

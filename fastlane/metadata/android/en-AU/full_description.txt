@@ -1,0 +1,9 @@
+Duel is a home for quick, head-to-head card games.
+
+• Play online against another player on the app.
+• No one around? Practise against a bot.
+• More games added over time.
+
+Duel is new and in early testing: the first games are on the way.
+
+No ads. Your account and games are only used to run the game.
