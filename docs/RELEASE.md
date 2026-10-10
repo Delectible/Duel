@@ -118,5 +118,6 @@ upload key on Play.
 - 2026-10-10: repo, placeholder app and pipeline set up (build 1).
 - 2026-10-10: build 1 (public test key) was the first upload, so Play
   registered the test key as upload key (SHA1 9C:9E:EA…). Upload key reset
-  to the private key (SHA1 43:F2:1B…) requested; `play` uploads fail until
-  it takes effect.
+  to the private key (SHA1 43:F2:1B…) requested 2026-10-11; valid from
+  2026-10-12 14:00 UTC. `play` uploads fail until then; afterwards re-run
+  build 2's `play` job.
