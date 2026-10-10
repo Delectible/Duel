@@ -14,7 +14,15 @@ class AppInfo {
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
-    ('0.3', ['Poker hands cheat sheet: see where your hand ranks', 'Shuffle and deal on your deal']),
+    (
+      '0.3',
+      [
+        'Poker hands cheat sheet: see where your hand ranks',
+        'Shuffle and deal on your deal',
+        'Showdowns wait for Next hand',
+        'Party votes: a coin toss settles ties',
+      ],
+    ),
     (
       '0.2',
       [
