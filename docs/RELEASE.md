@@ -86,7 +86,7 @@ upload key on Play.
   **Games > Card**, contact email. Play needs at least 2 phone screenshots
   before closed testing / production: upload them in Main store listing
   (C can stage them from screen tests later).
-- [ ] **1.8 Closed testing** (L). Test and release > Testing > Closed
+- [ ] **1.8 Closed testing** (L). _Later: internal testing only for now (Luca, 2026-10-10)._ Test and release > Testing > Closed
   testing > the "Closed testing - Alpha" track > Manage track:
   - Testers > Google Groups: `darkroom-closed-testing@googlegroups.com`;
     feedback email or URL > Save.
