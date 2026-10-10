@@ -4,6 +4,7 @@ import '../core/cards/card_view.dart';
 import '../core/cards/cards.dart';
 import '../core/session/play_setup.dart';
 import '../core/theme/toon.dart';
+import 'crazy_eights/ui/eights_screen.dart';
 import 'poker/ui/poker_screen.dart';
 import 'previews.dart';
 
@@ -111,7 +112,8 @@ final games = <GameInfo>[
       'Eights are wild: play one any time and choose the next suit.',
       "Can't play? Draw a card. First to get rid of all their cards wins.",
     ],
-    minutes: (players) => 4 + players * 2,
+    minutes: (players) => 3 + players * 2,
+    open: (setup) => EightsScreen(bots: setup.botCount, difficulty: setup.difficulty),
   ),
   GameInfo(
     id: 'gofish',

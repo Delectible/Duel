@@ -95,3 +95,22 @@ Ships as app version **0.3.0**.
   vote / pick; previews never vote or start a coin toss). Games that can't
   start yet still preview, with the reason over a greyed Play!.
   → 0.3.0 · 2026-10-10
+
+### 5. Crazy Eights and help
+
+- [x] **5.1 Crazy Eights vs bots** (you + 1-3 bots): classic rules (match
+  suit or number, eights wild + name a suit, draw one if stuck and play it
+  if it fits, first out wins; 7 cards heads-up, 5 with 3-4; reshuffle when
+  the deck runs out; blocked game: fewest cards wins). Bots: Easy (any
+  card), Normal (saves eights, steers to its long suit), Hard (also plays
+  into suits a nearly-out player lacks). → 0.3.0 · 2026-10-10
+- [x] **5.2 Animations:** deal, cards fly to the pile from whoever played,
+  draws fly from the deck, the named suit pops up after an eight, "Last
+  card!", suit confetti when you win. → 0.3.0 · 2026-10-10
+- [x] **5.3 Commentary:** a line under the top bar says what just happened
+  and what you can do ("Your turn: play a heart or a 7, or an 8 (wild)"),
+  with the suit to follow; playable cards lift and glow. → 0.3.0 · 2026-10-10
+- [x] **5.4 How to play in every game:** a ? button in the top bar opens
+  the game's guide by stage, "You are here" on the current one (poker:
+  deal, preflop, board, betting tools, showdown, winning). → 0.3.0 · 2026-10-10
+

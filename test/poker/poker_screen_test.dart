@@ -213,4 +213,20 @@ void main() {
     }
     expect(next, findsNothing, reason: 'moved on by itself');
   });
+
+  testWidgets('the ? button opens the poker guide at the current stage', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(app(3));
+    for (var i = 0; i < 4000 && !yourTurn(); i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      await shuffleAndDeal(tester);
+    }
+    await tester.tap(find.byKey(const Key('guide')));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('How to play'), findsOneWidget);
+    expect(find.text('You are here'), findsOneWidget);
+    await shot(tester, 'poker_guide');
+  });
 }

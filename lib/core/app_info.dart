@@ -8,15 +8,17 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Tap any game for a preview: the rules, how long it takes, a sample board, then Play! '
-      'In poker, tap your hand for a cheat sheet, shuffle and deal on your deal, and showdowns wait '
-      "for Next hand so there's time to read who won. Fixed: the Blinds up! notice now shows.";
+      'New game: Crazy Eights against 1 to 3 bots, with a running commentary of every move. '
+      'Every game has a How to play guide (the ? button) and a preview with rules and a sample board. '
+      'Poker: a hands cheat sheet, shuffle and deal on your deal, and showdowns wait for Next hand.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
     (
       '0.3',
       [
+        'Crazy Eights vs bots',
+        'How to play guide in every game (?)',
         'Poker hands cheat sheet: see where your hand ranks',
         'Shuffle and deal on your deal',
         'Showdowns wait for Next hand',

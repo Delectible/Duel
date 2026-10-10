@@ -2,10 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/help/game_guide.dart';
 import '../../../core/session/difficulty.dart';
 import '../../../core/theme/toon.dart';
 import 'action_bar.dart';
 import 'faces.dart';
+import 'poker_guide.dart';
 import 'poker_controller.dart';
 import 'table_view.dart';
 
@@ -195,6 +197,8 @@ class _Hud extends StatelessWidget {
               style: Toon.text(14),
             ),
           ),
+          const SizedBox(width: 8),
+          GuideButton(title: "Texas Hold'em", stages: pokerGuide, current: () => pokerStage(c)),
         ],
       ),
     );

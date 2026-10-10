@@ -25,7 +25,7 @@ void main() {
       await tester.tap(find.text('Friend'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Party · 1'), findsOneWidget);
-      expect(find.text('Needs 2+'), findsOneWidget);
+      expect(find.text('Needs 2+'), findsNWidgets(2)); // Hold'em and Crazy Eights
       await shot(tester, 'home_friend_$phone');
       await tester.tap(find.textContaining('Party · 1'));
       await tester.pumpAndSettle();

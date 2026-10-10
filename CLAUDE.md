@@ -144,6 +144,14 @@ weights cut from the variable font.
   `shuffleAndDeal`). Showdown results wait for Next hand
   (`waitingForYou` / `nextHand()`); `resultTimeout` (online: 10 s) moves
   on by itself with a countdown.
+- `lib/games/crazy_eights/`: `engine/crazy_eights.dart` (rules + an event
+  list the commentary and animations read), `engine/eights_bot.dart`;
+  `ui/eights_controller.dart` (pacing, `commentary()`), `ui/eights_screen.dart`
+  (table, hand, piles, flights, suit burst, `eightsGuide`).
+- `lib/core/help/game_guide.dart`: the mid-game "How to play" sheet
+  (`GuideStage`s, `GuideButton` in every game's top bar, "You are here").
+  Every game needs one; keep players told what's happening (commentary,
+  bubbles, status lines).
 - `lib/features/home/`: home (connection bar + game grid, About),
   `lib/features/party/`: party screen, `vote.dart` (`tallyVotes`,
   `tossCoin`), `coin_toss.dart` (tie-break animation; takes the result,
