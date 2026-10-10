@@ -11,7 +11,14 @@ import 'table_view.dart';
 
 /// Texas Hold'em Sit & Go against [bots] bots.
 class PokerScreen extends StatefulWidget {
-  const PokerScreen({super.key, required this.bots, required this.difficulty, this.pace = 1, this.seed});
+  const PokerScreen({
+    super.key,
+    required this.bots,
+    required this.difficulty,
+    this.pace = 1,
+    this.seed,
+    this.resultTimeout,
+  });
 
   final int bots;
   final Difficulty difficulty;
@@ -21,6 +28,10 @@ class PokerScreen extends StatefulWidget {
 
   /// Fixed shuffles and bot choices (tests).
   final int? seed;
+
+  /// Showdown results wait this long for Next hand; null waits for you
+  /// (bot games). Online games will pass 10 seconds.
+  final Duration? resultTimeout;
 
   @override
   State<PokerScreen> createState() => _PokerScreenState();
@@ -39,6 +50,7 @@ class _PokerScreenState extends State<PokerScreen> {
     bots: widget.bots,
     difficulty: widget.difficulty,
     pace: widget.pace,
+    resultTimeout: widget.resultTimeout,
     rng: widget.seed == null ? null : Random(widget.seed),
   )..start();
 

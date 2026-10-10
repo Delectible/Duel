@@ -136,7 +136,9 @@ weights cut from the variable font.
   faces), `hand_chart.dart` (the hands cheat sheet, opened from your hand's
   name; `handRanks`), `shuffle_deck.dart` (your deal: the controller's
   `TablePhase.shuffle` waits for a shuffle and Deal; tests use
-  `shuffleAndDeal`).
+  `shuffleAndDeal`). Showdown results wait for Next hand
+  (`waitingForYou` / `nextHand()`); `resultTimeout` (online: 10 s) moves
+  on by itself with a countdown.
 - `lib/features/home/`: home (connection bar + game grid, About),
   `lib/features/party/`: party screen.
 - Tests: engine rules in `test/poker/`; screens at Pixel 9 Pro and 360 dp

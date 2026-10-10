@@ -9,7 +9,8 @@ class AppInfo {
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
       'Tap your hand under your cards for a poker hands cheat sheet that shows where you stand. '
-      "When the deal comes round to you, shuffle the deck and deal. Fixed: the Blinds up! notice now shows.";
+      'When the deal comes round to you, shuffle the deck and deal. After a showdown the table waits '
+      "for Next hand, so there's time to read who won. Fixed: the Blinds up! notice now shows.";
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

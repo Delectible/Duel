@@ -35,9 +35,14 @@ enum TablePhase {
 /// Runs a Sit & Go against bots for the table screen: deals, paces the
 /// bots, waits for you, settles hands. Seat 0 is you.
 class PokerController extends ChangeNotifier {
-  PokerController({required int bots, required this.difficulty, Random? rng, this.pace = 1})
-    : _rng = rng ?? Random(),
-      assert(bots >= 1 && bots <= 5) {
+  PokerController({
+    required int bots,
+    required this.difficulty,
+    Random? rng,
+    this.pace = 1,
+    this.resultTimeout,
+  }) : _rng = rng ?? Random(),
+       assert(bots >= 1 && bots <= 5) {
     personas = [const Persona.you(), ...Persona.bots(bots, _rng)];
     game = SitAndGo(
       names: [for (final p in personas) p.name],
@@ -51,6 +56,11 @@ class PokerController extends ChangeNotifier {
   }
 
   final Difficulty difficulty;
+
+  /// How long a showdown result waits for Next hand before moving on by
+  /// itself: null (bot games) waits for you; online games use 10 seconds so
+  /// one player can't hold up the table.
+  final Duration? resultTimeout;
 
   /// Multiplies every delay (0 in tests).
   final double pace;
@@ -76,6 +86,13 @@ class PokerController extends ChangeNotifier {
 
   /// Times you've shuffled the deck this deal.
   int shuffles = 0;
+
+  /// The showdown result is up and waits for [nextHand].
+  bool waitingForYou = false;
+
+  /// Seconds left before the result moves on by itself (timeout only).
+  int? secondsLeft;
+  Timer? _countdown;
 
   /// Blind level the last "Blinds up!" was shown for.
   var _shownLevel = 0;
@@ -228,8 +245,37 @@ class PokerController extends ChangeNotifier {
       revealed.add(game.handSeats[i]);
     }
     phase = TablePhase.payout;
+    if (!r.showdown) {
+      // Everyone else folded: nothing to read, move on.
+      _notify();
+      _after(1500, _endHand);
+      return;
+    }
+    // Who won and with what: wait until you've read it (Next hand).
+    waitingForYou = true;
+    final timeout = resultTimeout;
+    if (timeout != null) {
+      secondsLeft = timeout.inSeconds;
+      _countdown = Timer.periodic(Duration(milliseconds: (1000 * pace).round().clamp(1, 1000)), (t) {
+        if (_disposed) return;
+        secondsLeft = secondsLeft! - 1;
+        if (secondsLeft! <= 0) {
+          nextHand();
+        } else {
+          _notify();
+        }
+      });
+    }
     _notify();
-    _after(r.showdown ? 3200 : 1500, _endHand);
+  }
+
+  /// You've read the result: on to the next hand.
+  void nextHand() {
+    if (!waitingForYou) return;
+    waitingForYou = false;
+    secondsLeft = null;
+    _countdown?.cancel();
+    _endHand();
   }
 
   void _endHand() {
@@ -300,6 +346,7 @@ class PokerController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _timer?.cancel();
+    _countdown?.cancel();
     super.dispose();
   }
 }

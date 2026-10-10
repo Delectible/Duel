@@ -6,16 +6,39 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../screens.dart';
 
-Widget app(int bots, {double pace = 0.05}) => MaterialApp(
+Widget app(int bots, {double pace = 0.05, Duration? resultTimeout}) => MaterialApp(
   debugShowCheckedModeBanner: false,
   theme: Toon.theme(),
-  home: PokerScreen(bots: bots, difficulty: Difficulty.easy, pace: pace, seed: bots),
+  home: PokerScreen(
+    bots: bots,
+    difficulty: Difficulty.easy,
+    pace: pace,
+    seed: bots,
+    resultTimeout: resultTimeout,
+  ),
 );
+
+/// Plays (calling) until a showdown result is up.
+Future<void> untilShowdown(WidgetTester tester) async {
+  final next = find.byKey(const Key('next hand'));
+  for (var i = 0; i < 20000 && next.evaluate().isEmpty; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+    if (find.byKey(const Key('deck')).evaluate().isNotEmpty) await shuffleAndDeal(tester);
+    if (yourTurn()) await tester.tap(find.byKey(const Key('call')));
+  }
+  expect(next, findsOneWidget);
+}
 
 bool yourTurn() => find.byKey(const Key('fold')).evaluate().isNotEmpty;
 
-/// On your deal: one shuffle, then Deal. True if it was your deal.
+/// Between your turns: Next hand after a showdown, and on your deal one
+/// shuffle then Deal. True if it did either.
 Future<bool> shuffleAndDeal(WidgetTester tester) async {
+  if (find.byKey(const Key('next hand')).evaluate().isNotEmpty) {
+    await tester.tap(find.byKey(const Key('next hand')));
+    await tester.pump();
+    return true;
+  }
   if (find.byKey(const Key('deck')).evaluate().isEmpty) return false;
   await tester.tap(find.byKey(const Key('deck')));
   await tester.pump(const Duration(milliseconds: 800));
@@ -107,13 +130,8 @@ void main() {
       testWidgets('showdown with $bots bots on $phone', (tester) async {
         usePhone(tester, size);
         await tester.pumpWidget(app(bots, pace: 0.2));
-        final note = find.textContaining(RegExp(r' with [A-Z]'));
-        for (var i = 0; i < 20000 && note.evaluate().isEmpty; i++) {
-          await tester.pump(const Duration(milliseconds: 20));
-          if (await shuffleAndDeal(tester)) continue;
-          if (yourTurn()) await tester.tap(find.byKey(const Key('call')));
-        }
-        expect(note, findsOneWidget);
+        await untilShowdown(tester);
+        expect(find.textContaining(RegExp(r' with [A-Z]')), findsOneWidget);
         await tester.pump(const Duration(milliseconds: 600));
         await shot(tester, 'showdown_${bots}bots_$phone');
         expect(tester.takeException(), isNull);
@@ -163,5 +181,36 @@ void main() {
     expect(find.text('You'), findsWidgets);
     await shot(tester, 'poker_hand_chart');
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('bot games: the showdown result waits for Next hand', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(app(3));
+    await untilShowdown(tester);
+    final note = find.textContaining(RegExp(r' with [A-Z]'));
+    final hand = tester.widget<Text>(find.textContaining(RegExp(r'^Hand \d+$'))).data;
+    await tester.pump(const Duration(minutes: 2));
+    expect(note, findsOneWidget, reason: 'no time limit against bots');
+    await shot(tester, 'poker_next_hand');
+    await tester.tap(find.byKey(const Key('next hand')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byKey(const Key('next hand')), findsNothing);
+    expect(tester.widget<Text>(find.textContaining(RegExp(r'^Hand \d+$'))).data, isNot(hand));
+  });
+
+  testWidgets('with a timeout (online) the result counts down and moves on', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    // pace 0.2: a "second" of countdown is 200 ms.
+    await tester.pumpWidget(app(3, pace: 0.2, resultTimeout: const Duration(seconds: 10)));
+    await untilShowdown(tester);
+    final next = find.byKey(const Key('next hand'));
+    expect(find.descendant(of: next, matching: find.text('10')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 210));
+    expect(find.descendant(of: next, matching: find.text('9')), findsOneWidget);
+    await shot(tester, 'poker_next_hand_countdown');
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    expect(next, findsNothing, reason: 'moved on by itself');
   });
 }

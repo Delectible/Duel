@@ -60,9 +60,45 @@ class _ActionBarState extends State<ActionBar> {
       alignment: Alignment.bottomCenter,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        child: c.phase == TablePhase.shuffle
+        child: c.waitingForYou
+            ? _nextHandButton()
+            : c.phase == TablePhase.shuffle
             ? _dealButton()
             : (c.yourTurn ? (_raising ? _raisePanel() : _buttons()) : _status()),
+      ),
+    );
+  }
+
+  /// After a showdown: the table waits for this (online: counts down).
+  Widget _nextHandButton() {
+    final left = c.secondsLeft;
+    // You're out, or someone has every chip: the results come next.
+    final me = c.handPlayer(0);
+    final last = (me != null && me.stack == 0) || c.hand!.players.where((p) => p.stack > 0).length <= 1;
+    return SizedBox(
+      height: 60,
+      child: ToonButton(
+        key: const Key('next hand'),
+        color: Toon.green,
+        onPressed: c.nextHand,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(last ? 'Continue' : 'Next hand', style: Toon.text(18, weight: FontWeight.w700)),
+            const SizedBox(width: 6),
+            const Icon(Icons.arrow_forward_rounded),
+            if (left != null) ...[
+              const SizedBox(width: 10),
+              Container(
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: Toon.box(Toon.card, radius: 15, shadow: 0),
+                child: Text('$left', style: Toon.text(15, weight: FontWeight.w700)),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -78,4 +78,7 @@ Ships as app version **0.3.0**.
   deck to riffle-shuffle (animation + haptics), then Deal (after at least
   one shuffle). → 0.3.0 · 2026-10-10
 - [x] **4.3 Fix:** "Blinds up!" notice never showed. → 0.3.0 · 2026-10-10
-
+- [x] **4.4 Read the result:** after a showdown the table waits for **Next
+  hand** (bot games: no time limit; `resultTimeout` 10 s for online games,
+  with a countdown on the button). Hands won by folds move on by
+  themselves. → 0.3.0 · 2026-10-10
