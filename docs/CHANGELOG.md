@@ -30,6 +30,9 @@ Running list of requested changes and when each one landed.
 
 ### 2. Games
 
+- [x] **2.0 User story:** recorded in `docs/VISION.md` (party model,
+  shared menus, games as plug-ins, GamePigeon-easy invites, phases).
+
 - [ ] **2.1 Pick the backend and sign-in** for online play, then update
   `docs/PRIVACY.md` and the Data safety form to match.
 - [ ] **2.2 First card game** vs a bot.

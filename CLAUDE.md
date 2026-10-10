@@ -5,6 +5,10 @@ another player on the app, sometimes against a bot. Built on the same
 build and release pipeline as Luca's other app, Darkroom
 (github.com/Delectible/Darkroom).
 
+**The user story is in `docs/VISION.md`**: one-on-one card / table games
+with a friend (or a bot), connect once into a party and move between games
+together, GamePigeon-easy. Let it guide design and development choices.
+
 ## The person and how we work
 
 - Owner: Luca. Keep replies short and plain.
