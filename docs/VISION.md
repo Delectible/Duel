@@ -28,6 +28,9 @@ raise it with Luca.
   a game is a party setting: Host decides, Vote, or First come. A tied
   vote is settled by a coin toss (`features/party/coin_toss.dart`); the
   server tosses, every phone plays the same animation to that result.
+- **Previews don't count.** Tapping a game opens its preview (rules, time
+  for the party's size, sample board); browsing previews never votes or
+  picks. Only Play! does.
 - **Games are plug-ins.** Each game declares its name, min / max players,
   whether it has a bot, and its rules engine. The picker greys out games
   whose player range doesn't include the party size. Adding a game should

@@ -89,3 +89,9 @@ Ships as app version **0.3.0**.
   result. `tallyVotes` / `tossCoin` in `features/party/vote.dart`; party
   screen has "Try the coin toss" until online play exists.
   → 0.3.0 · 2026-10-10
+- [x] **4.6 Game previews:** tapping any game opens a preview first: the
+  basic rules, an estimated time for your player count, a sample board,
+  and Play! / Nevermind. Only Play! counts (in a party it will be your
+  vote / pick; previews never vote or start a coin toss). Games that can't
+  start yet still preview, with the reason over a greyed Play!.
+  → 0.3.0 · 2026-10-10

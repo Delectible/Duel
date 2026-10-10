@@ -4,6 +4,7 @@ import '../../core/app_info.dart';
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
+import '../preview/game_preview_screen.dart';
 import 'connection_bar.dart';
 
 /// The connection bar, then the games. Games that don't fit the table
@@ -71,31 +72,13 @@ class _GameTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fits = game.fits(setup.players);
-    final online = setup.mode == PlayMode.friends;
-    final playable = game.available && fits && !online;
-    final String? why = !game.available
-        ? 'Soon'
-        : !fits
-        ? (setup.players < game.minPlayers ? 'Needs ${game.minPlayers}+' : 'Max ${game.maxPlayers}')
-        : online
-        ? 'Online soon'
-        : null;
+    final blocked = game.blocked(setup);
+    final playable = blocked == null;
+    final why = blocked?.$1;
 
-    void tap() {
-      if (playable) {
-        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => game.open!(setup)));
-        return;
-      }
-      final msg = !game.available
-          ? '${game.name} is coming soon.'
-          : !fits
-          ? '${game.name} is for ${game.playersLabel}; you have ${setup.players}.'
-          : 'Playing with friends is coming soon. Switch to Bots to play now.';
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(msg)));
-    }
+    // Every game opens its preview first; only Play! there starts it.
+    void tap() =>
+        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GamePreviewScreen(game: game)));
 
     return Semantics(
       button: true,

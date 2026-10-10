@@ -120,8 +120,13 @@ weights cut from the variable font.
 - `lib/core/cards/`: `PlayingCard` / `Deck` and `CardView` (suits are drawn
   paths; Fredoka has no suit glyphs). Shared by every card game.
 - `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player
-  range, art, `open`; null `open` = "Soon"). Adding a game: its folder in
-  `lib/games/` plus one entry here.
+  range, tile art, sample `board` (`previews.dart`), `rules`, `minutes`
+  per player count, `open`; null `open` = "Soon"; `blocked(setup)` says
+  why Play! is off). Adding a game: its folder in `lib/games/` plus one
+  entry here.
+- `lib/features/preview/`: every game tile opens `GamePreviewScreen`
+  (rules, time, sample board, Play! / Nevermind). Only Play! counts; in a
+  party it will be the vote / pick, browsing never is.
 - `lib/games/poker/engine/`: pure Dart, no Flutter. `hand_eval.dart`
   (best five of seven, descriptions), `poker_hand.dart` (one no-limit hand:
   blinds, betting rules incl. incomplete all-in raises, side pots, odd
