@@ -10,15 +10,25 @@ build and release pipeline as Luca's other app, Darkroom
 - Owner: Luca. Keep replies short and plain.
 - For big revisions, ask clarifying questions first, then implement.
 - Keep changes focused, don't gold-plate.
-- After every push that builds, wait for the run; once its `play` job has
+- **Batch workflow (differs from Darkroom):** we work out the details
+  together, Claude writes the code, and changes collect until Luca says
+  **"push to main"**. Only then does it all go to `main` together, which
+  makes one build. Never push to `main` without that.
+  - Meanwhile commit to the session's work branch (not `main`) and push it
+    as a backup: containers are ephemeral, and only `main` pushes build.
+  - Run `flutter analyze` + `flutter test` before every commit; keep the
+    batch green so "push to main" is just a merge.
+  - On "push to main": fast-forward or merge the work branch into `main`,
+    push, and report what went in.
+- After every push to `main` that builds, wait for the run; once its `play` job has
   uploaded, wait ~2 more minutes, then send Luca a push notification
   (PushNotification) that the build is on Google Play: version, build
   number, one-line what's new. If the build or the upload fails, notify
   that instead.
-- Every user-visible change: bump `version` in `pubspec.yaml` (raise the
-  `+build` number too) and `AppInfo.version` to match (a test checks), set
-  `AppInfo.latest` in `lib/core/app_info.dart` to this build's change in
-  plain words (it's Play's "What's new"), and when a main idea lands add a
+- Every batch with user-visible changes: bump `version` in `pubspec.yaml`
+  once per batch (raise the `+build` number too) and `AppInfo.version` to
+  match (a test checks), set `AppInfo.latest` in `lib/core/app_info.dart`
+  to the batch's changes in plain words (it's Play's "What's new"), and when a main idea lands add a
   few-word bullet to the newest `AppInfo.revisions` entry (About shows
   them as bullets; keep them short).
 - **Release roadmap:** `docs/RELEASE.md` is the checklist to the public
@@ -30,14 +40,15 @@ build and release pipeline as Luca's other app, Darkroom
 
 ## Build & release pipeline
 
-- Unless Luca says otherwise, **commit and push finished changes straight to
-  `main`** so a new build gets made. Don't push half-done work.
-- Push → `.github/workflows/build-apk.yml` runs `flutter analyze` + `flutter
+- Pushes to `main` only on Luca's "push to main" (see the batch workflow
+  above). Don't push half-done work to `main`.
+- Push to `main` → `.github/workflows/build-apk.yml` runs `flutter analyze` + `flutter
   test`, builds `Duel-N.apk`, `Duel-N.aab` and an unsigned `Duel-N.ipa`, and
-  publishes them under **Releases** (`build-N`; non-`main` branches are
-  marked pre-release). Nothing is published unless the checks pass.
+  publishes them under **Releases** (`build-N`). Other branches don't
+  build on push; started by hand from the Actions tab they build as a
+  pre-release (no Play upload). Nothing is published unless the checks pass.
 - iOS build runs on a macOS runner. The repo is public, so it runs on every
-  push (on a private repo it would only run with `[ios]` in the commit
+  build (on a private repo it would only run with `[ios]` in the commit
   message or when started by hand: Mac minutes cost 10x). The .ipa is
   unsigned apart from an ad-hoc signature (Sideloadly's signer fails on
   never-signed binaries); Luca signs and installs it with Sideloadly + a

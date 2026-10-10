@@ -1,6 +1,10 @@
 name: Build
+# Only main builds on push: work in progress lives on other branches and is
+# pushed to main in one go when Luca says so (one build per batch). Any
+# branch can still be built by hand from the Actions tab.
 on:
   push:
+    branches: [main]
     paths-ignore: ['**.md', 'docs/**', 'fastlane/**', '.github/workflows/play-listing.yml']
   workflow_dispatch:
     inputs:
