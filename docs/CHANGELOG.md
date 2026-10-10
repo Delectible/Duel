@@ -82,3 +82,10 @@ Ships as app version **0.3.0**.
   hand** (bot games: no time limit; `resultTimeout` 10 s for online games,
   with a countdown on the button). Hands won by folds move on by
   themselves. → 0.3.0 · 2026-10-10
+- [x] **4.5 Vote ties → coin toss:** in an online party with Vote on, a
+  tie is settled by a coin toss: a gold coin with a tied game on each face
+  flips, spins and lands on the winner ("Crazy Eights it is!"). Decided
+  before the toss (server-side online) so every phone shows the same
+  result. `tallyVotes` / `tossCoin` in `features/party/vote.dart`; party
+  screen has "Try the coin toss" until online play exists.
+  → 0.3.0 · 2026-10-10

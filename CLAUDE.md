@@ -140,7 +140,9 @@ weights cut from the variable font.
   (`waitingForYou` / `nextHand()`); `resultTimeout` (online: 10 s) moves
   on by itself with a countdown.
 - `lib/features/home/`: home (connection bar + game grid, About),
-  `lib/features/party/`: party screen.
+  `lib/features/party/`: party screen, `vote.dart` (`tallyVotes`,
+  `tossCoin`), `coin_toss.dart` (tie-break animation; takes the result,
+  so online it plays what the server tossed).
 - Tests: engine rules in `test/poker/`; screens at Pixel 9 Pro and 360 dp
   with the real fonts (`test/flutter_test_config.dart`); `SHOTS=dir flutter
   test` saves PNGs of the screens (`test/screens.dart`) to check layouts

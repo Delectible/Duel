@@ -1,8 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
+import '../../games/catalog.dart';
 import '../../games/poker/ui/faces.dart';
+import 'coin_toss.dart';
+import 'vote.dart';
 
 /// Who's in your party and how it picks games. Online play isn't built
 /// yet: for now it's just you.
@@ -81,6 +86,40 @@ class PartyScreen extends StatelessWidget {
               PickRule.vote => 'Everyone votes; the game with the most votes starts.',
               PickRule.firstCome => 'Whoever taps a game first starts it.',
             }, style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted)),
+            if (setup.pickRule == PickRule.vote) ...[
+              const SizedBox(height: 4),
+              Text(
+                'A tie is settled by a coin toss.',
+                style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ToonButton(
+                  key: const Key('try coin'),
+                  color: Toon.yellow,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  onPressed: () {
+                    // A pretend 1-1 vote between the first two games.
+                    final tied = [games[0], games[1]];
+                    showCoinToss(
+                      context,
+                      heads: tied[0],
+                      tails: tied[1],
+                      winner: tossCoin([for (final g in tied) g.id], Random()),
+                    );
+                  },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.monetization_on_rounded),
+                      SizedBox(width: 6),
+                      Text('Try the coin toss'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             ToonBox(
               color: Toon.paper,

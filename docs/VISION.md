@@ -25,8 +25,9 @@ raise it with Luca.
   games start and end inside it. Leaving a game returns both players to
   the party's game picker, still connected.
 - **Shared menus.** In a party, both phones show the same picker. Picking
-  a game is a party action both see (proposal + accept, or host picks: to
-  decide).
+  a game is a party setting: Host decides, Vote, or First come. A tied
+  vote is settled by a coin toss (`features/party/coin_toss.dart`); the
+  server tosses, every phone plays the same animation to that result.
 - **Games are plug-ins.** Each game declares its name, min / max players,
   whether it has a bot, and its rules engine. The picker greys out games
   whose player range doesn't include the party size. Adding a game should
