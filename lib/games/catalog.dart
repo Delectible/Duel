@@ -6,6 +6,7 @@ import '../core/cards/cards.dart';
 import '../core/session/play_setup.dart';
 import '../core/theme/toon.dart';
 import 'crazy_eights/ui/eights_screen.dart';
+import 'four_in_a_row/ui/row_screen.dart';
 import 'go_fish/ui/fish_screen.dart';
 import 'poker/ui/poker_screen.dart';
 import 'previews.dart';
@@ -148,6 +149,7 @@ final games = <GameInfo>[
       'First to line up four of their colour wins: across, up and down, or diagonally.',
     ],
     minutes: (_) => 5,
+    open: (setup, stake) => RowScreen(difficulty: setup.difficulty, stake: stake),
   ),
 ];
 

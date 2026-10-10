@@ -438,7 +438,10 @@ class _ActionBubble extends StatelessWidget {
         key: ValueKey('$text${action.amount}'),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: Toon.box(color, radius: 10, shadow: 2),
-        child: Text(text, style: Toon.text(12, weight: FontWeight.w700)),
+        child: Text(
+          text,
+          style: Toon.text(12, weight: FontWeight.w700, color: Toon.on(color)),
+        ),
       ),
     );
   }
@@ -453,7 +456,10 @@ class _DealerButton extends StatelessWidget {
     height: 22,
     decoration: Toon.box(Colors.white, radius: 11, shadow: 2),
     alignment: Alignment.center,
-    child: Text('D', style: Toon.text(12, weight: FontWeight.w700)),
+    child: Text(
+      'D',
+      style: Toon.text(12, weight: FontWeight.w700, color: Toon.inkLight),
+    ),
   );
 }
 

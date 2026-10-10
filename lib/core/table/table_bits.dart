@@ -214,8 +214,19 @@ class CommentaryStrip extends StatelessWidget {
                 height: 40,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
-                  layoutBuilder: (current, previous) =>
-                      Stack(alignment: Alignment.centerLeft, children: [...previous, ?current]),
+                  layoutBuilder: (current, previous) {
+                    // A line that comes back while an old copy still fades
+                    // out would clash: show each line once.
+                    final seen = <Key?>{current?.key};
+                    return Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        for (final w in previous)
+                          if (seen.add(w.key)) w,
+                        ?current,
+                      ],
+                    );
+                  },
                   child: Text(
                     text,
                     key: ValueKey(text),

@@ -223,7 +223,10 @@ class _RankRow extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
             decoration: Toon.box(Toon.yellow, radius: 8, shadow: 2),
-            child: Text('You', style: Toon.text(13, weight: FontWeight.w700)),
+            child: Text(
+              'You',
+              style: Toon.text(13, weight: FontWeight.w700, color: Toon.inkLight),
+            ),
           ),
         ),
       ],

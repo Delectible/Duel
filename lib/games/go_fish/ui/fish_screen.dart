@@ -267,6 +267,31 @@ class _Table extends StatelessWidget {
             ),
           );
         }
+        // Speech bubbles over everyone, kept inside the felt: below players
+        // along the top, above the rest, leaning inwards at the edges.
+        for (var p = 1; p < c.players; p++) {
+          final said = c.speech[p];
+          if (said == null || c.phase != FishPhase.playing) continue;
+          final at = px(spots[p]), f = spots[p];
+          const inset = 22.0, w = 170.0;
+          children.add(
+            Positioned(
+              top: at.dy - 66 + (f.dy < 0.25 ? 128 : -32),
+              left: f.dx < 0.3
+                  ? max(inset, at.dx - 54)
+                  : f.dx > 0.7
+                  ? null
+                  : (at.dx - w / 2).clamp(inset, max(inset, size.width - w - inset)),
+              right: f.dx > 0.7 ? max(inset, size.width - at.dx - 54) : null,
+              child: f.dx >= 0.3 && f.dx <= 0.7
+                  ? SizedBox(
+                      width: w,
+                      child: Center(child: SpeechBubble(said, key: ValueKey('say$p-${c.speechId}'))),
+                    )
+                  : SpeechBubble(said, key: ValueKey('say$p-${c.speechId}')),
+            ),
+          );
+        }
 
         // Your books, bottom left above your hand.
         if (g.books[0].isNotEmpty) {
@@ -492,7 +517,6 @@ class _Opponent extends StatelessWidget {
     final turn = g.turn == player && c.phase == FishPhase.playing && !g.isOver;
     final pickable = c.selected != null && c.yourTurn && g.targets(0).contains(player);
     final shown = min(n, 7);
-    final said = c.speech[player];
     final ring = pickable ? Toon.yellow : (turn ? Toon.orange : Toon.card);
     return GestureDetector(
       key: Key('ask $player'),
@@ -574,8 +598,6 @@ class _Opponent extends StatelessWidget {
                   ),
                 ),
               ),
-            if (said != null && c.phase == FishPhase.playing)
-              Positioned(top: -30, child: SpeechBubble(said, key: ValueKey('say$player-${c.speechId}'))),
           ],
         ),
       ),

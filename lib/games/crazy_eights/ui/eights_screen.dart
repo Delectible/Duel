@@ -229,8 +229,19 @@ class _Commentary extends StatelessWidget {
                 height: 40,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
-                  layoutBuilder: (current, previous) =>
-                      Stack(alignment: Alignment.centerLeft, children: [...previous, ?current]),
+                  layoutBuilder: (current, previous) {
+                    // A line that comes back while an old copy still fades
+                    // out would clash: show each line once.
+                    final seen = <Key?>{current?.key};
+                    return Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        for (final w in previous)
+                          if (seen.add(w.key)) w,
+                        ?current,
+                      ],
+                    );
+                  },
                   child: Text(
                     text,
                     key: ValueKey(text),
@@ -676,7 +687,10 @@ class _Opponent extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: Toon.box(Toon.red, radius: 8, shadow: 2),
-                  child: Text('Last card!', style: Toon.text(11, weight: FontWeight.w700)),
+                  child: Text(
+                    'Last card!',
+                    style: Toon.text(11, weight: FontWeight.w700, color: Toon.inkLight),
+                  ),
                 ),
               ),
             ),

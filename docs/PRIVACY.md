@@ -8,7 +8,8 @@ you. It does not sell your data, show ads, or use advertising or analytics
 trackers.
 
 **Games against the bot** run entirely on your phone. Nothing about them
-is sent anywhere.
+is sent anywhere. Your profile (name and face), your pips balance, your
+game record and your settings are saved on your phone only.
 
 **Your account.** To play online you create an account. We keep:
 

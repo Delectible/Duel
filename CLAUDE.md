@@ -102,21 +102,38 @@ together, GamePigeon-easy. Let it guide design and development choices.
 
 ## Stack
 
-Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. No packages yet (state
-is ChangeNotifier + InheritedNotifier); the online backend (provider,
+Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. One package: `shared_preferences`
+(saves the account; SPM on iOS). State is ChangeNotifier + InheritedNotifier; the online backend (provider,
 sign-in) is still to be chosen. Font: Fredoka (assets/fonts, OFL), static
 weights cut from the variable font.
 
 ## App layout
 
-- `lib/main.dart`: `DuelApp` (Toon theme, `PlaySetupScope`).
+- `lib/main.dart`: `DuelApp` (loads the `Account`, applies light / dark,
+  `AccountScope` + `PlaySetupScope`).
+- `lib/core/account/`: `Account` (name, avatar, pips balance (may go
+  negative: debt), currency display, theme, per-game stats; saved by
+  `PrefsStore`), `stake.dart` (`StakeTicket`: the stake is taken at Play!
+  and settled once per game; `StakeBadge`, `StakeResult`, `confirmLeave`
+  forfeits). Win = stake back + stake x opponents x difficulty rate.
+- `lib/core/avatars/faces.dart`: `Persona`, `Face` (cartoon faces),
+  `avatars` (the profile's picks). Poker maps bot looks to `BotStyle`s.
+- `lib/core/table/table_bits.dart`: what every game table shares:
+  `GameTopBar`, `CommentaryStrip`, `SpeechBubble`, `GameOverCard`,
+  `FlyingCards`, `FeltPanel`, `DealIn`, `Pop`, `SuitConfetti`.
+- `lib/features/profile/`, `lib/features/settings/`: the two buttons atop
+  home.
 - `lib/core/app_info.dart`: version, `latest` (Play's What's new),
   `revisions` (About).
 - `lib/core/session/`: `PlaySetup` (the connection bar: Bots / Friend,
   `Difficulty`, bot count, party pick rule), shared by every screen.
 - `lib/core/theme/toon.dart`: the cartoon look (`Toon` colours, `ToonBox`,
   `ToonButton` with hold-to-repeat, `chips()` formatting). Use these, not
-  stock Material buttons.
+  stock Material buttons. **Dark mode:** `Toon.ink/fg/paper/card/muted/grey`
+  are getters that follow `Toon.dark`, so never put them in `const`;
+  `Toon.text` inherits its colour (ToonBox / ToonButton pick a readable
+  one); on a bright fill use `Toon.on(color)`. Cards stay white
+  (`cardFace`).
 - `lib/core/cards/`: `PlayingCard` / `Deck` and `CardView` (suits are drawn
   paths; Fredoka has no suit glyphs). Shared by every card game.
 - `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player
@@ -137,8 +154,7 @@ weights cut from the variable font.
 - `lib/games/poker/ui/`: `PokerController` (paces the table: deals, bots
   think, collect, payout; `pace` 0.05 in tests), `table_view.dart` (seats
   around the felt, clockwise from you at the bottom; chips fly to the pot
-  and winners), `action_bar.dart`, `faces.dart` (bot personas + cartoon
-  faces), `hand_chart.dart` (the hands cheat sheet, opened from your hand's
+  and winners), `action_bar.dart`, `hand_chart.dart` (the hands cheat sheet, opened from your hand's
   name; `handRanks`), `shuffle_deck.dart` (your deal: the controller's
   `TablePhase.shuffle` waits for a shuffle and Deal; tests use
   `shuffleAndDeal`). Showdown results wait for Next hand
@@ -148,6 +164,14 @@ weights cut from the variable font.
   list the commentary and animations read), `engine/eights_bot.dart`;
   `ui/eights_controller.dart` (pacing, `commentary()`), `ui/eights_screen.dart`
   (table, hand, piles, flights, suit burst, `eightsGuide`).
+- `lib/games/go_fish/`: `engine/go_fish.dart` (rules + events),
+  `engine/fish_bot.dart` (memory of asks by difficulty);
+  `ui/fish_controller.dart` (pacing, speech bubbles, flights, commentary),
+  `ui/fish_screen.dart` (`fishGuide`).
+- `lib/games/four_in_a_row/`: `engine/four_in_a_row.dart` (board +
+  `RowBot`: negamax with alpha-beta, depth 2 / 4 / 7), `ui/row_controller.dart`
+  (bot thinks in an isolate), `ui/row_screen.dart` (drop animation, win /
+  block hints, `rowGuide`).
 - `lib/core/help/game_guide.dart`: the mid-game "How to play" sheet
   (`GuideStage`s, `GuideButton` in every game's top bar, "You are here").
   Every game needs one; keep players told what's happening (commentary,
@@ -156,7 +180,7 @@ weights cut from the variable font.
   `lib/features/party/`: party screen, `vote.dart` (`tallyVotes`,
   `tossCoin`), `coin_toss.dart` (tie-break animation; takes the result,
   so online it plays what the server tossed).
-- Tests: engine rules in `test/poker/`; screens at Pixel 9 Pro and 360 dp
+- Tests: engine rules in `test/<game>/`; screens at Pixel 9 Pro and 360 dp
   with the real fonts (`test/flutter_test_config.dart`); `SHOTS=dir flutter
   test` saves PNGs of the screens (`test/screens.dart`) to check layouts
   without a phone.

@@ -46,7 +46,7 @@ class PartyScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: Toon.box(Toon.yellow, radius: 8, shadow: 2),
-                    child: Text('Host', style: Toon.text(13)),
+                    child: Text('Host', style: Toon.text(13, color: Toon.inkLight)),
                   ),
                 ],
               ),

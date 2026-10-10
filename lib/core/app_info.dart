@@ -3,17 +3,28 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.3.0';
+  static const version = '0.4.0';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'New game: Crazy Eights against 1 to 3 bots, with a running commentary of every move. '
-      'Every game has a How to play guide (the ? button) and a preview with rules and a sample board. '
-      'Poker: a hands cheat sheet, shuffle and deal on your deal, and showdowns wait for Next hand.';
+      'Two new games against bots: Go Fish (2 to 6 players) and Four in a Row. '
+      'Pips, your wallet: stake some on a game to win more (harder bots pay more), or play free. '
+      'Run out and you can still stake 1 on credit, paid back from winnings. '
+      'New profile (name and face) and settings: dark mode and how money is shown.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
+    (
+      '0.4',
+      [
+        'Go Fish vs bots',
+        'Four in a Row vs a bot',
+        'Pips: stake on a game, win more; debt if you run out',
+        'Profile: your name and face',
+        'Settings: dark mode, currency',
+      ],
+    ),
     (
       '0.3',
       [

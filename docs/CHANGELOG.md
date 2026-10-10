@@ -61,8 +61,8 @@ Ships as app version **0.2.0**.
   Pot, All-in. Bots: Rookie, Rock, Shark, Maniac. → 0.2.0 · 2026-10-10
 - [x] **3.5 Cartoon look:** Fredoka font, thick outlines, chunky buttons,
   drawn suits, card backs and bot faces. → 0.2.0 · 2026-10-10
-- [ ] **3.6 Later:** progressive currency across games (replaces the
-  fixed buy-in).
+- [x] **3.6 Later:** progressive currency across games (replaces the
+  fixed buy-in). → pips, see 6.3 · 0.4.0
 
 ## Revision v0.3 (requested 2026-10-10)
 
@@ -114,3 +114,33 @@ Ships as app version **0.3.0**.
   the game's guide by stage, "You are here" on the current one (poker:
   deal, preflop, board, betting tools, showdown, winning). → 0.3.0 · 2026-10-10
 
+## Revision v0.4 (requested 2026-10-10)
+
+Ships as app version **0.4.0**.
+
+### 6. Two more games, money, profile, settings
+
+- [x] **6.1 Go Fish vs bots** (you + 1-5 bots): ask a player for a rank
+  you hold, take all they have and go again, else fish from the pond (go
+  again if you fish what you asked for); four of a kind is a book; most
+  books wins. Speech bubbles, cards fly between hands and from the pond,
+  book pops, commentary, guide. Bots: Easy (random asks), Normal (recent
+  memory), Hard (remembers every ask). → 0.4.0 · 2026-10-10
+- [x] **6.2 Four in a Row vs a bot:** 7 x 6 board, discs drop and
+  bounce, the winning four glow; hints mark a column you can win in (star)
+  or must block (arrow). Bot looks ahead with minimax: Easy 2 moves (and
+  slips), Normal 4, Hard 7. First move alternates. → 0.4.0 · 2026-10-10
+- [x] **6.3 Pips (universal currency):** start with 100. Free games win
+  nothing; stake on a game (picked in the preview) and a win pays the
+  stake back plus stake x opponents (Easy x0.5, Normal x1, Hard x1.5); a
+  loss or leaving early costs the stake; a tie returns it. Out of money:
+  stake 1 anyway and go into debt, paid back from winnings (no time
+  limit). → 0.4.0 · 2026-10-10
+- [x] **6.4 Profile:** name, face (8 to pick), wallet, and your record
+  per game. Button top-left on home. → 0.4.0 · 2026-10-10
+- [x] **6.5 Settings** (gear next to the profile): Match phone / Light /
+  Dark, every screen and game follows; money shown as pips (Duel's own),
+  US dollar, euro, pound, yen or Australian dollar (display only).
+  → 0.4.0 · 2026-10-10
+- [x] **6.6 Harder bots:** Hard plays tight in every game (see 6.1, 6.2).
+  → 0.4.0 · 2026-10-10

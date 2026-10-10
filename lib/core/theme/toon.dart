@@ -57,8 +57,11 @@ abstract final class Toon {
   /// the page and panels.
   static Color on(Color background) => background.computeLuminance() > 0.35 ? inkLight : fg;
 
+  /// Without [color] the text takes the colour of what it sits on: [fg] on
+  /// the page, dark ink on bright buttons and panels (ToonButton / ToonBox
+  /// set it).
   static TextStyle text(double size, {FontWeight weight = FontWeight.w600, Color? color}) =>
-      TextStyle(fontFamily: font, fontSize: size, fontWeight: weight, color: color ?? fg, height: 1.1);
+      TextStyle(fontFamily: font, fontSize: size, fontWeight: weight, color: color, height: 1.1);
 
   static ThemeData theme() {
     final base = ThemeData(
@@ -72,6 +75,7 @@ abstract final class Toon {
       scaffoldBackgroundColor: paper,
     );
     return base.copyWith(
+      // Plain text on the page (Toon.text without a colour) is [fg].
       textTheme: base.textTheme.apply(bodyColor: fg, displayColor: fg, fontFamily: font),
       iconTheme: IconThemeData(color: fg),
       snackBarTheme: SnackBarThemeData(
