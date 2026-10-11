@@ -173,3 +173,7 @@ Ships as app version **0.4.1**.
 - [x] **8.2 Stake row labelled:** "Your stake" with what you have (or your
   debt) and an (i) that opens "How staking works" (`stakeRules`, shared
   with Settings). → 0.4.1 · 2026-10-11
+- [x] **8.3 Dark mode suits:** black suits off the cards (Crazy Eights
+  suit picker, suit burst, confetti) get a light outline in dark mode;
+  on cards and light chips they stay plain (`SuitIcon(onLight:)`).
+  → 0.4.1 · 2026-10-11

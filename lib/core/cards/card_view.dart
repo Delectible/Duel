@@ -9,32 +9,53 @@ const cardBlack = Toon.inkLight;
 /// A suit symbol drawn as a path (Fredoka has no suit glyphs), filling a
 /// square of [size].
 class SuitIcon extends StatelessWidget {
-  const SuitIcon(this.suit, {super.key, required this.size, this.color});
+  const SuitIcon(this.suit, {super.key, required this.size, this.color, this.onLight = false});
 
   final Suit suit;
   final double size;
   final Color? color;
 
+  /// On a light surface (a card face, a yellow chip): never needs an outline.
+  final bool onLight;
+
   @override
-  Widget build(BuildContext context) => CustomPaint(
-    size: Size.square(size),
-    painter: _SuitPainter(suit, color ?? (suit.isRed ? cardRed : cardBlack)),
-  );
+  Widget build(BuildContext context) {
+    final fill = color ?? (suit.isRed ? cardRed : cardBlack);
+    // Dark suits off the card in dark mode get a light outline so they
+    // stand out from dark buttons, the felt and the overlays.
+    final outline = !onLight && Toon.dark && fill.computeLuminance() < 0.1;
+    return CustomPaint(
+      size: Size.square(size),
+      painter: _SuitPainter(suit, fill, outline ? Toon.cardFace : null),
+    );
+  }
 }
 
 class _SuitPainter extends CustomPainter {
-  _SuitPainter(this.suit, this.color);
+  _SuitPainter(this.suit, this.color, this.outline);
 
   final Suit suit;
   final Color color;
+  final Color? outline;
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawPath(suitPath(suit, size.width), Paint()..color = color);
+    final path = suitPath(suit, size.width);
+    if (outline != null) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = outline!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = (size.width * 0.14).clamp(1.5, 6.0)
+          ..strokeJoin = StrokeJoin.round,
+      );
+    }
+    canvas.drawPath(path, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(_SuitPainter old) => old.suit != suit || old.color != color;
+  bool shouldRepaint(_SuitPainter old) => old.suit != suit || old.color != color || old.outline != outline;
 }
 
 /// The suit's outline in a [s] x [s] square.
@@ -145,14 +166,14 @@ class CardView extends StatelessWidget {
                     c.rankLabel,
                     style: Toon.text(w * (c.rank == 10 ? 0.36 : 0.42), weight: FontWeight.w700, color: color),
                   ),
-                  SuitIcon(c.suit, size: w * 0.24),
+                  SuitIcon(c.suit, size: w * 0.24, onLight: true),
                 ],
               ),
             ),
             Positioned(
               right: w * 0.08,
               bottom: w * 0.08,
-              child: SuitIcon(c.suit, size: w * 0.48),
+              child: SuitIcon(c.suit, size: w * 0.48, onLight: true),
             ),
           ],
         ),

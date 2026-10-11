@@ -9,7 +9,8 @@ class AppInfo {
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
       'Fixed: holding the stake minus button down to Free no longer leaves it stuck. '
-      'The stake row is now labelled "Your stake", shows what you have, and its (i) explains how staking works.';
+      'The stake row is now labelled "Your stake", shows what you have, and its (i) explains how staking works. '
+      'Dark mode: black suits off the cards get a light outline so they stand out.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

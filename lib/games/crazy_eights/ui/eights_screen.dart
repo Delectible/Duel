@@ -191,7 +191,7 @@ class _Commentary extends StatelessWidget {
         height: 34,
         alignment: Alignment.center,
         decoration: Toon.box(Toon.cardFace, radius: 17, shadow: 0),
-        child: SuitIcon(c.game.suit, size: 20),
+        child: SuitIcon(c.game.suit, size: 20, onLight: true),
       ),
     ),
   );
@@ -508,9 +508,9 @@ class _DiscardPile extends StatelessWidget {
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Now ', style: Toon.text(12)),
-                    SuitIcon(eight!, size: 13),
-                    Text(' ${suitName(eight!)}', style: Toon.text(12)),
+                    Text('Now ', style: Toon.text(12, color: Toon.inkLight)),
+                    SuitIcon(eight!, size: 13, onLight: true),
+                    Text(' ${suitName(eight!)}', style: Toon.text(12, color: Toon.inkLight)),
                   ],
                 ),
         ),

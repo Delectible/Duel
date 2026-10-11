@@ -77,42 +77,50 @@ void main() {
     }
   }
 
-  testWidgets('an eight asks for the suit; the commentary says what to do', (tester) async {
-    usePhone(tester, phones['pixel9pro']!);
-    await tester.pumpWidget(app(2, seed: 5));
-    var picked = false;
-    for (var i = 0; i < 20000 && !picked; i++) {
-      await tester.pump(const Duration(milliseconds: 20));
-      if (has(const Key('again'))) break;
-      if (has(const Key('suit spades'))) {
-        expect(find.textContaining('pick the suit'), findsOneWidget);
-        await tester.pump(const Duration(milliseconds: 300)); // the panel slides open
-        await shot(tester, 'eights_pick_suit');
-        await tester.tap(find.byKey(const Key('suit spades')));
-        await tester.pump(const Duration(milliseconds: 5));
-        expect(find.textContaining('chose spades'), findsWidgets);
-        await tester.pump(const Duration(milliseconds: 250));
-        await shot(tester, 'eights_suit_burst');
-        picked = true;
-      } else if (has(const Key('play drawn'))) {
-        await tester.tap(find.byKey(const Key('play drawn')));
-      } else if (playableCards(tester).evaluate().isNotEmpty) {
-        // Prefer an eight if we have one that fits.
-        final cards = playableCards(tester).evaluate().toList();
-        final eight = cards.where((e) {
-          final id = int.parse(((e.widget.key! as ValueKey<String>).value).split(' ').last);
-          return id ~/ 4 + 2 == 8;
-        });
-        await tapCard(tester, find.byWidget((eight.isNotEmpty ? eight.first : cards.first).widget));
-      } else if (has(const Key('draw')) && find.text('Draw a card').evaluate().isNotEmpty) {
-        expect(find.textContaining('Tap the deck to draw'), findsOneWidget);
-        await tester.tap(find.byKey(const Key('draw')));
-      } else if (has(const Key('pass'))) {
-        await tester.tap(find.byKey(const Key('pass')));
+  // Dark mode too: black suits off the cards get a light outline.
+  for (final dark in [false, true]) {
+    final look = dark ? '_dark' : '';
+    testWidgets('an eight asks for the suit; the commentary says what to do${dark ? ' (dark)' : ''}', (
+      tester,
+    ) async {
+      usePhone(tester, phones['pixel9pro']!);
+      Toon.dark = dark;
+      addTearDown(() => Toon.dark = false);
+      await tester.pumpWidget(app(2, seed: 5));
+      var picked = false;
+      for (var i = 0; i < 20000 && !picked; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+        if (has(const Key('again'))) break;
+        if (has(const Key('suit spades'))) {
+          expect(find.textContaining('pick the suit'), findsOneWidget);
+          await tester.pump(const Duration(milliseconds: 300)); // the panel slides open
+          await shot(tester, 'eights_pick_suit$look');
+          await tester.tap(find.byKey(const Key('suit spades')));
+          await tester.pump(const Duration(milliseconds: 5));
+          expect(find.textContaining('chose spades'), findsWidgets);
+          await tester.pump(const Duration(milliseconds: 250));
+          await shot(tester, 'eights_suit_burst$look');
+          picked = true;
+        } else if (has(const Key('play drawn'))) {
+          await tester.tap(find.byKey(const Key('play drawn')));
+        } else if (playableCards(tester).evaluate().isNotEmpty) {
+          // Prefer an eight if we have one that fits.
+          final cards = playableCards(tester).evaluate().toList();
+          final eight = cards.where((e) {
+            final id = int.parse(((e.widget.key! as ValueKey<String>).value).split(' ').last);
+            return id ~/ 4 + 2 == 8;
+          });
+          await tapCard(tester, find.byWidget((eight.isNotEmpty ? eight.first : cards.first).widget));
+        } else if (has(const Key('draw')) && find.text('Draw a card').evaluate().isNotEmpty) {
+          expect(find.textContaining('Tap the deck to draw'), findsOneWidget);
+          await tester.tap(find.byKey(const Key('draw')));
+        } else if (has(const Key('pass'))) {
+          await tester.tap(find.byKey(const Key('pass')));
+        }
       }
-    }
-    expect(picked, isTrue, reason: 'seed 5 should hand us an eight');
-  });
+      expect(picked, isTrue, reason: 'seed 5 should hand us an eight');
+    });
+  }
 
   testWidgets('the ? button opens How to play at the current stage', (tester) async {
     usePhone(tester, phones['small']!);
