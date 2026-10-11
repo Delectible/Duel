@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
+import '../../core/account/stake.dart';
 import '../../core/app_info.dart';
 import '../../core/theme/split_page.dart';
 import '../../core/theme/toon.dart';
@@ -65,23 +66,7 @@ class SettingsScreen extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 24),
-          Text('How money works', style: Toon.text(18, weight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Text(
-            'Free games win nothing. Stake on a game and a win pays your stake back plus stake × opponents '
-            '(Easy bots pay half, Hard bots one and a half). A loss, or leaving early, costs the stake. '
-            'Out of money? You can always stake 1; it goes on your debt, which winnings pay off.',
-            style: Toon.text(15, weight: FontWeight.w500),
-          ),
-          const SizedBox(height: 24),
-          ToonButton(
-            key: const Key('about'),
-            color: Toon.card,
-            onPressed: () => showAboutSheet(context),
-            child: const Text('About ${AppInfo.name} ${AppInfo.version}'),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
         ],
         right: [
           Text('Money shown as', style: Toon.text(18, weight: FontWeight.w700)),
@@ -119,6 +104,21 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+        // Upright these come after the currencies; on its side, under Look.
+        after: [
+          const SizedBox(height: 8),
+          Text('How money works', style: Toon.text(18, weight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          const StakeRules(),
+          const SizedBox(height: 16),
+          ToonButton(
+            key: const Key('about'),
+            color: Toon.card,
+            onPressed: () => showAboutSheet(context),
+            child: const Text('About ${AppInfo.name} ${AppInfo.version}'),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

@@ -160,3 +160,16 @@ Ships as app version **0.4.0**.
 - [~] **7.4 Glitch sweep:** `test/sweep_test.dart` renders every screen
   and game light / dark, upright / on its side, with the How to play
   sheet. More testing to come.
+
+## Revision v0.4.1 (requested 2026-10-11)
+
+Ships as app version **0.4.1**.
+
+### 8. Staking fixes
+
+- [x] **8.1 Fix:** holding the stake − down to Free left the button stuck
+  down and + / − dead. A button switched off while held now lets go
+  (`ToonButton`; also covers the poker raise ±). → 0.4.1 · 2026-10-11
+- [x] **8.2 Stake row labelled:** "Your stake" with what you have (or your
+  debt) and an (i) that opens "How staking works" (`stakeRules`, shared
+  with Settings). → 0.4.1 · 2026-10-11

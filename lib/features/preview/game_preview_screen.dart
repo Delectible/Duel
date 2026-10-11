@@ -280,6 +280,32 @@ class _StakePicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // What this row is: your stake, what you have, and the rules.
+        Row(
+          children: [
+            Icon(Icons.toll_rounded, size: 20, color: Toon.fg),
+            const SizedBox(width: 6),
+            Text('Your stake', style: Toon.text(16, weight: FontWeight.w700)),
+            const SizedBox(width: 2),
+            IconButton(
+              key: const Key('stake info'),
+              tooltip: 'How staking works',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              onPressed: () => showStakeRules(context),
+              icon: Icon(Icons.info_outline_rounded, size: 20, color: Toon.muted),
+            ),
+            const Spacer(),
+            Text(
+              account.inDebt
+                  ? 'Debt ${account.money(-account.balance)}'
+                  : 'You have ${account.money(account.balance)}',
+              style: Toon.text(13, weight: FontWeight.w600, color: account.inDebt ? Toon.red : Toon.muted),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
         Row(
           children: [
             quick('Free', 0, const Key('stake free')),

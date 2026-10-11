@@ -3,16 +3,13 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.4.0';
+  static const version = '0.4.1';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Two new games against bots: Go Fish (2 to 6 players) and Four in a Row. '
-      'Pips, your wallet: stake some on a game to win more (harder bots pay more), or play free. '
-      'Run out and you can still stake 1 on credit. '
-      'Build your own face in the profile (colour, shape, face, hat). '
-      'Settings: dark mode and how money is shown. Every screen now works with the phone on its side.';
+      'Fixed: holding the stake minus button down to Free no longer leaves it stuck. '
+      'The stake row is now labelled "Your stake", shows what you have, and its (i) explains how staking works.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -25,6 +22,7 @@ class AppInfo {
         'Profile: your name and a face you build',
         'Settings: dark mode, currency',
         'Landscape: every screen works on its side',
+        'Stake row labelled, with (i) for the rules',
       ],
     ),
     (

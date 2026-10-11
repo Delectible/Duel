@@ -4,6 +4,74 @@ import '../session/difficulty.dart';
 import '../theme/toon.dart';
 import 'account.dart';
 
+/// The staking rules, in plain words (the preview's (i) and Settings).
+const stakeRules = [
+  'Free games cost nothing and win nothing.',
+  'Your stake is taken when the game starts.',
+  'Win: you get your stake back plus stake × the number of opponents. '
+      'Easy bots pay half of that, Hard bots one and a half times.',
+  'A tie gives your stake back.',
+  'Lose, or leave a game early, and the stake is gone.',
+  'Out of money? You can always stake 1 on credit. It goes on your debt, '
+      'which your winnings pay off first. No time limit.',
+];
+
+/// The rules as a bulleted list.
+class StakeRules extends StatelessWidget {
+  const StakeRules({super.key});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (final rule in stakeRules)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 9,
+                height: 9,
+                margin: const EdgeInsets.only(top: 6, right: 10),
+                decoration: BoxDecoration(
+                  color: Toon.yellow,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Toon.ink, width: 2),
+                ),
+              ),
+              Expanded(
+                child: Text(rule, style: Toon.text(15, weight: FontWeight.w500)),
+              ),
+            ],
+          ),
+        ),
+    ],
+  );
+}
+
+/// "How staking works" as a sheet over the screen.
+Future<void> showStakeRules(BuildContext context) => showModalBottomSheet<void>(
+  context: context,
+  showDragHandle: true,
+  isScrollControlled: true,
+  backgroundColor: Toon.paper,
+  builder: (context) => SafeArea(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(
+        key: const Key('stake rules'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('How staking works', style: Toon.text(24, weight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          const StakeRules(),
+        ],
+      ),
+    ),
+  ),
+);
+
 /// One game's stake: taken when the game starts (Play! / Play again),
 /// settled once when it ends, or lost if you leave early.
 class StakeTicket {

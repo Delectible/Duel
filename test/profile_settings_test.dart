@@ -84,6 +84,8 @@ void main() {
     await tester.tap(find.byKey(const Key('theme dark')));
     await tester.pumpAndSettle();
     expect(a.theme, ThemeChoice.dark);
+    await tester.ensureVisible(find.byKey(const Key('currency eur')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('currency eur')));
     await tester.pumpAndSettle();
     expect(a.currency, CurrencyChoice.eur);

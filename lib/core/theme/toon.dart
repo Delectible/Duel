@@ -166,7 +166,9 @@ class _ToonButtonState extends State<ToonButton> {
   bool get _enabled => widget.onPressed != null;
 
   void _press(bool down) {
-    if (!_enabled || down == _down) return;
+    // Letting go always counts, even if holding it just switched the
+    // button off (- down to Free); otherwise it would stay stuck down.
+    if (down == _down || (down && !_enabled)) return;
     setState(() => _down = down);
     if (down && widget.repeat) {
       HapticFeedback.selectionClick();
@@ -184,6 +186,16 @@ class _ToonButtonState extends State<ToonButton> {
       tick();
     } else if (!down) {
       _repeat?.cancel();
+    }
+  }
+
+  @override
+  void didUpdateWidget(ToonButton old) {
+    super.didUpdateWidget(old);
+    // Switched off while held (e.g. a repeat reached its limit): pop up.
+    if (!_enabled && _down) {
+      _repeat?.cancel();
+      _down = false;
     }
   }
 

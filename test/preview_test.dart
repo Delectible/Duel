@@ -73,4 +73,42 @@ void main() {
     expect(playOn(tester), isFalse);
     expect(find.textContaining('invite a friend'), findsOneWidget);
   });
+
+  testWidgets('holding - down to Free lets go, so + works again', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(DuelApp(setup: PlaySetup()..botCount = 1));
+    await openPreview(tester, games.first);
+    await tester.tap(find.byKey(const Key('stake 10')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Stake 10'), findsOneWidget);
+    // Hold - until it reaches Free and switches off under the finger.
+    final hold = await tester.startGesture(tester.getCenter(find.byKey(const Key('stake minus'))));
+    for (var i = 0; i < 60; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.textContaining('Free game'), findsOneWidget);
+    await hold.up();
+    await tester.pumpAndSettle();
+    // + still works.
+    await tester.tap(find.byKey(const Key('stake plus')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Stake 1 pip'), findsOneWidget);
+    // And - again.
+    await tester.tap(find.byKey(const Key('stake minus')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Free game'), findsOneWidget);
+  });
+
+  testWidgets('the stake row is labelled; (i) explains staking', (tester) async {
+    usePhone(tester, phones['small']!);
+    await tester.pumpWidget(DuelApp(setup: PlaySetup()..botCount = 1));
+    await openPreview(tester, games.first);
+    expect(find.text('Your stake'), findsOneWidget);
+    expect(find.text('You have 100 pips'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('stake info')));
+    await tester.pumpAndSettle();
+    expect(find.text('How staking works'), findsOneWidget);
+    expect(find.textContaining('stake 1 on credit'), findsOneWidget);
+    await shot(tester, 'stake_rules');
+  });
 }
