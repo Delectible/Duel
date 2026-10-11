@@ -56,4 +56,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Duel 0.'), findsWidgets); // the button and the sheet
   });
+
+  testWidgets('turning the phone fades the new layout in', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(DuelApp(setup: PlaySetup()));
+    await tester.pumpAndSettle();
+    double opacity() => tester.widget<FadeTransition>(find.byType(FadeTransition).first).opacity.value;
+    expect(opacity(), 1);
+    usePhone(tester, phones['pixel9pro_land']!);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(opacity(), lessThan(0.2));
+    await tester.pumpAndSettle();
+    expect(opacity(), 1);
+    expect(find.text('Pick a game'), findsOneWidget);
+  });
 }

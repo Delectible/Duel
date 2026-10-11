@@ -5,6 +5,7 @@ import 'core/account/account.dart';
 import 'core/account/prefs_store.dart';
 import 'core/app_info.dart';
 import 'core/session/play_setup.dart';
+import 'core/theme/rotation_fade.dart';
 import 'core/theme/toon.dart';
 import 'features/home/home_screen.dart';
 
@@ -73,6 +74,7 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
           title: AppInfo.name,
           debugShowCheckedModeBanner: false,
           theme: Toon.theme(),
+          builder: (context, child) => RotationFade(child: child!),
           home: const HomeScreen(),
         ),
       ),

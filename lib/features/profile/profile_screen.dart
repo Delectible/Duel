@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
 import '../../core/avatars/faces.dart';
+import '../../core/theme/split_page.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
 
@@ -26,93 +27,150 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final account = AccountScope.of(context);
     return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Row(
-              children: [
-                ToonButton(
-                  color: Toon.card,
-                  padding: const EdgeInsets.all(8),
-                  tooltip: 'Back',
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Icon(Icons.arrow_back_rounded),
-                ),
-                const SizedBox(width: 12),
-                Text('Profile', style: Toon.text(26, weight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: Toon.card,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Toon.ink, width: 3),
-                  boxShadow: [BoxShadow(color: Toon.ink, offset: const Offset(0, 4))],
-                ),
+      body: SplitPage(
+        left: [
+          Row(
+            children: [
+              ToonButton(
+                color: Toon.card,
+                padding: const EdgeInsets.all(8),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Icon(Icons.arrow_back_rounded),
+              ),
+              const SizedBox(width: 12),
+              Text('Profile', style: Toon.text(26, weight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Toon.card,
+                shape: BoxShape.circle,
+                border: Border.all(color: Toon.ink, width: 3),
+                boxShadow: [BoxShadow(color: Toon.ink, offset: const Offset(0, 4))],
+              ),
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(account.avatar),
+                tween: Tween(begin: 0.85, end: 1),
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.elasticOut,
+                builder: (context, t, child) => Transform.scale(scale: t, child: child),
                 child: Face(account.persona, size: 104),
               ),
             ),
-            const SizedBox(height: 14),
-            Text('Name', style: Toon.text(16)),
-            const SizedBox(height: 6),
-            ToonBox(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              shadow: 3,
-              child: TextField(
-                key: const Key('name'),
-                controller: _name,
-                maxLength: 14,
-                textCapitalization: TextCapitalization.words,
-                style: Toon.text(20),
-                cursorColor: Toon.fg,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  counterText: '',
-                  hintText: 'Your name',
-                ),
-                onChanged: (v) => account.name = v,
+          ),
+          const SizedBox(height: 14),
+          Text('Name', style: Toon.text(16)),
+          const SizedBox(height: 6),
+          ToonBox(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            shadow: 3,
+            child: TextField(
+              key: const Key('name'),
+              controller: _name,
+              maxLength: 14,
+              textCapitalization: TextCapitalization.words,
+              style: Toon.text(20),
+              cursorColor: Toon.fg,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                counterText: '',
+                hintText: 'Your name',
               ),
+              onChanged: (v) => account.name = v,
             ),
-            const SizedBox(height: 16),
-            Text('Face', style: Toon.text(16)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final (i, (look, skin)) in avatars.indexed)
-                  GestureDetector(
-                    key: Key('avatar $i'),
-                    onTap: () => account.avatar = i,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: account.avatar == i ? Toon.yellow : Toon.card,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Toon.ink, width: 2.5),
-                      ),
-                      child: Face(Persona(name: '', look: look, skin: skin), size: 54),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _Wallet(account: account),
-            const SizedBox(height: 20),
-            Text('Your games', style: Toon.text(20, weight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            for (final g in games.where((g) => g.available))
-              _StatsRow(game: g, stats: account.stats(g.id), account: account),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          const SizedBox(height: 16),
+        ],
+        right: [
+          _AvatarPicker(account: account),
+          const SizedBox(height: 10),
+        ],
+        after: [
+          _Wallet(account: account),
+          const SizedBox(height: 20),
+          Text('Your games', style: Toon.text(20, weight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          for (final g in games.where((g) => g.available))
+            _StatsRow(game: g, stats: account.stats(g.id), account: account),
+        ],
       ),
     );
   }
+}
+
+/// Build your face: four of each part (more unlock later).
+class _AvatarPicker extends StatelessWidget {
+  const _AvatarPicker({required this.account});
+
+  final Account account;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = account.avatar;
+    Widget row(String label, String key, List<Avatar> options) => Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Toon.text(16)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              for (final (i, o) in options.indexed) ...[
+                if (i > 0) const SizedBox(width: 10),
+                Expanded(
+                  child: _PartTile(
+                    key: Key('$key $i'),
+                    avatar: o,
+                    selected: o == a,
+                    onTap: () => account.avatar = o,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+    const n = Avatar.choices;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row('Colour', 'color', [for (final c in AvatarColor.values.take(n)) a.copyWith(color: c)]),
+        row('Shape', 'shape', [for (final s in HeadShape.values.take(n)) a.copyWith(shape: s)]),
+        row('Face', 'face', [for (final f in Expression.values.take(n)) a.copyWith(face: f)]),
+        row('Hat', 'hat', [for (final h in Hat.values.take(n)) a.copyWith(hat: h)]),
+      ],
+    );
+  }
+}
+
+class _PartTile extends StatelessWidget {
+  const _PartTile({super.key, required this.avatar, required this.selected, required this.onTap});
+
+  final Avatar avatar;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      height: 72,
+      transform: Matrix4.translationValues(0, selected ? 2 : 0, 0),
+      decoration: Toon.box(selected ? Toon.yellow : Toon.card, radius: 16, shadow: selected ? 1 : 3),
+      alignment: Alignment.center,
+      child: LayoutBuilder(
+        builder: (context, box) => Face.of(avatar, size: (box.maxWidth - 16).clamp(30, 56)),
+      ),
+    ),
+  );
 }
 
 class _Wallet extends StatelessWidget {

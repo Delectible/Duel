@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/cards/card_view.dart';
 import '../../../core/cards/cards.dart';
+import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import '../engine/poker_hand.dart';
 import '../../../core/avatars/faces.dart';
@@ -39,17 +42,22 @@ class TableView extends StatelessWidget {
         final seats = c.personas.length;
         final spots = _spots[seats]!;
         Offset px(Offset f) => Offset(f.dx * size.width, f.dy * size.height);
-        Offset betSpot(int seat) => Offset.lerp(spots[seat], _center, seat == 0 ? 0.36 : 0.42)!;
+        // On a phone on its side the table is short: smaller board cards a
+        // little higher up, and bots show their cards beside them.
+        final wide = GameLayout.wide(context);
+        final center = wide ? const Offset(0.5, 0.43) : _center;
+        Offset betSpot(int seat) => Offset.lerp(spots[seat], center, seat == 0 ? 0.36 : 0.42)!;
 
         final h = c.hand;
-        final boardCard = (size.width * 0.12).clamp(36.0, 56.0);
+        final boardCard = min(size.width * 0.12, wide ? size.height * 0.13 : 56.0).clamp(36.0, 56.0);
+        final potAt = wide ? px(center) - Offset(0, boardCard * 0.7 + 16) : px(_potSpot);
         final children = <Widget>[Positioned.fill(child: CustomPaint(painter: _FeltPainter()))];
 
         // Your deal: the deck to shuffle.
         if (c.phase == TablePhase.shuffle) {
           children.add(
             _At(
-              px(_center),
+              px(wide ? const Offset(0.5, 0.56) : center),
               child: ShuffleDeck(shuffles: c.shuffles, onShuffle: c.shuffleDeck, cardWidth: boardCard),
             ),
           );
@@ -60,7 +68,7 @@ class TableView extends StatelessWidget {
           final winning = c.phase == TablePhase.payout ? c.winningCards() : const <PlayingCard>{};
           children.add(
             _At(
-              px(_center),
+              px(center),
               child: _Board(cards: h.board, hand: c.handNumber, winning: winning, width: boardCard),
             ),
           );
@@ -68,7 +76,7 @@ class TableView extends StatelessWidget {
           if (pot > 0 && c.phase != TablePhase.payout) {
             children.add(
               _At(
-                px(_potSpot),
+                potAt,
                 child: _ChipPile(amount: pot, label: 'Pot '),
               ),
             );
@@ -80,7 +88,17 @@ class TableView extends StatelessWidget {
           children.add(
             _At(
               px(spots[s]),
-              child: s == 0 ? _YourSeat(c: c) : _BotSeat(c: c, seat: s, cardsAbove: _cardsAbove(spots[s])),
+              child: s == 0
+                  ? _YourSeat(c: c)
+                  : _BotSeat(
+                      c: c,
+                      seat: s,
+                      // On its side the seats along the top show them beside
+                      // (towards the middle), clear of the board.
+                      cards: wide && spots[s].dy <= 0.2
+                          ? (spots[s].dx > 0.5 ? _CardsAt.left : _CardsAt.right)
+                          : (_cardsAbove(spots[s]) ? _CardsAt.above : _CardsAt.below),
+                    ),
             ),
           );
         }
@@ -96,7 +114,7 @@ class TableView extends StatelessWidget {
                 _Fly(
                   key: ValueKey('collect${c.handNumber}-${h.street}-$s'),
                   from: from,
-                  to: px(_potSpot),
+                  to: potAt,
                   amount: p.bet,
                 ),
               );
@@ -114,8 +132,8 @@ class TableView extends StatelessWidget {
                 children.add(
                   _Fly(
                     key: ValueKey('pay${c.handNumber}-$k-$w'),
-                    from: px(_potSpot),
-                    to: px(Offset.lerp(spots[seat], _center, 0.2)!),
+                    from: potAt,
+                    to: px(Offset.lerp(spots[seat], center, 0.2)!),
                     amount: share,
                   ),
                 );
@@ -128,7 +146,7 @@ class TableView extends StatelessWidget {
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: px(_center).dy + boardCard * 0.7 + 12,
+                  top: px(center).dy + boardCard * 0.7 + 12,
                   child: Center(
                     child: ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: size.width * 0.5),
@@ -172,6 +190,10 @@ class TableView extends StatelessWidget {
 /// Side seats in the upper half show turned-up cards above the avatar;
 /// the rest below the name plate. Either way clear of the board.
 bool _cardsAbove(Offset spot) => spot.dy > 0.2 && spot.dy < 0.5;
+
+/// Where a bot's turned-up cards go: above / below it upright, beside it
+/// (towards the middle) in landscape.
+enum _CardsAt { above, below, left, right }
 
 /// Centres [child] on [at].
 class _At extends StatelessWidget {
@@ -550,11 +572,11 @@ String _ordinal(int n) => switch (n) {
 };
 
 class _BotSeat extends StatelessWidget {
-  const _BotSeat({required this.c, required this.seat, required this.cardsAbove});
+  const _BotSeat({required this.c, required this.seat, required this.cards});
 
   final PokerController c;
   final int seat;
-  final bool cardsAbove;
+  final _CardsAt cards;
 
   @override
   Widget build(BuildContext context) {
@@ -587,8 +609,20 @@ class _BotSeat extends StatelessWidget {
             // below, clear of the board.
             if (showCards)
               Positioned(
-                top: faceUp ? (cardsAbove ? -40 : 112) : 26,
-                left: faceUp ? 10 : 60,
+                top: faceUp
+                    ? switch (cards) {
+                        _CardsAt.above => -40,
+                        _CardsAt.below => 112,
+                        _ => 22,
+                      }
+                    : 26,
+                left: faceUp
+                    ? switch (cards) {
+                        _CardsAt.left => -66,
+                        _CardsAt.right => 86,
+                        _ => 10,
+                      }
+                    : 60,
                 child: _DealIn(
                   key: ValueKey('deal${c.handNumber}-$seat'),
                   from: const Offset(0, 30),

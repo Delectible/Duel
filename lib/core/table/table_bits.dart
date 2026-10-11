@@ -136,6 +136,98 @@ class FeltPanel extends StatelessWidget {
   );
 }
 
+/// How a game screen sits: upright, the top bar, commentary, table and
+/// controls stack top to bottom; on its side (landscape) the table fills
+/// the left and the rest stacks in a panel on the right.
+class GameLayout extends StatelessWidget {
+  const GameLayout({
+    super.key,
+    required this.top,
+    required this.commentary,
+    required this.table,
+    required this.controls,
+    this.panelExtra,
+  });
+
+  final Widget top;
+  final Widget commentary;
+  final Widget table;
+  final Widget controls;
+
+  /// Landscape only: shown in the side panel between commentary and
+  /// controls (e.g. who's playing).
+  final Widget? panelExtra;
+
+  /// Wide enough for the side panel?
+  static bool isWide(Size size) => size.width > size.height * 1.15;
+
+  /// Whether the game around [context] is laid out on its side.
+  static bool wide(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_Landscape>()?.wide ?? false;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) => _Landscape(wide: isWide(box.biggest), child: _layout(box)),
+  );
+
+  Widget _layout(BoxConstraints box) {
+    {
+      if (!isWide(box.biggest)) {
+        return Column(
+          children: [
+            top,
+            commentary,
+            Expanded(child: table),
+            controls,
+          ],
+        );
+      }
+      final panel = (box.maxWidth * 0.36).clamp(250.0, 340.0);
+      return Row(
+        children: [
+          Expanded(
+            child: Padding(padding: const EdgeInsets.only(bottom: 6), child: table),
+          ),
+          SizedBox(
+            width: panel,
+            child: SidePanel(
+              child: Column(
+                children: [
+                  top,
+                  commentary,
+                  Expanded(
+                    child: Align(alignment: Alignment.center, child: panelExtra ?? const SizedBox.shrink()),
+                  ),
+                  controls,
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+  }
+}
+
+class _Landscape extends InheritedWidget {
+  const _Landscape({required this.wide, required super.child});
+
+  final bool wide;
+
+  @override
+  bool updateShouldNotify(_Landscape old) => old.wide != wide;
+}
+
+/// Marks the landscape side panel, where the commentary gets an extra line.
+class SidePanel extends InheritedWidget {
+  const SidePanel({super.key, required super.child});
+
+  static bool of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<SidePanel>() != null;
+
+  @override
+  bool updateShouldNotify(SidePanel old) => false;
+}
+
 /// Back, title + subtitle, stake, and the ? guide.
 class GameTopBar extends StatelessWidget {
   const GameTopBar({
@@ -200,6 +292,7 @@ class CommentaryStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = yourMove ? Toon.yellow : Toon.card;
+    final lines = SidePanel.of(context) ? 3 : 2;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
       child: ToonBox(
@@ -211,7 +304,7 @@ class CommentaryStrip extends StatelessWidget {
             if (leading != null) ...[leading!, const SizedBox(width: 8)],
             Expanded(
               child: SizedBox(
-                height: 40,
+                height: lines * 17.0 + 6,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   layoutBuilder: (current, previous) {
@@ -230,7 +323,7 @@ class CommentaryStrip extends StatelessWidget {
                   child: Text(
                     text,
                     key: ValueKey(text),
-                    maxLines: 2,
+                    maxLines: lines,
                     overflow: TextOverflow.ellipsis,
                     style: Toon.text(14, color: Toon.on(bg)),
                   ),
@@ -305,47 +398,54 @@ class GameOverCard extends StatelessWidget {
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeOutBack,
             builder: (context, s, child) => Transform.scale(scale: s, child: child),
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: ToonBox(
-                color: Toon.paper,
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Face(face, size: 72),
-                    const SizedBox(height: 10),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: Toon.text(28, weight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      textAlign: TextAlign.center,
-                      style: Toon.text(16, weight: FontWeight.w500),
-                    ),
-                    const SizedBox(height: 10),
-                    StakeResult(ticket),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ToonButton(color: Toon.card, onPressed: onLeave, child: const Text('Games')),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ToonButton(
-                            key: const Key('again'),
-                            color: Toon.green,
-                            onPressed: onAgain,
-                            child: const Text('Play again'),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: ToonBox(
+                  color: Toon.paper,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Face(face, size: 72),
+                      const SizedBox(height: 10),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: Toon.text(28, weight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        textAlign: TextAlign.center,
+                        style: Toon.text(16, weight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 10),
+                      StakeResult(ticket),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ToonButton(
+                              color: Toon.card,
+                              onPressed: onLeave,
+                              child: const Text('Games'),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ToonButton(
+                              key: const Key('again'),
+                              color: Toon.green,
+                              onPressed: onAgain,
+                              child: const Text('Play again'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

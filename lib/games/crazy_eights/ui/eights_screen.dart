@@ -11,6 +11,7 @@ import '../../../core/theme/toon.dart';
 import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
+import '../../../core/table/table_bits.dart';
 import '../engine/crazy_eights.dart';
 import 'eights_controller.dart';
 
@@ -140,42 +141,19 @@ class _EightsScreenState extends State<EightsScreen> {
             listenable: _c,
             builder: (context, _) => Stack(
               children: [
-                Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                      child: Row(
-                        children: [
-                          ToonButton(
-                            color: Toon.card,
-                            padding: const EdgeInsets.all(8),
-                            tooltip: 'Leave game',
-                            onPressed: _leave,
-                            child: const Icon(Icons.arrow_back_rounded),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Crazy Eights', style: Toon.text(18, weight: FontWeight.w700)),
-                                Text(
-                                  'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
-                                  style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
-                                ),
-                              ],
-                            ),
-                          ),
-                          StakeBadge(_ticket),
-                          const SizedBox(width: 8),
-                          GuideButton(title: 'Crazy Eights', stages: eightsGuide, current: _stage),
-                        ],
-                      ),
-                    ),
-                    _Commentary(c: _c),
-                    Expanded(child: _Table(c: _c)),
-                    _Actions(c: _c),
-                  ],
+                GameLayout(
+                  top: GameTopBar(
+                    title: 'Crazy Eights',
+                    subtitle:
+                        'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
+                    onLeave: _leave,
+                    ticket: _ticket,
+                    guide: eightsGuide,
+                    stage: _stage,
+                  ),
+                  commentary: _Commentary(c: _c),
+                  table: _Table(c: _c),
+                  controls: _Actions(c: _c),
                 ),
                 if (_c.phase == EightsPhase.over)
                   Positioned.fill(
@@ -203,60 +181,20 @@ class _Commentary extends StatelessWidget {
   final EightsController c;
 
   @override
-  Widget build(BuildContext context) {
-    final text = c.commentary();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-      child: ToonBox(
-        color: c.yourTurn ? Toon.yellow : Toon.card,
-        shadow: 3,
-        padding: const EdgeInsets.fromLTRB(8, 6, 10, 6),
-        child: Row(
-          children: [
-            Tooltip(
-              message: 'Suit to follow: ${suitName(c.game.suit)}',
-              child: Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: Toon.box(Toon.card, radius: 17, shadow: 0),
-                child: SuitIcon(c.game.suit, size: 20),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 40,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  layoutBuilder: (current, previous) {
-                    // A line that comes back while an old copy still fades
-                    // out would clash: show each line once.
-                    final seen = <Key?>{current?.key};
-                    return Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [
-                        for (final w in previous)
-                          if (seen.add(w.key)) w,
-                        ?current,
-                      ],
-                    );
-                  },
-                  child: Text(
-                    text,
-                    key: ValueKey(text),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Toon.text(14, weight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+  Widget build(BuildContext context) => CommentaryStrip(
+    text: c.commentary(),
+    yourMove: c.yourTurn,
+    leading: Tooltip(
+      message: 'Suit to follow: ${suitName(c.game.suit)}',
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: Toon.box(Toon.cardFace, radius: 17, shadow: 0),
+        child: SuitIcon(c.game.suit, size: 20),
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// Opponent spots (fractions of the table), clockwise from your left.
@@ -280,10 +218,17 @@ class _Table extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, box) {
         final size = Size(box.maxWidth, box.maxHeight);
-        Offset px(Offset f) => Offset(f.dx * size.width, f.dy * size.height);
+        final wide = GameLayout.wide(context);
+        // Seats never poke out above the table.
+        Offset px(Offset f) => Offset(f.dx * size.width, max(f.dy * size.height, f.dy < 0.9 ? 80.0 : 0));
         final spots = [_handSpot, ..._opponentSpots[c.players - 1]!];
         final g = c.game;
-        final card = (size.width * 0.17).clamp(52.0, 74.0);
+        final card = min(size.width * 0.17, size.height * (wide ? 0.15 : 0.16)).clamp(46.0, 74.0);
+        // On its side the piles sit midway between the top seats and your
+        // hand.
+        final pilesY = wide ? ((144 + size.height - card * 1.4 - 26) / 2 - 10) / size.height : _deckSpot.dy;
+        final deckAt = px(Offset(_deckSpot.dx, pilesY));
+        final pileAt = px(Offset(_pileSpot.dx, pilesY));
         final canDraw = c.yourTurn && g.canDraw;
 
         final children = <Widget>[
@@ -316,7 +261,7 @@ class _Table extends StatelessWidget {
         // Draw pile.
         children.add(
           _At(
-            px(_deckSpot),
+            deckAt,
             child: _DrawPile(
               count: g.drawPile.length,
               width: card,
@@ -329,10 +274,10 @@ class _Table extends StatelessWidget {
         // Discard pile: the top card flies in from whoever played it.
         final top = g.discard.length;
         final lastPlay = g.events.whereType<Played>().lastOrNull;
-        final from = lastPlay == null ? Offset.zero : px(spots[lastPlay.player]) - px(_pileSpot);
+        final from = lastPlay == null ? Offset.zero : px(spots[lastPlay.player]) - pileAt;
         children.add(
           _At(
-            px(_pileSpot),
+            pileAt,
             child: _DiscardPile(
               cards: g.discard.length > 3 ? g.discard.sublist(g.discard.length - 3) : g.discard,
               width: card,
@@ -348,7 +293,7 @@ class _Table extends StatelessWidget {
           children.add(
             _Fly(
               key: ValueKey('draw$id'),
-              from: px(_deckSpot),
+              from: deckAt,
               to: px(spots[p]) - (p == 0 ? Offset(0, card * 0.9) : Offset.zero),
               width: card * 0.7,
             ),
@@ -927,52 +872,55 @@ class _GameOver extends StatelessWidget {
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutBack,
               builder: (context, s, child) => Transform.scale(scale: s, child: child),
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
-                child: ToonBox(
-                  color: Toon.paper,
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Face(c.personas[w], size: 72),
-                      const SizedBox(height: 10),
-                      Text(
-                        won ? 'You won!' : '${c.personas[w].name} won',
-                        style: Toon.text(30, weight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        won
-                            ? 'You got rid of every card.'
-                            : 'You had ${c.game.hands[0].length} card${c.game.hands[0].length == 1 ? '' : 's'} left.',
-                        textAlign: TextAlign.center,
-                        style: Toon.text(16, weight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 10),
-                      StakeResult(ticket),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ToonButton(
-                              color: Toon.card,
-                              onPressed: onLeave,
-                              child: const Text('Games'),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: ToonBox(
+                    color: Toon.paper,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Face(c.personas[w], size: 72),
+                        const SizedBox(height: 10),
+                        Text(
+                          won ? 'You won!' : '${c.personas[w].name} won',
+                          style: Toon.text(30, weight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          won
+                              ? 'You got rid of every card.'
+                              : 'You had ${c.game.hands[0].length} card${c.game.hands[0].length == 1 ? '' : 's'} left.',
+                          textAlign: TextAlign.center,
+                          style: Toon.text(16, weight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 10),
+                        StakeResult(ticket),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ToonButton(
+                                color: Toon.card,
+                                onPressed: onLeave,
+                                child: const Text('Games'),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ToonButton(
-                              key: const Key('again'),
-                              color: Toon.green,
-                              onPressed: onAgain,
-                              child: const Text('Play again'),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ToonButton(
+                                key: const Key('again'),
+                                color: Toon.green,
+                                onPressed: onAgain,
+                                child: const Text('Play again'),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

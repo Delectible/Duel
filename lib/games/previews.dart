@@ -114,7 +114,7 @@ class HoldemPreview extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Face(Persona.you(), size: 36),
+                const Face.of(Avatar(), size: 36),
                 const SizedBox(width: 6),
                 _Fan(_cards('Kd Qd'), width: 30, spread: 0.9, tilt: 0.08),
               ],

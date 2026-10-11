@@ -14,6 +14,8 @@ bool playOn(WidgetTester tester) =>
     tester.widget<ToonButton>(find.byKey(const Key('play'))).onPressed != null;
 
 Future<void> openPreview(WidgetTester tester, GameInfo game) async {
+  await tester.ensureVisible(find.text(game.name));
+  await tester.pumpAndSettle();
   await tester.tap(find.text(game.name));
   await tester.pumpAndSettle();
   expect(find.byType(GamePreviewScreen), findsOneWidget);

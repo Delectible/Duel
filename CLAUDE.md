@@ -116,11 +116,21 @@ weights cut from the variable font.
   `PrefsStore`), `stake.dart` (`StakeTicket`: the stake is taken at Play!
   and settled once per game; `StakeBadge`, `StakeResult`, `confirmLeave`
   forfeits). Win = stake back + stake x opponents x difficulty rate.
-- `lib/core/avatars/faces.dart`: `Persona`, `Face` (cartoon faces),
-  `avatars` (the profile's picks). Poker maps bot looks to `BotStyle`s.
+- `lib/core/avatars/faces.dart`: `Avatar` (colour, head shape, face, hat;
+  the first `Avatar.choices` of each are pickable, the rest are bots' /
+  later unlocks), `Persona`, `Face` (painted from the parts). Poker maps
+  bot `Look`s to `BotStyle`s.
 - `lib/core/table/table_bits.dart`: what every game table shares:
-  `GameTopBar`, `CommentaryStrip`, `SpeechBubble`, `GameOverCard`,
-  `FlyingCards`, `FeltPanel`, `DealIn`, `Pop`, `SuitConfetti`.
+  `GameLayout` (upright: top bar / commentary / table / controls; on its
+  side: table left, the rest in a right-hand `SidePanel`;
+  `GameLayout.wide(context)` for table code), `GameTopBar`,
+  `CommentaryStrip`, `SpeechBubble`, `GameOverCard`, `FlyingCards`,
+  `FeltPanel`, `DealIn`, `Pop`, `SuitConfetti`.
+- **Landscape:** every screen must work both ways (tests run each phone
+  upright and on its side: `phones` in `test/screens.dart`).
+  `core/theme/split_page.dart` (`SplitPage`: two columns on its side) for
+  menus; `core/theme/rotation_fade.dart` fades the layout in on a turn.
+  `test/sweep_test.dart` renders every screen light / dark, both ways.
 - `lib/features/profile/`, `lib/features/settings/`: the two buttons atop
   home.
 - `lib/core/app_info.dart`: version, `latest` (Play's What's new),

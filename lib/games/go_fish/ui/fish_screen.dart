@@ -150,25 +150,23 @@ class _FishScreenState extends State<FishScreen> {
             listenable: _c,
             builder: (context, _) => Stack(
               children: [
-                Column(
-                  children: [
-                    GameTopBar(
-                      title: 'Go Fish',
-                      subtitle:
-                          'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
-                      onLeave: _leave,
-                      ticket: _ticket,
-                      guide: fishGuide,
-                      stage: _stage,
-                    ),
-                    CommentaryStrip(
-                      text: _c.commentary(),
-                      yourMove: _c.yourTurn,
-                      leading: _BooksScore(c: _c),
-                    ),
-                    Expanded(child: _Table(c: _c)),
-                    _Actions(c: _c),
-                  ],
+                GameLayout(
+                  top: GameTopBar(
+                    title: 'Go Fish',
+                    subtitle:
+                        'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
+                    onLeave: _leave,
+                    ticket: _ticket,
+                    guide: fishGuide,
+                    stage: _stage,
+                  ),
+                  commentary: CommentaryStrip(
+                    text: _c.commentary(),
+                    yourMove: _c.yourTurn,
+                    leading: _BooksScore(c: _c),
+                  ),
+                  table: _Table(c: _c),
+                  controls: _Actions(c: _c),
                 ),
                 if (_c.phase == FishPhase.over) Positioned.fill(child: _over(context)),
               ],
@@ -235,6 +233,16 @@ const _opponentSpots = <int, List<Offset>>{
   5: [Offset(0.14, 0.52), Offset(0.17, 0.17), Offset(0.5, 0.11), Offset(0.83, 0.17), Offset(0.86, 0.52)],
 };
 
+/// On a phone on its side the table is wide and short: players sit along
+/// the top and at the ends.
+const _opponentSpotsWide = <int, List<Offset>>{
+  1: [Offset(0.5, 0.2)],
+  2: [Offset(0.3, 0.2), Offset(0.7, 0.2)],
+  3: [Offset(0.12, 0.42), Offset(0.5, 0.2), Offset(0.88, 0.42)],
+  4: [Offset(0.11, 0.45), Offset(0.36, 0.2), Offset(0.64, 0.2), Offset(0.89, 0.45)],
+  5: [Offset(0.1, 0.5), Offset(0.27, 0.2), Offset(0.5, 0.2), Offset(0.73, 0.2), Offset(0.9, 0.5)],
+};
+
 const _pondSpot = Offset(0.5, 0.5);
 const _youSpot = Offset(0.5, 0.94);
 
@@ -248,15 +256,18 @@ class _Table extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, box) {
         final size = Size(box.maxWidth, box.maxHeight);
-        Offset px(Offset f) => Offset(f.dx * size.width, f.dy * size.height);
-        final spots = [_youSpot, ..._opponentSpots[c.players - 1]!];
-        Offset seat(int s) => s < 0 ? px(_pondSpot) : px(spots[s]);
+        final wide = GameLayout.wide(context);
+        // Seats never poke out above the table.
+        Offset px(Offset f) => Offset(f.dx * size.width, max(f.dy * size.height, f.dy < 0.9 ? 80.0 : 0));
+        final spots = [_youSpot, ...(wide ? _opponentSpotsWide : _opponentSpots)[c.players - 1]!];
+        final pond = wide ? const Offset(0.5, 0.47) : _pondSpot;
+        Offset seat(int s) => s < 0 ? px(pond) : px(spots[s]);
         final g = c.game;
-        final card = (size.width * 0.15).clamp(46.0, 66.0);
+        final card = min(size.width * 0.15, size.height * (wide ? 0.14 : 0.15)).clamp(44.0, 66.0);
 
         final children = <Widget>[
           const Positioned.fill(child: FeltPanel()),
-          At(px(_pondSpot), child: _Pond(c: c)),
+          At(px(pond), child: _Pond(c: c)),
         ];
 
         for (var p = 1; p < c.players; p++) {

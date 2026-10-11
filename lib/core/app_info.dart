@@ -10,8 +10,9 @@ class AppInfo {
   static const latest =
       'Two new games against bots: Go Fish (2 to 6 players) and Four in a Row. '
       'Pips, your wallet: stake some on a game to win more (harder bots pay more), or play free. '
-      'Run out and you can still stake 1 on credit, paid back from winnings. '
-      'New profile (name and face) and settings: dark mode and how money is shown.';
+      'Run out and you can still stake 1 on credit. '
+      'Build your own face in the profile (colour, shape, face, hat). '
+      'Settings: dark mode and how money is shown. Every screen now works with the phone on its side.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -21,8 +22,9 @@ class AppInfo {
         'Go Fish vs bots',
         'Four in a Row vs a bot',
         'Pips: stake on a game, win more; debt if you run out',
-        'Profile: your name and face',
+        'Profile: your name and a face you build',
         'Settings: dark mode, currency',
+        'Landscape: every screen works on its side',
       ],
     ),
     (

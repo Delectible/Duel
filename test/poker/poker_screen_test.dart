@@ -24,12 +24,21 @@ Future<void> untilShowdown(WidgetTester tester) async {
   for (var i = 0; i < 20000 && next.evaluate().isEmpty; i++) {
     await tester.pump(const Duration(milliseconds: 20));
     if (find.byKey(const Key('deck')).evaluate().isNotEmpty) await shuffleAndDeal(tester);
-    if (yourTurn()) await tester.tap(find.byKey(const Key('call')));
+    if (yourTurn()) {
+      await settleButtons(tester);
+      await tester.tap(find.byKey(const Key('call')));
+    }
   }
   expect(next, findsOneWidget);
 }
 
 bool yourTurn() => find.byKey(const Key('fold')).evaluate().isNotEmpty;
+
+/// Lets the action buttons finish sliding in (they grow in landscape).
+Future<void> settleButtons(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 250));
+}
 
 /// Between your turns: Next hand after a showdown, and on your deal one
 /// shuffle then Deal. True if it did either.
@@ -53,15 +62,19 @@ Future<void> play(WidgetTester tester, {required int hands, bool raise = false})
   for (var i = 0; i < 6000; i++) {
     await tester.pump(const Duration(milliseconds: 20));
     if (find.text('Play again').evaluate().isNotEmpty) return;
-    final hand = find.textContaining(RegExp(r'^Hand \d+$'));
-    final number = hand.evaluate().isEmpty ? 0 : int.parse(tester.widget<Text>(hand).data!.split(' ').last);
+    // "Hand 4" upright; "Hand 4 · Blinds …" in the landscape side panel.
+    final hand = find.textContaining(RegExp(r'^Hand \d+'));
+    final number = hand.evaluate().isEmpty
+        ? 0
+        : int.parse(RegExp(r'^Hand (\d+)').firstMatch(tester.widget<Text>(hand.first).data!)!.group(1)!);
     if (number > hands) return;
     if (await shuffleAndDeal(tester)) continue;
     if (!yourTurn()) continue;
+    await settleButtons(tester);
     final raiseButton = tester.widget<ToonButton>(find.byKey(const Key('raise')));
     if (raise && raiseButton.onPressed != null) {
       await tester.tap(find.byKey(const Key('raise')));
-      await tester.pump();
+      await settleButtons(tester);
       if (find.byKey(const Key('quick Pot')).evaluate().isNotEmpty) {
         await tester.tap(find.byKey(const Key('quick Pot')));
         await tester.pump();
@@ -88,30 +101,34 @@ void main() {
     }
   }
 
-  testWidgets('the raise panel steps and sizes the raise', (tester) async {
-    usePhone(tester, phones['pixel9pro']!);
-    await tester.pumpWidget(app(2));
-    for (var i = 0; i < 500 && !yourTurn(); i++) {
-      await tester.pump(const Duration(milliseconds: 20));
-      await shuffleAndDeal(tester);
-    }
-    await tester.tap(find.byKey(const Key('raise')));
-    await tester.pump();
-    await shot(tester, 'poker_raise_panel');
-    expect(find.text('½ Pot'), findsOneWidget);
-    String label() => tester
-        .widget<Text>(
-          find.descendant(of: find.byKey(const Key('confirm raise')), matching: find.byType(Text)),
-        )
-        .data!;
-    final before = label();
-    await tester.tap(find.byIcon(Icons.add_rounded));
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(label(), isNot(before));
-    await tester.tap(find.byKey(const Key('quick All-in')));
-    await tester.pump();
-    expect(label(), startsWith('All-in '));
-  });
+  for (final phone in ['pixel9pro', 'small_land']) {
+    testWidgets('the raise panel steps and sizes the raise on $phone', (tester) async {
+      usePhone(tester, phones[phone]!);
+      await tester.pumpWidget(app(2));
+      for (var i = 0; i < 500 && !yourTurn(); i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+        await shuffleAndDeal(tester);
+      }
+      await settleButtons(tester);
+      await shot(tester, 'poker_buttons_$phone');
+      await tester.tap(find.byKey(const Key('raise')));
+      await settleButtons(tester);
+      await shot(tester, 'poker_raise_panel_$phone');
+      expect(find.text('½ Pot'), findsOneWidget);
+      String label() => tester
+          .widget<Text>(
+            find.descendant(of: find.byKey(const Key('confirm raise')), matching: find.byType(Text)),
+          )
+          .data!;
+      final before = label();
+      await tester.tap(find.byIcon(Icons.add_rounded));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(label(), isNot(before));
+      await tester.tap(find.byKey(const Key('quick All-in')));
+      await tester.pump();
+      expect(label(), startsWith('All-in '));
+    });
+  }
 
   testWidgets('heads-up with raises plays to a result', (tester) async {
     usePhone(tester, phones['pixel9pro']!);
@@ -146,7 +163,10 @@ void main() {
     final deck = find.byKey(const Key('deck'));
     for (var i = 0; i < 4000 && deck.evaluate().isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 20));
-      if (yourTurn()) await tester.tap(find.byKey(const Key('call')));
+      if (yourTurn()) {
+        await settleButtons(tester);
+        await tester.tap(find.byKey(const Key('call')));
+      }
     }
     expect(deck, findsOneWidget);
     expect(find.text('Your deal!'), findsOneWidget);

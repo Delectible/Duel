@@ -34,7 +34,7 @@ Future<void> playGame(WidgetTester tester, {Future<void> Function(int i)? onStep
     } else if (live('ask ').evaluate().isNotEmpty) {
       await tester.tap(live('ask ').first);
     } else if (live('card ').evaluate().isNotEmpty) {
-      await tester.tap(live('card ').first);
+      await tapCard(tester, live('card '));
     }
   }
   fail('game did not end');
@@ -86,7 +86,7 @@ void main() {
         expect(find.textContaining('got any'), findsWidgets);
         asked = true;
       } else if (live('card ').evaluate().isNotEmpty) {
-        await tester.tap(live('card ').first);
+        await tapCard(tester, live('card '));
       }
     }
     expect(asked, isTrue);

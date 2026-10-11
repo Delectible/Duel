@@ -95,14 +95,14 @@ class Account extends ChangeNotifier {
   final AccountStore _store;
 
   String _name = 'You';
-  int _avatar = 0;
+  Avatar _avatar = const Avatar();
   int _balance = startingBalance;
   CurrencyChoice _currency = CurrencyChoice.pips;
   ThemeChoice _theme = ThemeChoice.system;
   final Map<String, GameStats> _stats = {};
 
   String get name => _name;
-  int get avatar => _avatar;
+  Avatar get avatar => _avatar;
   int get balance => _balance;
   CurrencyChoice get currency => _currency;
   ThemeChoice get theme => _theme;
@@ -112,13 +112,10 @@ class Account extends ChangeNotifier {
   GameStats stats(String gameId) => _stats.putIfAbsent(gameId, GameStats.new);
 
   /// Your face at the tables.
-  Persona get persona {
-    final (look, skin) = avatars[_avatar.clamp(0, avatars.length - 1)];
-    return Persona.you(name: _name, look: look, skin: skin);
-  }
+  Persona get persona => Persona.you(name: _name, avatar: _avatar);
 
   set name(String v) => _change(() => _name = v.trim().isEmpty ? 'You' : v.trim());
-  set avatar(int v) => _change(() => _avatar = v.clamp(0, avatars.length - 1));
+  set avatar(Avatar v) => _change(() => _avatar = v);
   set currency(CurrencyChoice v) => _change(() => _currency = v);
   set theme(ThemeChoice v) => _change(() => _theme = v);
 
@@ -189,7 +186,8 @@ class Account extends ChangeNotifier {
     try {
       final j = jsonDecode(raw) as Map<String, dynamic>;
       _name = j['name'] as String? ?? _name;
-      _avatar = j['avatar'] as int? ?? 0;
+      final face = j['face'];
+      if (face is Map<String, dynamic>) _avatar = Avatar.fromJson(face);
       _balance = j['balance'] as int? ?? startingBalance;
       _currency = CurrencyChoice.values.asNameMap()[j['currency']] ?? CurrencyChoice.pips;
       _theme = ThemeChoice.values.asNameMap()[j['theme']] ?? ThemeChoice.system;
@@ -203,7 +201,7 @@ class Account extends ChangeNotifier {
   void _save() => _store.save(
     jsonEncode({
       'name': _name,
-      'avatar': _avatar,
+      'face': _avatar.toJson(),
       'balance': _balance,
       'currency': _currency.name,
       'theme': _theme.name,

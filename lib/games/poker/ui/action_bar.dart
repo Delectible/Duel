@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import '../engine/poker_hand.dart';
 import 'poker_controller.dart';
@@ -148,48 +149,53 @@ class _ActionBarState extends State<ActionBar> {
     final callAll = !legal.canCheck && legal.callAmount >= me.stack;
     final onlyAllIn = legal.canRaise && legal.minRaiseTo >= legal.maxRaiseTo;
     final raiseWord = legal.isBet ? 'Bet' : 'Raise';
-    return Row(
-      children: [
-        Expanded(
-          child: ToonButton(
-            key: const Key('fold'),
-            color: Toon.red,
-            onPressed: () => _act(const Move.fold()),
-            child: const Text('Fold'),
+    // In the landscape side panel the three stack, under your thumb.
+    final stacked = SidePanel.of(context);
+    Widget slot(Widget b) => stacked ? b : Expanded(child: b);
+    final gap = stacked ? const SizedBox(height: 8) : const SizedBox(width: 8);
+    final buttons = [
+      slot(
+        ToonButton(
+          key: const Key('fold'),
+          color: Toon.red,
+          onPressed: () => _act(const Move.fold()),
+          child: const Text('Fold'),
+        ),
+      ),
+      gap,
+      slot(
+        ToonButton(
+          key: const Key('call'),
+          color: legal.canCheck ? Toon.blue : Toon.green,
+          onPressed: () => _act(legal.canCheck ? const Move.check() : const Move.call()),
+          child: Text(
+            legal.canCheck
+                ? 'Check'
+                : (callAll ? 'All-in ${chips(legal.callAmount)}' : 'Call ${chips(legal.callAmount)}'),
+            maxLines: 1,
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ToonButton(
-            key: const Key('call'),
-            color: legal.canCheck ? Toon.blue : Toon.green,
-            onPressed: () => _act(legal.canCheck ? const Move.check() : const Move.call()),
-            child: Text(
-              legal.canCheck
-                  ? 'Check'
-                  : (callAll ? 'All-in ${chips(legal.callAmount)}' : 'Call ${chips(legal.callAmount)}'),
-              maxLines: 1,
-            ),
-          ),
+      ),
+      gap,
+      slot(
+        ToonButton(
+          key: const Key('raise'),
+          color: Toon.orange,
+          onPressed: !legal.canRaise
+              ? null
+              : onlyAllIn
+              ? () => _act(Move.raiseTo(legal.maxRaiseTo))
+              : () => setState(() {
+                  _raising = true;
+                  _amount = _amount.clamp(legal.minRaiseTo, legal.maxRaiseTo);
+                }),
+          child: Text(onlyAllIn ? 'All-in' : '$raiseWord…', maxLines: 1),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ToonButton(
-            key: const Key('raise'),
-            color: Toon.orange,
-            onPressed: !legal.canRaise
-                ? null
-                : onlyAllIn
-                ? () => _act(Move.raiseTo(legal.maxRaiseTo))
-                : () => setState(() {
-                    _raising = true;
-                    _amount = _amount.clamp(legal.minRaiseTo, legal.maxRaiseTo);
-                  }),
-            child: Text(onlyAllIn ? 'All-in' : '$raiseWord…', maxLines: 1),
-          ),
-        ),
-      ],
-    );
+      ),
+    ];
+    return stacked
+        ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: buttons.reversed.toList())
+        : Row(children: buttons);
   }
 
   Widget _raisePanel() {

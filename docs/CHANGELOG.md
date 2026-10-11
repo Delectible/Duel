@@ -144,3 +144,19 @@ Ships as app version **0.4.0**.
   → 0.4.0 · 2026-10-10
 - [x] **6.6 Harder bots:** Hard plays tight in every game (see 6.1, 6.2).
   → 0.4.0 · 2026-10-10
+
+### 7. Faces and landscape
+
+- [x] **7.1 Build your face:** in the profile pick a colour, head shape,
+  face and hat, four of each (more to unlock later). Bots keep their own
+  looks. → 0.4.0 · 2026-10-11
+- [x] **7.2 Landscape:** every screen and game works with the phone on its
+  side and follows the phone's auto-rotate setting (Android
+  `screenOrientation="user"`; iOS honours the rotation lock). Games put
+  the table on the left and the top bar, commentary and buttons in a
+  panel on the right; menus split into two columns. → 0.4.0 · 2026-10-11
+- [x] **7.3 Rotation fade:** turning the phone fades the new layout in.
+  → 0.4.0 · 2026-10-11
+- [~] **7.4 Glitch sweep:** `test/sweep_test.dart` renders every screen
+  and game light / dark, upright / on its side, with the How to play
+  sheet. More testing to come.

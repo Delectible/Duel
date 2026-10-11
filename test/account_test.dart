@@ -1,4 +1,5 @@
 import 'package:duel/core/account/account.dart';
+import 'package:duel/core/avatars/faces.dart';
 import 'package:duel/core/account/stake.dart';
 import 'package:duel/core/session/difficulty.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,14 +65,22 @@ void main() {
     final store = MemoryStore();
     final a = Account(store: store)
       ..name = 'Luca'
-      ..avatar = 5
+      ..avatar = const Avatar(
+        color: AvatarColor.lilac,
+        shape: HeadShape.egg,
+        face: Expression.cool,
+        hat: Hat.crown,
+      )
       ..currency = CurrencyChoice.eur
       ..theme = ThemeChoice.dark;
     a.placeStake(10);
     a.settle(gameId: 'gofish', stake: 10, outcome: Outcome.win, opponents: 2, difficulty: Difficulty.hard);
     final b = Account(store: store);
     expect(b.name, 'Luca');
-    expect(b.avatar, 5);
+    expect(
+      b.avatar,
+      const Avatar(color: AvatarColor.lilac, shape: HeadShape.egg, face: Expression.cool, hat: Hat.crown),
+    );
     expect(b.currency, CurrencyChoice.eur);
     expect(b.theme, ThemeChoice.dark);
     expect(b.balance, 130);

@@ -36,7 +36,7 @@ Future<void> playGame(WidgetTester tester, {Future<void> Function(int step)? onS
     } else if (has(const Key('play drawn'))) {
       await tester.tap(find.byKey(const Key('play drawn')));
     } else if (playableCards(tester).evaluate().isNotEmpty) {
-      await tester.tap(playableCards(tester).first);
+      await tapCard(tester, playableCards(tester));
     } else if (has(const Key('draw')) && find.text('Draw a card').evaluate().isNotEmpty) {
       await tester.tap(find.byKey(const Key('draw')));
     } else if (has(const Key('pass'))) {
@@ -103,7 +103,7 @@ void main() {
           final id = int.parse(((e.widget.key! as ValueKey<String>).value).split(' ').last);
           return id ~/ 4 + 2 == 8;
         });
-        await tester.tap(find.byWidget((eight.isNotEmpty ? eight.first : cards.first).widget));
+        await tapCard(tester, find.byWidget((eight.isNotEmpty ? eight.first : cards.first).widget));
       } else if (has(const Key('draw')) && find.text('Draw a card').evaluate().isNotEmpty) {
         expect(find.textContaining('Tap the deck to draw'), findsOneWidget);
         await tester.tap(find.byKey(const Key('draw')));

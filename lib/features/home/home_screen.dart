@@ -19,40 +19,73 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final setup = PlaySetupScope.of(context);
+    final header = [
+      const _TopBar(),
+      const SizedBox(height: 12),
+      const ConnectionBar(),
+      const SizedBox(height: 18),
+      Text('Pick a game', style: Toon.text(26, weight: FontWeight.w700)),
+      Text(
+        setup.mode == PlayMode.bots
+            ? 'You + ${setup.botCount} ${setup.botCount == 1 ? 'bot' : 'bots'} · ${setup.players} players'
+            : 'Party of ${setup.partySize}: invite a friend to play',
+        style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+      ),
+      const SizedBox(height: 12),
+    ];
+    // Landscape tiles are squarer so two rows fit the short screen.
+    Widget grid(
+      double width, {
+      EdgeInsets padding = const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      bool wide = false,
+    }) => SliverPadding(
+      padding: padding,
+      sliver: SliverGrid.count(
+        crossAxisCount: ((width - 32) / (wide ? 150 : 200)).floor().clamp(2, 4),
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: wide ? 1.0 : 0.82,
+        children: [for (final g in games) _GameTile(game: g, setup: setup)],
+      ),
+    );
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              sliver: SliverList.list(
+        child: LayoutBuilder(
+          builder: (context, box) {
+            // On its side: you and the connection bar on the left, the
+            // games on the right.
+            if (box.maxWidth > box.maxHeight * 1.15 && box.maxWidth >= 600) {
+              final side = (box.maxWidth * 0.42).clamp(340.0, 400.0);
+              return Row(
                 children: [
-                  const _TopBar(),
-                  const SizedBox(height: 12),
-                  const ConnectionBar(),
-                  const SizedBox(height: 18),
-                  Text('Pick a game', style: Toon.text(26, weight: FontWeight.w700)),
-                  Text(
-                    setup.mode == PlayMode.bots
-                        ? 'You + ${setup.botCount} ${setup.botCount == 1 ? 'bot' : 'bots'} · ${setup.players} players'
-                        : 'Party of ${setup.partySize}: invite a friend to play',
-                    style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+                  SizedBox(
+                    width: side,
+                    child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 8, 16), children: header),
                   ),
-                  const SizedBox(height: 12),
+                  Expanded(
+                    child: CustomScrollView(
+                      slivers: [
+                        grid(
+                          box.maxWidth - side,
+                          padding: const EdgeInsets.fromLTRB(8, 14, 16, 24),
+                          wide: true,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              sliver: SliverGrid.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: 0.82,
-                children: [for (final g in games) _GameTile(game: g, setup: setup)],
-              ),
-            ),
-          ],
+              );
+            }
+            return CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  sliver: SliverList.list(children: header),
+                ),
+                grid(box.maxWidth),
+              ],
+            );
+          },
         ),
       ),
     );

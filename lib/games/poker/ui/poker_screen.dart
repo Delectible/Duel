@@ -9,6 +9,7 @@ import 'action_bar.dart';
 import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
+import '../../../core/table/table_bits.dart';
 import 'poker_guide.dart';
 import 'poker_controller.dart';
 import 'table_view.dart';
@@ -122,12 +123,11 @@ class _PokerScreenState extends State<PokerScreen> {
             listenable: _c,
             builder: (context, _) => Stack(
               children: [
-                Column(
-                  children: [
-                    _Hud(c: _c, ticket: _ticket, onLeave: _leave),
-                    Expanded(child: TableView(c: _c)),
-                    ActionBar(c: _c),
-                  ],
+                GameLayout(
+                  top: _Hud(c: _c, ticket: _ticket, onLeave: _leave),
+                  commentary: const SizedBox.shrink(),
+                  table: TableView(c: _c),
+                  controls: ActionBar(c: _c),
                 ),
                 if (_c.phase == TablePhase.finished)
                   Positioned.fill(
@@ -158,6 +158,9 @@ class _Hud extends StatelessWidget {
   Widget build(BuildContext context) {
     final (sb, bb) = c.game.blinds;
     final left = c.game.handsToNextLevel;
+    // In the landscape side panel the hand number joins the subtitle.
+    final narrow = SidePanel.of(context);
+    final hand = c.handNumber + (c.phase == TablePhase.shuffle ? 1 : 0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Row(
@@ -176,29 +179,35 @@ class _Hud extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text("Texas Hold'em", style: Toon.text(18, weight: FontWeight.w700)),
+                    Flexible(
+                      child: Text(
+                        "Texas Hold'em",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Toon.text(18, weight: FontWeight.w700),
+                      ),
+                    ),
                     const SizedBox(width: 6),
                     StakeBadge(ticket),
                   ],
                 ),
                 Text(
-                  'Blinds ${chips(sb)} / ${chips(bb)}'
+                  '${narrow ? 'Hand $hand · ' : ''}Blinds ${chips(sb)} / ${chips(bb)}'
                   '${left == null ? '' : ' · up in $left hand${left == 1 ? '' : 's'}'}',
                   style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
                 ),
               ],
             ),
           ),
-          ToonBox(
-            color: Toon.card,
-            shadow: 3,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            // While you shuffle, the coming hand's number.
-            child: Text(
-              'Hand ${c.handNumber + (c.phase == TablePhase.shuffle ? 1 : 0)}',
-              style: Toon.text(14),
+          if (!narrow) ...[
+            ToonBox(
+              color: Toon.card,
+              shadow: 3,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              // While you shuffle, the coming hand's number.
+              child: Text('Hand $hand', style: Toon.text(14)),
             ),
-          ),
+          ],
           const SizedBox(width: 8),
           GuideButton(title: "Texas Hold'em", stages: pokerGuide, current: () => pokerStage(c)),
         ],
@@ -228,49 +237,52 @@ class _GameOver extends StatelessWidget {
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeOutBack,
           builder: (context, s, child) => Transform.scale(scale: s, child: child),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: ToonBox(
-              color: Toon.paper,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Face(c.personas[0], size: 72),
-                  const SizedBox(height: 10),
-                  Text(
-                    won ? 'You won!' : 'Out in ${_ordinal(place)}',
-                    style: Toon.text(30, weight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    won ? 'You took every chip at a table of $players.' : 'Of $players players.',
-                    textAlign: TextAlign.center,
-                    style: Toon.text(16, weight: FontWeight.w500),
-                  ),
-                  Text(
-                    '${c.game.handsPlayed} hand${c.game.handsPlayed == 1 ? '' : 's'}',
-                    style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
-                  ),
-                  const SizedBox(height: 10),
-                  StakeResult(ticket),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ToonButton(color: Toon.card, onPressed: onLeave, child: const Text('Games')),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ToonButton(
-                          color: Toon.green,
-                          onPressed: onAgain,
-                          child: const Text('Play again'),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: ToonBox(
+                color: Toon.paper,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Face(c.personas[0], size: 72),
+                    const SizedBox(height: 10),
+                    Text(
+                      won ? 'You won!' : 'Out in ${_ordinal(place)}',
+                      style: Toon.text(30, weight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      won ? 'You took every chip at a table of $players.' : 'Of $players players.',
+                      textAlign: TextAlign.center,
+                      style: Toon.text(16, weight: FontWeight.w500),
+                    ),
+                    Text(
+                      '${c.game.handsPlayed} hand${c.game.handsPlayed == 1 ? '' : 's'}',
+                      style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
+                    ),
+                    const SizedBox(height: 10),
+                    StakeResult(ticket),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ToonButton(color: Toon.card, onPressed: onLeave, child: const Text('Games')),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ToonButton(
+                            color: Toon.green,
+                            onPressed: onAgain,
+                            child: const Text('Play again'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

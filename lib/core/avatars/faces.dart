@@ -4,19 +4,98 @@ import 'package:flutter/material.dart';
 
 import '../theme/toon.dart';
 
-/// A face's look: the headband (the default for you), or the bots' cap,
-/// shades, shark fin and wild hair. Any player can pick any look.
+/// A bot's personality look (poker maps it to a play style). Your own face
+/// is an [Avatar] you build in the profile.
 enum Look { headband, cap, shades, fin, spiky }
+
+/// Face colours. The first [Avatar.choices] are yours to pick; the rest are
+/// the bots' (unlocks later).
+enum AvatarColor {
+  sun(Toon.yellow),
+  mint(Color(0xFF8DE4B5)),
+  lilac(Color(0xFFC9B6FF)),
+  tan(Color(0xFFC68B59)),
+  peach(Color(0xFFFFB38A)),
+  stone(Color(0xFFB8B3A8)),
+  sky(Color(0xFF7FB8E8)),
+  pink(Color(0xFFFF9EC4));
+
+  const AvatarColor(this.color);
+
+  final Color color;
+}
+
+enum HeadShape { round, square, egg, wide }
+
+enum Expression { smile, grin, cool, wild, freckles }
+
+enum Hat { headband, cap, crown, none, fin, spiky }
+
+/// A face put together from parts: colour, head shape, expression, hat.
+@immutable
+class Avatar {
+  const Avatar({
+    this.color = AvatarColor.sun,
+    this.shape = HeadShape.round,
+    this.face = Expression.smile,
+    this.hat = Hat.headband,
+  });
+
+  /// How many of each part you can pick (the rest unlock later).
+  static const choices = 4;
+
+  final AvatarColor color;
+  final HeadShape shape;
+  final Expression face;
+  final Hat hat;
+
+  Avatar copyWith({AvatarColor? color, HeadShape? shape, Expression? face, Hat? hat}) => Avatar(
+    color: color ?? this.color,
+    shape: shape ?? this.shape,
+    face: face ?? this.face,
+    hat: hat ?? this.hat,
+  );
+
+  Map<String, String> toJson() => {
+    'color': color.name,
+    'shape': shape.name,
+    'face': face.name,
+    'hat': hat.name,
+  };
+
+  static Avatar fromJson(Map<String, dynamic> j) => Avatar(
+    color: AvatarColor.values.asNameMap()[j['color']] ?? AvatarColor.sun,
+    shape: HeadShape.values.asNameMap()[j['shape']] ?? HeadShape.round,
+    face: Expression.values.asNameMap()[j['face']] ?? Expression.smile,
+    hat: Hat.values.asNameMap()[j['hat']] ?? Hat.headband,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is Avatar &&
+      other.color == color &&
+      other.shape == shape &&
+      other.face == face &&
+      other.hat == hat;
+
+  @override
+  int get hashCode => Object.hash(color, shape, face, hat);
+
+  @override
+  String toString() => 'Avatar(${color.name}, ${shape.name}, ${face.name}, ${hat.name})';
+}
 
 /// Who sits in a seat: a name and a face.
 class Persona {
-  const Persona({required this.name, required this.look, required this.skin});
+  const Persona({required this.name, required this.look, required this.avatar});
 
-  const Persona.you({this.name = 'You', this.look = Look.headband, this.skin = Toon.yellow});
+  const Persona.you({this.name = 'You', this.avatar = const Avatar()}) : look = Look.headband;
 
   final String name;
   final Look look;
-  final Color skin;
+  final Avatar avatar;
+
+  Color get skin => avatar.color.color;
 
   static const _names = {
     Look.cap: ['Pip', 'Bean', 'Tad', 'Dot'],
@@ -25,11 +104,11 @@ class Persona {
     Look.spiky: ['Blaze', 'Zap', 'Turbo', 'Bonkers'],
   };
 
-  static const _skins = {
-    Look.cap: Color(0xFFFFB38A),
-    Look.shades: Color(0xFFB8B3A8),
-    Look.fin: Color(0xFF7FB8E8),
-    Look.spiky: Color(0xFFFF9EC4),
+  static const _faces = {
+    Look.cap: Avatar(color: AvatarColor.peach, face: Expression.freckles, hat: Hat.cap),
+    Look.shades: Avatar(color: AvatarColor.stone, face: Expression.cool, hat: Hat.none),
+    Look.fin: Avatar(color: AvatarColor.sky, face: Expression.grin, hat: Hat.fin),
+    Look.spiky: Avatar(color: AvatarColor.pink, face: Expression.wild, hat: Hat.spiky),
   };
 
   /// The bot looks, in the order games map them to personalities (poker:
@@ -46,39 +125,36 @@ class Persona {
           final look = looks[i % looks.length];
           final name = (_names[look]!.where((n) => !used.contains(n)).toList()..shuffle(rng)).first;
           used.add(name);
-          return Persona(name: name, look: look, skin: _skins[look]!);
+          return Persona(name: name, look: look, avatar: _faces[look]!);
         }(),
     ];
   }
 }
 
-/// The faces you can pick in your profile.
-const avatars = [
-  (Look.headband, Toon.yellow),
-  (Look.headband, Color(0xFF8DE4B5)),
-  (Look.headband, Color(0xFFC9B6FF)),
-  (Look.cap, Color(0xFFFFB38A)),
-  (Look.shades, Color(0xFFB8B3A8)),
-  (Look.fin, Color(0xFF7FB8E8)),
-  (Look.spiky, Color(0xFFFF9EC4)),
-  (Look.cap, Color(0xFFC68B59)),
-];
-
-/// A round cartoon face in its [Look].
+/// A cartoon face, drawn from its [Avatar] parts.
 class Face extends StatelessWidget {
-  const Face(this.persona, {super.key, required this.size});
+  Face(Persona persona, {super.key, required this.size}) : avatar = persona.avatar;
 
-  final Persona persona;
+  const Face.of(this.avatar, {super.key, required this.size});
+
+  final Avatar avatar;
   final double size;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(size: Size.square(size), painter: _FacePainter(persona));
+  Widget build(BuildContext context) => CustomPaint(size: Size.square(size), painter: _FacePainter(avatar));
 }
 
 class _FacePainter extends CustomPainter {
-  _FacePainter(this.p);
+  _FacePainter(this.a);
 
-  final Persona p;
+  final Avatar a;
+
+  static Rect _head(HeadShape shape) => switch (shape) {
+    HeadShape.round => const Rect.fromLTWH(10, 14, 80, 80),
+    HeadShape.square => const Rect.fromLTWH(12, 17, 76, 76),
+    HeadShape.egg => const Rect.fromLTWH(17, 11, 66, 87),
+    HeadShape.wide => const Rect.fromLTWH(3, 22, 94, 72),
+  };
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -98,74 +174,79 @@ class _FacePainter extends CustomPainter {
       canvas.drawPath(path, ink);
     }
 
-    final look = p.look;
-    // Behind the head: the shark's fin, the maniac's spiky hair.
-    if (look == Look.fin) {
+    final h = _head(a.shape);
+    final top = h.top;
+
+    // Behind the head: a shark's fin, wild spiky hair.
+    if (a.hat == Hat.fin) {
       blob(
         Path()
-          ..moveTo(38, 22)
-          ..quadraticBezierTo(52, 0, 70, 4)
-          ..quadraticBezierTo(60, 14, 62, 26)
+          ..moveTo(38, top + 8)
+          ..quadraticBezierTo(52, top - 14, 70, top - 10)
+          ..quadraticBezierTo(60, top, 62, top + 12)
           ..close(),
         const Color(0xFF5E9BD1),
       );
     }
-    if (look == Look.spiky) {
-      final hair = Path()..moveTo(14, 44);
-      const spikes = [(18, 8), (34, 30), (42, 2), (54, 28), (66, 4), (72, 30), (88, 12), (86, 44)];
-      for (final (x, y) in spikes) {
-        hair.lineTo(x.toDouble(), y.toDouble());
+    if (a.hat == Hat.spiky) {
+      double x(num v) => h.left + (v - 10) / 80 * h.width;
+      final hair = Path()..moveTo(x(14), top + 30);
+      const spikes = [(18, -6), (34, 16), (42, -12), (54, 14), (66, -10), (72, 16), (88, -2), (86, 30)];
+      for (final (sx, sy) in spikes) {
+        hair.lineTo(x(sx), top + sy);
       }
       hair.close();
       blob(hair, Toon.orange);
     }
 
     // Head.
-    blob(Path()..addOval(const Rect.fromLTWH(10, 14, 80, 80)), p.skin);
+    blob(switch (a.shape) {
+      HeadShape.square => RRectPath.of(h, 22),
+      _ => Path()..addOval(h),
+    }, a.color.color);
 
     // Eyes.
-    if (look == Look.shades) {
-      // Sunglasses.
-      final glasses = Path()
-        ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(20, 40, 26, 16), const Radius.circular(6)))
-        ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(54, 40, 26, 16), const Radius.circular(6)));
-      blob(glasses, Toon.ink);
-      canvas.drawLine(const Offset(46, 46), const Offset(54, 46), ink);
-      canvas.drawLine(
-        const Offset(26, 44),
-        const Offset(32, 44),
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.6)
-          ..strokeWidth = 3
-          ..strokeCap = StrokeCap.round,
-      );
-    } else if (look == Look.spiky) {
-      // Wide, wild eyes.
-      for (final x in [34.0, 66.0]) {
-        blob(Path()..addOval(Rect.fromCircle(center: Offset(x, 46), radius: 11)), Colors.white);
-        canvas.drawCircle(Offset(x + 2, 47), 4, inkFill);
-      }
-    } else {
-      for (final x in [36.0, 64.0]) {
-        blob(Path()..addOval(Rect.fromCenter(center: Offset(x, 46), width: 16, height: 20)), Colors.white);
-        canvas.drawCircle(Offset(x + 1, 48), 5, inkFill);
-        canvas.drawCircle(Offset(x + 3, 45), 1.6, Paint()..color = Colors.white);
-      }
+    switch (a.face) {
+      case Expression.cool:
+        final glasses = Path()
+          ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(20, 40, 26, 16), const Radius.circular(6)))
+          ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(54, 40, 26, 16), const Radius.circular(6)));
+        blob(glasses, Toon.ink);
+        canvas.drawLine(const Offset(46, 46), const Offset(54, 46), ink);
+        canvas.drawLine(
+          const Offset(26, 44),
+          const Offset(32, 44),
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.6)
+            ..strokeWidth = 3
+            ..strokeCap = StrokeCap.round,
+        );
+      case Expression.wild:
+        for (final x in [34.0, 66.0]) {
+          blob(Path()..addOval(Rect.fromCircle(center: Offset(x, 46), radius: 11)), Colors.white);
+          canvas.drawCircle(Offset(x + 2, 47), 4, inkFill);
+        }
+      case Expression.smile || Expression.grin || Expression.freckles:
+        for (final x in [36.0, 64.0]) {
+          blob(Path()..addOval(Rect.fromCenter(center: Offset(x, 46), width: 16, height: 20)), Colors.white);
+          canvas.drawCircle(Offset(x + 1, 48), 5, inkFill);
+          canvas.drawCircle(Offset(x + 3, 45), 1.6, Paint()..color = Colors.white);
+        }
     }
 
     // Mouth.
-    switch (look) {
-      case Look.headband:
+    switch (a.face) {
+      case Expression.smile:
         canvas.drawArc(const Rect.fromLTWH(32, 54, 36, 24), 0.2, pi - 0.4, false, ink);
-      case Look.cap:
+      case Expression.freckles:
         canvas.drawArc(const Rect.fromLTWH(34, 56, 32, 22), 0.3, pi - 0.6, false, ink);
         final freckle = Paint()..color = const Color(0xFFD9785A);
         for (final o in const [Offset(24, 62), Offset(29, 66), Offset(71, 62), Offset(76, 66)]) {
           canvas.drawCircle(o, 2.2, freckle);
         }
-      case Look.shades:
+      case Expression.cool:
         canvas.drawLine(const Offset(38, 72), const Offset(62, 70), ink);
-      case Look.fin:
+      case Expression.grin:
         final teeth = Path()..moveTo(30, 66);
         for (var i = 0; i < 6; i++) {
           teeth
@@ -179,7 +260,7 @@ class _FacePainter extends CustomPainter {
         blob(grin, Colors.white);
         canvas.drawPath(teeth, ink..strokeWidth = 3);
         ink.strokeWidth = 5;
-      case Look.spiky:
+      case Expression.wild:
         final grin = Path()
           ..moveTo(30, 62)
           ..quadraticBezierTo(50, 92, 70, 62)
@@ -193,25 +274,44 @@ class _FacePainter extends CustomPainter {
         );
     }
 
-    // On top: the rookie's cap, your headband.
-    if (look == Look.cap) {
-      blob(
-        Path()
-          ..moveTo(14, 38)
-          ..quadraticBezierTo(16, 8, 50, 8)
-          ..quadraticBezierTo(84, 8, 86, 38)
-          ..close(),
-        Toon.blue,
-      );
-      blob(RRectPath.of(const Rect.fromLTWH(46, 30, 46, 10), 5), Toon.blue);
-    }
-    if (look == Look.headband) {
-      blob(RRectPath.of(const Rect.fromLTWH(12, 24, 76, 12), 6), Toon.red);
+    // On top: the hat.
+    switch (a.hat) {
+      case Hat.cap:
+        blob(
+          Path()
+            ..moveTo(h.left + 4, top + 24)
+            ..quadraticBezierTo(h.left + 6, top - 6, 50, top - 6)
+            ..quadraticBezierTo(h.right - 6, top - 6, h.right - 4, top + 24)
+            ..close(),
+          Toon.blue,
+        );
+        blob(RRectPath.of(Rect.fromLTWH(46, top + 16, 46, 10), 5), Toon.blue);
+      case Hat.headband:
+        blob(RRectPath.of(Rect.fromLTWH(h.left + 2, top + 10, h.width - 4, 12), 6), Toon.red);
+      case Hat.crown:
+        final b = top + 12;
+        blob(
+          Path()
+            ..moveTo(28, b)
+            ..lineTo(26, top - 8)
+            ..lineTo(39, top + 2)
+            ..lineTo(50, top - 12)
+            ..lineTo(61, top + 2)
+            ..lineTo(74, top - 8)
+            ..lineTo(72, b)
+            ..close(),
+          const Color(0xFFFFD34D),
+        );
+        canvas.drawCircle(Offset(50, top + 4), 4, Paint()..color = Toon.red);
+      case Hat.none || Hat.fin || Hat.spiky:
+        break;
     }
   }
 
   @override
-  bool shouldRepaint(_FacePainter old) => old.p != p;
+  bool shouldRepaint(_FacePainter old) => old.a != a || old._dark != Toon.dark;
+
+  final _dark = Toon.dark;
 }
 
 abstract final class RRectPath {

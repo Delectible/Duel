@@ -106,65 +106,83 @@ class _HandChartState extends State<HandChart> {
   Widget build(BuildContext context) {
     final yours = _yourRow;
     final preflop = widget.cards.length == 2;
-    // Title and your hand stay put; the list of hands scrolls to yours.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
+    // Title and your hand stay put; the list of hands scrolls to yours
+    // (all ten are built so yours can be found). On its side: the title
+    // and your hand on the left, the list on the right.
+    final header = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Poker hands', style: Toon.text(26, weight: FontWeight.w700)),
+          Text(
+            'Best at the top. Your best five cards count.',
+            style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+          ),
+          if (widget.name != null && widget.cards.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ToonBox(
+              color: Toon.yellow,
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('You have', style: Toon.text(13, color: Toon.ink.withValues(alpha: 0.7))),
+                        Text(widget.name!, style: Toon.text(18, weight: FontWeight.w700)),
+                        if (preflop)
+                          Text(
+                            'Just your two cards so far: the flop adds three more.',
+                            style: Toon.text(12, weight: FontWeight.w500),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _CardRow(widget.cards, width: preflop ? 36 : 28),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+    final list = SingleChildScrollView(
+      controller: widget.scroll,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (i, r) in handRanks.indexed)
+            Padding(
+              key: i == yours ? _yours : null,
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _RankRow(rank: i + 1, info: r, yours: i == yours),
+            ),
+        ],
+      ),
+    );
+    return LayoutBuilder(
+      builder: (context, box) {
+        if (box.maxWidth > box.maxHeight * 1.15 && box.maxWidth >= 600) {
+          return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Poker hands', style: Toon.text(26, weight: FontWeight.w700)),
-              Text(
-                'Best at the top. Your best five cards count.',
-                style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
-              ),
-              if (widget.name != null && widget.cards.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                ToonBox(
-                  color: Toon.yellow,
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('You have', style: Toon.text(13, color: Toon.ink.withValues(alpha: 0.7))),
-                            Text(widget.name!, style: Toon.text(18, weight: FontWeight.w700)),
-                            if (preflop)
-                              Text(
-                                'Just your two cards so far: the flop adds three more.',
-                                style: Toon.text(12, weight: FontWeight.w500),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _CardRow(widget.cards, width: preflop ? 36 : 28),
-                    ],
-                  ),
-                ),
-              ],
+              SizedBox(width: box.maxWidth * 0.4, child: header),
+              Expanded(child: list),
             ],
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            controller: widget.scroll,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-            children: [
-              for (final (i, r) in handRanks.indexed)
-                Padding(
-                  key: i == yours ? _yours : null,
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _RankRow(rank: i + 1, info: r, yours: i == yours),
-                ),
-            ],
-          ),
-        ),
-      ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            header,
+            Expanded(child: list),
+          ],
+        );
+      },
     );
   }
 }

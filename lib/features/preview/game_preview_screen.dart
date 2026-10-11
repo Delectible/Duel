@@ -35,144 +35,188 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
     final blocked = game.blocked(setup);
     // Time for this table if it fits, else for the smallest that does.
     final players = setup.players.clamp(game.minPlayers, game.maxPlayers);
+    final header = Row(
+      children: [
+        ToonButton(
+          color: Toon.card,
+          padding: const EdgeInsets.all(8),
+          tooltip: 'Back',
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Icon(Icons.arrow_back_rounded),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(game.name, style: Toon.text(28, weight: FontWeight.w700)),
+        ),
+      ],
+    );
+    final chips = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _Chip(icon: Icons.groups_rounded, text: game.playersLabel),
+        _Chip(icon: Icons.timer_outlined, text: 'About ${game.minutes(players)} min · $players players'),
+      ],
+    );
+    // Upright the board is 210 high; on its side it scales into the room.
+    Widget board(double? height) => ToonBox(
+      color: game.color,
+      padding: const EdgeInsets.all(10),
+      child: height != null
+          ? SizedBox(height: height, child: game.board(context))
+          : FittedBox(child: SizedBox(width: 360, height: 210, child: game.board(context))),
+    );
+    final rules = <Widget>[
+      Text('How to play', style: Toon.text(20, weight: FontWeight.w700)),
+      const SizedBox(height: 6),
+      for (final rule in game.rules)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                margin: const EdgeInsets.only(top: 6, right: 10),
+                decoration: BoxDecoration(
+                  color: game.color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Toon.ink, width: 2),
+                ),
+              ),
+              Expanded(
+                child: Text(rule, style: Toon.text(16, weight: FontWeight.w500)),
+              ),
+            ],
+          ),
+        ),
+    ];
+    final bar = Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      decoration: BoxDecoration(
+        color: Toon.paper,
+        border: Border(top: BorderSide(color: Toon.ink.withValues(alpha: 0.15), width: 2)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (blocked == null) ...[
+            _StakePicker(
+              stake: _stake,
+              account: account,
+              opponents: setup.players - 1,
+              difficulty: setup.difficulty,
+              onChanged: (v) => setState(() => _stake = v),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (blocked != null) ...[
+            Text(
+              blocked.$2,
+              textAlign: TextAlign.center,
+              style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+            ),
+            const SizedBox(height: 8),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: ToonButton(
+                  key: const Key('nevermind'),
+                  color: Toon.card,
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const FittedBox(child: Text('Nevermind', maxLines: 1)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: ToonButton(
+                  key: const Key('play'),
+                  color: Toon.green,
+                  // Play! is the only thing that counts: it starts the game
+                  // here, and will be your vote / pick in a party.
+                  onPressed: blocked != null
+                      ? null
+                      : () {
+                          // The stake is taken now; the game settles it.
+                          final ticket = StakeTicket(
+                            account: account,
+                            gameId: game.id,
+                            stake: account.placeStake(_stake),
+                            opponents: setup.players - 1,
+                            difficulty: setup.difficulty,
+                          );
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute<void>(builder: (_) => game.open!(setup, ticket)),
+                          );
+                        },
+                  child: Text('Play!', style: Toon.text(20, weight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            // On its side: the name and sample board on the left, the rules
+            // and Play! on the right.
+            if (box.maxWidth > box.maxHeight * 1.15 && box.maxWidth >= 600) {
+              return Row(
                 children: [
-                  Row(
-                    children: [
-                      ToonButton(
-                        color: Toon.card,
-                        padding: const EdgeInsets.all(8),
-                        tooltip: 'Back',
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Icon(Icons.arrow_back_rounded),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(game.name, style: Toon.text(28, weight: FontWeight.w700)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _Chip(icon: Icons.groups_rounded, text: game.playersLabel),
-                      _Chip(
-                        icon: Icons.timer_outlined,
-                        text: 'About ${game.minutes(players)} min · $players players',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  ToonBox(
-                    color: game.color,
-                    padding: const EdgeInsets.all(10),
-                    child: SizedBox(height: 210, child: game.board(context)),
-                  ),
-                  const SizedBox(height: 14),
-                  Text('How to play', style: Toon.text(20, weight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  for (final rule in game.rules)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 8, 16),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            margin: const EdgeInsets.only(top: 6, right: 10),
-                            decoration: BoxDecoration(
-                              color: game.color,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Toon.ink, width: 2),
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(rule, style: Toon.text(16, weight: FontWeight.w500)),
-                          ),
+                          header,
+                          const SizedBox(height: 10),
+                          chips,
+                          const SizedBox(height: 12),
+                          Expanded(child: board(null)),
                         ],
                       ),
                     ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              decoration: BoxDecoration(
-                color: Toon.paper,
-                border: Border(top: BorderSide(color: Toon.ink.withValues(alpha: 0.15), width: 2)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (blocked == null) ...[
-                    _StakePicker(
-                      stake: _stake,
-                      account: account,
-                      opponents: setup.players - 1,
-                      difficulty: setup.difficulty,
-                      onChanged: (v) => setState(() => _stake = v),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  if (blocked != null) ...[
-                    Text(
-                      blocked.$2,
-                      textAlign: TextAlign.center,
-                      style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ToonButton(
-                          key: const Key('nevermind'),
-                          color: Toon.card,
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const FittedBox(child: Text('Nevermind', maxLines: 1)),
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: ListView(padding: const EdgeInsets.fromLTRB(8, 12, 16, 12), children: rules),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: ToonButton(
-                          key: const Key('play'),
-                          color: Toon.green,
-                          // Play! is the only thing that counts: it starts the game
-                          // here, and will be your vote / pick in a party.
-                          onPressed: blocked != null
-                              ? null
-                              : () {
-                                  // The stake is taken now; the game settles it.
-                                  final ticket = StakeTicket(
-                                    account: account,
-                                    gameId: game.id,
-                                    stake: account.placeStake(_stake),
-                                    opponents: setup.players - 1,
-                                    difficulty: setup.difficulty,
-                                  );
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute<void>(builder: (_) => game.open!(setup, ticket)),
-                                  );
-                                },
-                          child: Text('Play!', style: Toon.text(20, weight: FontWeight.w700)),
-                        ),
-                      ),
-                    ],
+                        bar,
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            ),
-          ],
+              );
+            }
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    children: [
+                      header,
+                      const SizedBox(height: 12),
+                      chips,
+                      const SizedBox(height: 14),
+                      board(210),
+                      const SizedBox(height: 14),
+                      ...rules,
+                    ],
+                  ),
+                ),
+                bar,
+              ],
+            );
+          },
         ),
       ),
     );

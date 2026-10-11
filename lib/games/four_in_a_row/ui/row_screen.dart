@@ -140,38 +140,38 @@ class _RowScreenState extends State<RowScreen> {
             listenable: _c,
             builder: (context, _) => Stack(
               children: [
-                Column(
-                  children: [
-                    GameTopBar(
-                      title: 'Four in a Row',
-                      subtitle: 'You vs ${_c.bot.name} · ${widget.difficulty.label}',
-                      onLeave: _leave,
-                      ticket: _ticket,
-                      guide: rowGuide,
-                      stage: _stage,
-                    ),
-                    CommentaryStrip(
-                      text: _c.commentary(),
-                      yourMove: _c.yourTurn,
-                      leading: _c.threats.isNotEmpty && _c.yourTurn
-                          ? const Icon(Icons.warning_amber_rounded, color: Toon.red, size: 30)
-                          : _Disc(color: _c.yourTurn ? Toon.red : Toon.yellow, size: 28),
-                    ),
-                    _Player(
-                      persona: _c.bot,
-                      color: Toon.yellow,
-                      active: _c.thinking,
-                      label: _c.thinking ? 'Thinking…' : null,
-                    ),
-                    Expanded(child: _Board(c: _c)),
-                    _Player(
-                      persona: _c.you,
-                      color: Toon.red,
-                      active: _c.yourTurn,
-                      label: _c.yourTurn ? 'Your turn' : null,
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                GameLayout(
+                  top: GameTopBar(
+                    title: 'Four in a Row',
+                    subtitle: 'You vs ${_c.bot.name} · ${widget.difficulty.label}',
+                    onLeave: _leave,
+                    ticket: _ticket,
+                    guide: rowGuide,
+                    stage: _stage,
+                  ),
+                  commentary: CommentaryStrip(
+                    text: _c.commentary(),
+                    yourMove: _c.yourTurn,
+                    leading: _c.threats.isNotEmpty && _c.yourTurn
+                        ? const Icon(Icons.warning_amber_rounded, color: Toon.red, size: 30)
+                        : _Disc(color: _c.yourTurn ? Toon.red : Toon.yellow, size: 28),
+                  ),
+                  table: Builder(
+                    builder: (context) => GameLayout.wide(context)
+                        ? _Board(c: _c)
+                        : Column(
+                            children: [
+                              _botRow(),
+                              Expanded(child: _Board(c: _c)),
+                            ],
+                          ),
+                  ),
+                  panelExtra: Column(mainAxisSize: MainAxisSize.min, children: [_botRow(), _youRow()]),
+                  controls: Builder(
+                    builder: (context) => GameLayout.wide(context)
+                        ? const SizedBox(height: 8)
+                        : Padding(padding: const EdgeInsets.only(bottom: 8), child: _youRow()),
+                  ),
                 ),
                 if (_showOver) Positioned.fill(child: _over(context)),
               ],
@@ -181,6 +181,16 @@ class _RowScreenState extends State<RowScreen> {
       ),
     );
   }
+
+  Widget _botRow() => _Player(
+    persona: _c.bot,
+    color: Toon.yellow,
+    active: _c.thinking,
+    label: _c.thinking ? 'Thinking…' : null,
+  );
+
+  Widget _youRow() =>
+      _Player(persona: _c.you, color: Toon.red, active: _c.yourTurn, label: _c.yourTurn ? 'Your turn' : null);
 
   Widget _over(BuildContext context) {
     final g = _c.game;
