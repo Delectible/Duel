@@ -182,6 +182,9 @@ weights cut from the variable font.
   `RowBot`: negamax with alpha-beta, depth 2 / 4 / 7), `ui/row_controller.dart`
   (bot thinks in an isolate), `ui/row_screen.dart` (drop animation, win /
   block hints, `rowGuide`).
+- `lib/games/spades/`: blank template ("Soon" on the picker): engine
+  deals only, `SpadesScreen` shows your hand, `spadesGuide`; no `open` in
+  the catalog yet.
 - `lib/core/help/game_guide.dart`: the mid-game "How to play" sheet
   (`GuideStage`s, `GuideButton` in every game's top bar, "You are here").
   Every game needs one; keep players told what's happening (commentary,

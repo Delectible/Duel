@@ -151,6 +151,26 @@ final games = <GameInfo>[
     minutes: (_) => 5,
     open: (setup, stake) => RowScreen(difficulty: setup.difficulty, stake: stake),
   ),
+  // A blank template: rules, preview and a SpadesScreen that only deals.
+  // To switch it on, add `open: (setup, stake) => SpadesScreen(...)` (it
+  // takes 1 or 3 bots: two-handed or partners).
+  GameInfo(
+    id: 'spades',
+    name: 'Spades',
+    blurb: 'Bid your tricks, spades trump',
+    minPlayers: 2,
+    maxPlayers: 4,
+    color: Toon.teal,
+    art: (_) => const _FannedCards(['As', 'Ks']),
+    board: (_) => const SpadesPreview(),
+    rules: const [
+      'Everyone gets 13 cards. With four players you play in teams of two, partners opposite.',
+      'Bid how many tricks you think you can win.',
+      "Follow the suit that was led if you can. Spades always win; you can't lead them until one has been played.",
+      'Make your bid to score 10 a trick; miss it and lose 10 a trick. First team to 500 wins.',
+    ],
+    minutes: (players) => players == 2 ? 15 : 25,
+  ),
 ];
 
 class _FannedCards extends StatelessWidget {

@@ -254,3 +254,64 @@ class FourInARowPreview extends StatelessWidget {
     ),
   );
 }
+
+class SpadesPreview extends StatelessWidget {
+  const SpadesPreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bots = Persona.bots(3, Random(7));
+    Widget seat(Persona p, String bid) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Face(p, size: 30),
+        Container(
+          margin: const EdgeInsets.only(top: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          decoration: BoxDecoration(
+            color: Toon.ink.withValues(alpha: 0.7),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(bid, style: Toon.text(11, color: Colors.white)),
+        ),
+      ],
+    );
+    return _Felt(
+      child: Stack(
+        children: [
+          // Partner opposite, opponents either side; a trick in the middle
+          // won by a spade.
+          Positioned(top: 8, left: 0, right: 0, child: Center(child: seat(bots[1], 'Bid 4'))),
+          Positioned(left: 12, top: 70, child: seat(bots[0], 'Bid 2')),
+          Positioned(right: 12, top: 70, child: seat(bots[2], 'Bid 3')),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 62,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final (i, c) in _cards('Kh Ah 3s 9h').indexed)
+                    Transform.rotate(
+                      angle: (i - 1.5) * 0.1,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: CardView(card: c, width: 30),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 4,
+            child: Center(child: _Fan(_cards('As Qs 7s Kd 5c'), width: 30)),
+          ),
+        ],
+      ),
+    );
+  }
+}

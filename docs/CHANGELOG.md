@@ -177,3 +177,14 @@ Ships as app version **0.4.1**.
   suit picker, suit burst, confetti) get a light outline in dark mode;
   on cards and light chips they stay plain (`SuitIcon(onLight:)`).
   → 0.4.1 · 2026-10-11
+
+### 9. Spades
+
+- [x] **9.1 Blank template:** Spades on the picker as "Soon" (2–4
+  players, rules, time, sample board in the preview). `lib/games/spades/`:
+  `engine/spades.dart` (deals 13 each, two-handed or partners; bids and
+  tricks to come), `ui/spades_screen.dart` (`SpadesScreen` on the shared
+  `GameLayout`, shows your hand; `spadesGuide`). Switch it on with an
+  `open` in its catalog entry. → 0.4.1 · 2026-10-11
+- [ ] **9.2 Spades vs bots:** bidding, trick play, scoring to 500, bots,
+  animations and commentary.

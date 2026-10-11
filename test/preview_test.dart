@@ -14,7 +14,9 @@ bool playOn(WidgetTester tester) =>
     tester.widget<ToonButton>(find.byKey(const Key('play'))).onPressed != null;
 
 Future<void> openPreview(WidgetTester tester, GameInfo game) async {
-  await tester.ensureVisible(find.text(game.name));
+  // The games grid scrolls (last scrollable: on its side the menu column
+  // comes first).
+  await tester.scrollUntilVisible(find.text(game.name), 150, scrollable: find.byType(Scrollable).last);
   await tester.pumpAndSettle();
   await tester.tap(find.text(game.name));
   await tester.pumpAndSettle();
