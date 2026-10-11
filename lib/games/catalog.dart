@@ -5,10 +5,16 @@ import '../core/cards/card_view.dart';
 import '../core/cards/cards.dart';
 import '../core/session/play_setup.dart';
 import '../core/theme/toon.dart';
+import '../core/help/home_guide.dart';
+import 'crazy_eights/at_home.dart';
 import 'crazy_eights/ui/eights_screen.dart';
+import 'four_in_a_row/at_home.dart';
 import 'four_in_a_row/ui/row_screen.dart';
+import 'go_fish/at_home.dart';
 import 'go_fish/ui/fish_screen.dart';
+import 'poker/at_home.dart';
 import 'poker/ui/poker_screen.dart';
+import 'spades/at_home.dart';
 import 'previews.dart';
 
 /// A game on the picker. Adding a game: its folder under lib/games/, plus
@@ -25,6 +31,7 @@ class GameInfo {
     required this.board,
     required this.rules,
     required this.minutes,
+    required this.atHome,
     this.open,
   });
 
@@ -44,6 +51,9 @@ class GameInfo {
 
   /// Rough length of a game for this many players.
   final int Function(int players) minutes;
+
+  /// "Play at home": setup, gameplay and winning with your own cards.
+  final HomeGuide atHome;
 
   /// Opens the game for this setup with its stake; null = coming soon.
   final Widget Function(PlaySetup setup, StakeTicket stake)? open;
@@ -99,6 +109,7 @@ final games = <GameInfo>[
     // Bot-only runs: ~25 hands heads-up to ~65 six-handed; more players,
     // longer hands.
     minutes: (players) => const {2: 10, 3: 15, 4: 20, 5: 30}[players] ?? 35,
+    atHome: holdemAtHome,
     open: (setup, stake) => PokerScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
@@ -116,6 +127,7 @@ final games = <GameInfo>[
       "Can't play? Draw a card. First to get rid of all their cards wins.",
     ],
     minutes: (players) => 3 + players * 2,
+    atHome: eightsAtHome,
     open: (setup, stake) => EightsScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
@@ -133,6 +145,7 @@ final games = <GameInfo>[
       'Collect all four of a rank to make a book. Most books at the end wins.',
     ],
     minutes: (players) => 5 + players * 2,
+    atHome: fishAtHome,
     open: (setup, stake) => FishScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
@@ -149,6 +162,7 @@ final games = <GameInfo>[
       'First to line up four of their colour wins: across, up and down, or diagonally.',
     ],
     minutes: (_) => 5,
+    atHome: rowAtHome,
     open: (setup, stake) => RowScreen(difficulty: setup.difficulty, stake: stake),
   ),
   // A blank template: rules, preview and a SpadesScreen that only deals.
@@ -170,6 +184,7 @@ final games = <GameInfo>[
       'Make your bid to score 10 a trick; miss it and lose 10 a trick. First team to 500 wins.',
     ],
     minutes: (players) => players == 2 ? 15 : 25,
+    atHome: spadesAtHome,
   ),
 ];
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
 import '../../core/account/stake.dart';
+import '../../core/help/home_guide.dart';
 import '../../core/session/difficulty.dart';
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
@@ -56,6 +57,26 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
       children: [
         _Chip(icon: Icons.groups_rounded, text: game.playersLabel),
         _Chip(icon: Icons.timer_outlined, text: 'About ${game.minutes(players)} min · $players players'),
+        // Follow along with your own cards.
+        ToonButton(
+          key: const Key('play at home'),
+          color: Toon.yellow,
+          radius: 12,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => HomeGuideScreen(name: game.name, color: game.color, guide: game.atHome),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.home_rounded, size: 18),
+              const SizedBox(width: 6),
+              Text('Play at home', style: Toon.text(14, color: Toon.inkLight)),
+            ],
+          ),
+        ),
       ],
     );
     // Upright the board is 210 high; on its side it scales into the room.

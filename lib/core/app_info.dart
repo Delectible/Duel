@@ -11,6 +11,7 @@ class AppInfo {
       'Fixed: holding the stake minus button down to Free no longer leaves it stuck. '
       'The stake row is now labelled "Your stake", shows what you have, and its (i) explains how staking works. '
       'Dark mode: black suits off the cards get a light outline so they stand out. '
+      'New: Play at home, in every game\'s preview, walks you through playing with your own cards. '
       'Spades is on the way: see its rules on the Soon tile.';
 
   /// About: the main ideas of each version, a few words each.
@@ -25,6 +26,7 @@ class AppInfo {
         'Settings: dark mode, currency',
         'Landscape: every screen works on its side',
         'Stake row labelled, with (i) for the rules',
+        'Play at home: real-deck guides for every game',
       ],
     ),
     (

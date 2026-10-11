@@ -185,6 +185,10 @@ weights cut from the variable font.
 - `lib/games/spades/`: blank template ("Soon" on the picker): engine
   deals only, `SpadesScreen` shows your hand, `spadesGuide`; no `open` in
   the catalog yet.
+- `lib/core/help/home_guide.dart`: "Play at home" (preview button):
+  `HomeGuide` (what you need, setup, gameplay, winning) per game in
+  `lib/games/<game>/at_home.dart`, `GameInfo.atHome`. Written for someone
+  who has never played cards; every game needs one.
 - `lib/core/help/game_guide.dart`: the mid-game "How to play" sheet
   (`GuideStage`s, `GuideButton` in every game's top bar, "You are here").
   Every game needs one; keep players told what's happening (commentary,

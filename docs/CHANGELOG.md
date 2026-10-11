@@ -188,3 +188,14 @@ Ships as app version **0.4.1**.
   `open` in its catalog entry. → 0.4.1 · 2026-10-11
 - [ ] **9.2 Spades vs bots:** bidding, trick play, scoring to 500, bots,
   animations and commentary.
+
+### 10. Play at home
+
+- [x] **10.1 Play at home:** a yellow "Play at home" button in every
+  game's preview opens a follow-along guide for playing with your own
+  cards (or board): What you need (which deck and how many, how many
+  players, extras like chips or paper), then Setup / Gameplay / Winning as
+  numbered steps, written for someone who has never played. Next walks
+  through the parts. `HomeGuide` / `HomeGuideScreen` in
+  `core/help/home_guide.dart`; each game's text in its folder
+  (`at_home.dart`), `GameInfo.atHome`. → 0.4.1 · 2026-10-11
