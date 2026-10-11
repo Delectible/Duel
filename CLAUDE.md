@@ -5,7 +5,8 @@ another player on the app, sometimes against a bot. Built on the same
 build and release pipeline as Luca's other app, Darkroom
 (github.com/Delectible/Darkroom).
 
-**The user story is in `docs/VISION.md`**: one-on-one card / table games
+**Online plan: `docs/ONLINE.md`** (Firebase + a Dart referee on Cloud Run;
+decisions and phased roadmap). **The user story is in `docs/VISION.md`**: one-on-one card / table games
 with a friend (or a bot), connect once into a party and move between games
 together, GamePigeon-easy. Let it guide design and development choices.
 
@@ -103,8 +104,8 @@ together, GamePigeon-easy. Let it guide design and development choices.
 ## Stack
 
 Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. One package: `shared_preferences`
-(saves the account; SPM on iOS). State is ChangeNotifier + InheritedNotifier; the online backend (provider,
-sign-in) is still to be chosen. Font: Fredoka (assets/fonts, OFL), static
+(saves the account; SPM on iOS). State is ChangeNotifier + InheritedNotifier; the online backend is planned in
+`docs/ONLINE.md` (Firebase, anonymous sign-in, Dart referee). Font: Fredoka (assets/fonts, OFL), static
 weights cut from the variable font.
 
 ## App layout

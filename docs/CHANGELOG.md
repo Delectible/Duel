@@ -199,3 +199,10 @@ Ships as app version **0.4.1**.
   through the parts. `HomeGuide` / `HomeGuideScreen` in
   `core/help/home_guide.dart`; each game's text in its folder
   (`at_home.dart`), `GameInfo.atHome`. → 0.4.1 · 2026-10-11
+
+### 11. Online
+
+- [~] **11.1 Online plan:** platform, roadmap, problems and limitations in
+  `docs/ONLINE.md`. Decided: live first (play-by-turn later), money works
+  like bot games (free, optional stakes; server wallet), Apple Developer
+  account likely.
