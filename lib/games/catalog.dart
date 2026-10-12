@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../core/account/stake.dart';
@@ -16,6 +18,7 @@ import 'poker/at_home.dart';
 import 'poker/ui/poker_screen.dart';
 import 'spades/at_home.dart';
 import 'previews.dart';
+import 'spades/ui/spades_screen.dart';
 
 /// A game on the picker. Adding a game: its folder under lib/games/, plus
 /// one entry in [games].
@@ -33,6 +36,9 @@ class GameInfo {
     required this.minutes,
     required this.atHome,
     this.open,
+    this.playerCounts,
+    this.choice,
+    this.opponentsFor,
   });
 
   final String id;
@@ -55,12 +61,36 @@ class GameInfo {
   /// "Play at home": setup, gameplay and winning with your own cards.
   final HomeGuide atHome;
 
-  /// Opens the game for this setup with its stake; null = coming soon.
-  final Widget Function(PlaySetup setup, StakeTicket stake)? open;
+  /// Opens the game for this setup with its stake (and the [choice]
+  /// picked in the preview, if the game has one); null = coming soon.
+  final Widget Function(PlaySetup setup, StakeTicket stake, int? choice)? open;
+
+  /// Only these table sizes, when not every count from min to max works
+  /// (Spades: 2 or 4).
+  final Set<int>? playerCounts;
+
+  /// Something to pick in the preview before playing (Spades: points to
+  /// play to).
+  final GameChoice? choice;
+
+  /// Opponents for the stake's winnings (teams: only the other team);
+  /// default everyone else.
+  final int Function(int players)? opponentsFor;
+
+  int opponents(int players) => opponentsFor?.call(players) ?? players - 1;
 
   bool get available => open != null;
 
-  bool fits(int players) => players >= minPlayers && players <= maxPlayers;
+  bool fits(int players) =>
+      players >= minPlayers && players <= maxPlayers && (playerCounts?.contains(players) ?? true);
+
+  /// Length for this table (and choice, scaled from the default).
+  int minutesFor(int players, int? picked) {
+    final base = minutes(players);
+    final c = choice;
+    if (c == null || picked == null) return base;
+    return max(1, (base * picked / c.values[c.initial]).round());
+  }
 
   /// Why it can't start with this setup: (short badge, full sentence), or
   /// null when Play is on.
@@ -78,14 +108,35 @@ class GameInfo {
     if (players > maxPlayers) {
       return ('Max $maxPlayers', 'For up to $maxPlayers players: you have $players. Take a bot away.');
     }
+    final counts = playerCounts;
+    if (counts != null && !counts.contains(players)) {
+      final list = (counts.toList()..sort()).join(' or ');
+      return ('$list players', '$name is for $list players: you have $players. Change the number of bots.');
+    }
     if (setup.mode == PlayMode.friends) {
       return ('Online soon', 'Playing with friends is coming soon. Switch to Bots to play now.');
     }
     return null;
   }
 
-  String get playersLabel =>
-      minPlayers == maxPlayers ? '$minPlayers players' : '$minPlayers–$maxPlayers players';
+  String get playersLabel {
+    final counts = playerCounts;
+    if (counts != null) return '${(counts.toList()..sort()).join(' or ')} players';
+    return minPlayers == maxPlayers ? '$minPlayers players' : '$minPlayers–$maxPlayers players';
+  }
+}
+
+/// One choice made in the preview before a game starts.
+class GameChoice {
+  const GameChoice({required this.label, required this.values, required this.names, this.initial = 0});
+
+  /// "Play to".
+  final String label;
+  final List<int> values;
+
+  /// "Quick", "Normal", "Long".
+  final List<String> names;
+  final int initial;
 }
 
 final games = <GameInfo>[
@@ -110,7 +161,7 @@ final games = <GameInfo>[
     // longer hands.
     minutes: (players) => const {2: 10, 3: 15, 4: 20, 5: 30}[players] ?? 35,
     atHome: holdemAtHome,
-    open: (setup, stake) => PokerScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
+    open: (setup, stake, _) => PokerScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
     id: 'crazy8',
@@ -128,7 +179,7 @@ final games = <GameInfo>[
     ],
     minutes: (players) => 3 + players * 2,
     atHome: eightsAtHome,
-    open: (setup, stake) => EightsScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
+    open: (setup, stake, _) => EightsScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
     id: 'gofish',
@@ -146,7 +197,7 @@ final games = <GameInfo>[
     ],
     minutes: (players) => 5 + players * 2,
     atHome: fishAtHome,
-    open: (setup, stake) => FishScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
+    open: (setup, stake, _) => FishScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
     id: 'connect4',
@@ -163,11 +214,8 @@ final games = <GameInfo>[
     ],
     minutes: (_) => 5,
     atHome: rowAtHome,
-    open: (setup, stake) => RowScreen(difficulty: setup.difficulty, stake: stake),
+    open: (setup, stake, _) => RowScreen(difficulty: setup.difficulty, stake: stake),
   ),
-  // A blank template: rules, preview and a SpadesScreen that only deals.
-  // To switch it on, add `open: (setup, stake) => SpadesScreen(...)` (it
-  // takes 1 or 3 bots: two-handed or partners).
   GameInfo(
     id: 'spades',
     name: 'Spades',
@@ -178,13 +226,25 @@ final games = <GameInfo>[
     art: (_) => const _FannedCards(['As', 'Ks']),
     board: (_) => const SpadesPreview(),
     rules: const [
-      'Everyone gets 13 cards. With four players you play in teams of two, partners opposite.',
-      'Bid how many tricks you think you can win.',
+      'Four players: you and a partner (sitting opposite) against two. Two players: each for yourself, and you '
+          'draw your cards instead of being dealt them.',
+      'Bid how many tricks you think you can win, or Nil: none at all, for a big bonus.',
       "Follow the suit that was led if you can. Spades always win; you can't lead them until one has been played.",
-      'Make your bid to score 10 a trick; miss it and lose 10 a trick. First team to 500 wins.',
+      'Make your bid to score 10 a trick; miss it and lose 10 a trick. Extra tricks are bags: 10 of them cost 100.',
     ],
-    minutes: (players) => players == 2 ? 15 : 25,
+    // Bot games at 250: ~4 hands of 13 tricks.
+    minutes: (players) => players == 2 ? 12 : 14,
     atHome: spadesAtHome,
+    playerCounts: const {2, 4},
+    choice: const GameChoice(
+      label: 'Play to',
+      values: [150, 250, 500],
+      names: ['Quick', 'Normal', 'Long'],
+      initial: 1,
+    ),
+    opponentsFor: (players) => players == 4 ? 2 : 1,
+    open: (setup, stake, target) =>
+        SpadesScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, target: target ?? 250),
   ),
 ];
 

@@ -183,9 +183,12 @@ weights cut from the variable font.
   `RowBot`: negamax with alpha-beta, depth 2 / 4 / 7), `ui/row_controller.dart`
   (bot thinks in an isolate), `ui/row_screen.dart` (drop animation, win /
   block hints, `rowGuide`).
-- `lib/games/spades/`: blank template ("Soon" on the picker): engine
-  deals only, `SpadesScreen` shows your hand, `spadesGuide`; no `open` in
-  the catalog yet.
+- `lib/games/spades/`: `engine/spades.dart` (two-handed draw or partners,
+  bids incl. Nil, tricks, scoring with bags, events), `engine/spades_bot.dart`
+  (`estimate` / `suggest` calibrated by `tool/spades/simulate.dart`);
+  `ui/spades_controller.dart` (pacing, trick pause + sweep, commentary),
+  `ui/spades_screen.dart` (`spadesGuide`). `GameInfo.choice` (play to
+  150/250/500), `playerCounts` {2, 4}, `opponentsFor` (team stakes).
 - `lib/core/help/home_guide.dart`: "Play at home" (preview button):
   `HomeGuide` (what you need, setup, gameplay, winning) per game in
   `lib/games/<game>/at_home.dart`, `GameInfo.atHome`. Written for someone

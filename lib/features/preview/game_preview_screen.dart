@@ -28,14 +28,21 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
 
   GameInfo get game => widget.game;
 
+  /// The game's preview choice (Spades: points to play to).
+  late int? _choice = game.choice == null ? null : game.choice!.values[game.choice!.initial];
+
   @override
   Widget build(BuildContext context) {
     final setup = PlaySetupScope.of(context);
     final account = AccountScope.of(context);
     _stake = _stake.clamp(0, account.maxStake);
     final blocked = game.blocked(setup);
-    // Time for this table if it fits, else for the smallest that does.
-    final players = setup.players.clamp(game.minPlayers, game.maxPlayers);
+    // Time for this table if it fits, else for the nearest that does.
+    var players = setup.players.clamp(game.minPlayers, game.maxPlayers);
+    final counts = game.playerCounts;
+    if (counts != null && !counts.contains(players)) {
+      players = counts.reduce((a, b) => (a - players).abs() <= (b - players).abs() ? a : b);
+    }
     final header = Row(
       children: [
         ToonButton(
@@ -56,7 +63,10 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
       runSpacing: 8,
       children: [
         _Chip(icon: Icons.groups_rounded, text: game.playersLabel),
-        _Chip(icon: Icons.timer_outlined, text: 'About ${game.minutes(players)} min · $players players'),
+        _Chip(
+          icon: Icons.timer_outlined,
+          text: 'About ${game.minutesFor(players, _choice)} min · $players players',
+        ),
         // Follow along with your own cards.
         ToonButton(
           key: const Key('play at home'),
@@ -122,11 +132,19 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (game.choice != null) ...[
+            _ChoicePicker(
+              choice: game.choice!,
+              value: _choice!,
+              onChanged: (v) => setState(() => _choice = v),
+            ),
+            const SizedBox(height: 8),
+          ],
           if (blocked == null) ...[
             _StakePicker(
               stake: _stake,
               account: account,
-              opponents: setup.players - 1,
+              opponents: game.opponents(setup.players),
               difficulty: setup.difficulty,
               onChanged: (v) => setState(() => _stake = v),
             ),
@@ -166,11 +184,11 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
                             account: account,
                             gameId: game.id,
                             stake: account.placeStake(_stake),
-                            opponents: setup.players - 1,
+                            opponents: game.opponents(setup.players),
                             difficulty: setup.difficulty,
                           );
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute<void>(builder: (_) => game.open!(setup, ticket)),
+                            MaterialPageRoute<void>(builder: (_) => game.open!(setup, ticket, _choice)),
                           );
                         },
                   child: Text('Play!', style: Toon.text(20, weight: FontWeight.w700)),
@@ -266,6 +284,44 @@ class _Chip extends StatelessWidget {
 }
 
 /// Free, or a stake: quick amounts and − / +, with what a win pays.
+/// "Play to: Quick 150 / Normal 250 / Long 500".
+class _ChoicePicker extends StatelessWidget {
+  const _ChoicePicker({required this.choice, required this.value, required this.onChanged});
+
+  final GameChoice choice;
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(Icons.flag_rounded, size: 20, color: Toon.fg),
+      const SizedBox(width: 6),
+      Text(choice.label, style: Toon.text(16, weight: FontWeight.w700)),
+      const SizedBox(width: 10),
+      for (final (i, v) in choice.values.indexed) ...[
+        if (i > 0) const SizedBox(width: 6),
+        Expanded(
+          child: ToonButton(
+            key: Key('choice $v'),
+            color: v == value ? Toon.yellow : Toon.card,
+            radius: 10,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+            onPressed: () => onChanged(v),
+            child: FittedBox(
+              child: Text(
+                '${choice.names[i]} $v',
+                maxLines: 1,
+                style: Toon.text(14, color: Toon.on(v == value ? Toon.yellow : Toon.card)),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
 class _StakePicker extends StatelessWidget {
   const _StakePicker({
     required this.stake,

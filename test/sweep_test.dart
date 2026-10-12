@@ -9,6 +9,7 @@ import 'package:duel/games/crazy_eights/ui/eights_screen.dart';
 import 'package:duel/games/four_in_a_row/ui/row_screen.dart';
 import 'package:duel/games/go_fish/ui/fish_screen.dart';
 import 'package:duel/games/poker/ui/poker_screen.dart';
+import 'package:duel/games/spades/ui/spades_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -50,6 +51,7 @@ void main() {
         ('eights', const EightsScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
         ('fish', const FishScreen(bots: 5, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
         ('row', const RowScreen(difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
+        ('spades', const SpadesScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
       ]) {
         testWidgets('$name, $look, $phone', (tester) async {
           usePhone(tester, size);

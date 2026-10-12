@@ -8,8 +8,8 @@ const spadesAtHome = HomeGuide(
     (Icons.style_rounded, standardDeck),
     (
       Icons.groups_rounded,
-      '4 players in two teams of two. Partners sit across the table from each other. (There is a two-player '
-          'version, but learn this one first.)',
+      '4 players in two teams of two (partners sit across the table from each other), or 2 players, each for '
+          'themselves.',
     ),
     (Icons.edit_rounded, 'Pen and paper to write down bids and scores.'),
   ],
@@ -18,6 +18,10 @@ const spadesAtHome = HomeGuide(
     'Pick someone to deal. They shuffle and deal out the whole deck face down, one card at a time, going left, '
         'so everyone has 13 cards.',
     'Pick up your cards and sort them by suit. Spades are special in this game: they beat every other suit.',
+    'Just two of you? Don\'t deal. Put the shuffled deck face down between you. Take turns: look at the top card '
+        'and either keep it (then throw the next card away without looking at it) or throw it away and keep the '
+        'next card instead. Carry on until the deck is gone and you each have 13. Then bid and play as below, '
+        'each for yourself, with two cards in each trick.',
   ],
   play: [
     'Bidding: starting with the player left of the dealer and going left, everyone says how many tricks they '

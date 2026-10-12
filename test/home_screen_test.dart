@@ -1,4 +1,5 @@
 import 'package:duel/core/session/play_setup.dart';
+import 'package:duel/games/catalog.dart';
 import 'package:duel/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,7 +27,9 @@ void main() {
       await tester.tap(find.text('Friend'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Party · 1'), findsOneWidget);
-      expect(find.text('Needs 2+'), findsNWidgets(4)); // every game
+      // Every game needs 2+ (the grid may scroll some off screen).
+      expect(find.text('Needs 2+'), findsWidgets);
+      expect(games.every((g) => g.blocked(setup)?.$1 == 'Needs 2+'), isTrue);
       await shot(tester, 'home_friend_$phone');
       await tester.tap(find.textContaining('Party · 1'));
       await tester.pumpAndSettle();

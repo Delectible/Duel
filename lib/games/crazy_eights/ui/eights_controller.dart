@@ -212,7 +212,7 @@ class EightsController extends ChangeNotifier {
     final g = game;
     final suit = suitName(g.suit, plural: false);
     if (g.top.rank == 8) return 'a $suit (${_name(_eightBy())} chose ${suitName(g.suit)})';
-    final rank = _rankWord(g.top.rank);
+    final rank = rankWord(g.top.rank);
     return 'a $suit or ${rank == 'Ace' ? 'an' : 'a'} $rank';
   }
 
@@ -260,19 +260,3 @@ class EightsController extends ChangeNotifier {
     super.dispose();
   }
 }
-
-String suitName(Suit s, {bool plural = true}) {
-  final n = const ['club', 'diamond', 'heart', 'spade'][s.index];
-  return plural ? '${n}s' : n;
-}
-
-String _rankWord(int rank) => switch (rank) {
-  14 => 'Ace',
-  13 => 'King',
-  12 => 'Queen',
-  11 => 'Jack',
-  _ => '$rank',
-};
-
-/// "7 of hearts", "Queen of spades".
-String cardName(PlayingCard c) => '${_rankWord(c.rank)} of ${suitName(c.suit)}';

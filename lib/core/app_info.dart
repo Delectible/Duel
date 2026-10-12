@@ -3,19 +3,18 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.4.1';
+  static const version = '0.5.0';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Fixed: holding the stake minus button down to Free no longer leaves it stuck. '
-      'The stake row is now labelled "Your stake", shows what you have, and its (i) explains how staking works. '
-      'Dark mode: black suits off the cards get a light outline so they stand out. '
-      'New: Play at home, in every game\'s preview, walks you through playing with your own cards. '
-      'Spades is on the way: see its rules on the Soon tile.';
+      'New game: Spades against bots. Play two-handed (you draw your cards one by one) or four players in teams, '
+      'with you and a bot partner against two bots. Bid your tricks, or go Nil for a big bonus. '
+      'Pick how long to play before you start: 150, 250 or 500 points.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
+    ('0.5', ['Spades vs bots: two-handed or teams of four', 'Bids, Nil, bags; play to 150, 250 or 500']),
     (
       '0.4',
       [

@@ -186,8 +186,16 @@ Ships as app version **0.4.1**.
   tricks to come), `ui/spades_screen.dart` (`SpadesScreen` on the shared
   `GameLayout`, shows your hand; `spadesGuide`). Switch it on with an
   `open` in its catalog entry. → 0.4.1 · 2026-10-11
-- [ ] **9.2 Spades vs bots:** bidding, trick play, scoring to 500, bots,
-  animations and commentary.
+- [x] **9.2 Spades vs bots** (v0.5): two-handed (draw your 13: keep the
+  top card or pass for the next) or four players in teams (bot partner
+  opposite). Bids with Nil (+/-100), spades break, bags (10 cost 100),
+  -200 loses; play to 150 / 250 / 500, picked in the preview
+  (`GameChoice`). Spades only takes 2 or 4 players (`playerCounts`);
+  stakes count the other team only (`opponentsFor`). Bots: Easy (rough
+  bids, some random cards), Normal (calibrated bids, cheap wins, lets a
+  winning partner have it), Hard (card memory, knows who's out of a suit,
+  covers a partner's Nil and busts opponents', ducks bags).
+  `tool/spades/simulate.dart` for tuning. → 0.5.0 · 2026-10-12
 
 ### 10. Play at home
 
