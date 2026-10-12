@@ -145,8 +145,9 @@ class SpadesBot {
     final nilTarget = _hard ? _bustableNil(g, me) : null;
     if (nilTarget != null) {
       final theyPlayed = g.trick.any((x) => x.$1 == nilTarget);
-      if (theyPlayed && curPlayer == nilTarget && losers.isNotEmpty)
+      if (theyPlayed && curPlayer == nilTarget && losers.isNotEmpty) {
         return _highest(losers); // leave it with them
+      }
       if (!theyPlayed && losers.isNotEmpty) return _lowest(legal); // play under, so they might be forced over
     }
     // Cover a partner's Nil: if they're winning, take it off them.
@@ -219,8 +220,9 @@ class SpadesBot {
     if (!_hard) return c.rank == 13 && g.seen.contains(PlayingCard(14, c.suit));
     for (var r = c.rank + 1; r <= 14; r++) {
       final higher = PlayingCard(r, c.suit);
-      if (!g.seen.contains(higher) && !g.hands[me].contains(higher) && !_remember(g).contains(higher))
+      if (!g.seen.contains(higher) && !g.hands[me].contains(higher) && !_remember(g).contains(higher)) {
         return false;
+      }
     }
     return true;
   }

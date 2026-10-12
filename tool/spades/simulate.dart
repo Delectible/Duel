@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 // Bot-only Spades for tuning: dart run tool/spades/simulate.dart [games]
 import 'dart:math';
 
