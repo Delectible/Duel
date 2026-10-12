@@ -71,18 +71,20 @@ class RowController extends ChangeNotifier {
       if (_disposed) return;
       int col;
       if (pace >= 1 && difficulty != Difficulty.easy) {
-        // Look-ahead off the UI thread so the board never stutters.
-        final moves = [...game.moves];
-        final first = game.first;
-        final d = difficulty;
-        final seed = _rng.nextInt(1 << 30);
-        col = await Isolate.run(() {
-          final g = FourInARow(first: first);
-          for (final m in moves) {
-            g.drop(m);
-          }
-          return RowBot(difficulty: d, rng: Random(seed)).decide(g);
-        });
+        // Look-ahead off the UI thread so the board never stutters. Only
+        // plain data crosses (a closure from here would drag this
+        // controller, timers and all, along and fail to send).
+        final job = (
+          moves: [...game.moves],
+          first: game.first,
+          level: difficulty.index,
+          seed: _rng.nextInt(1 << 30),
+        );
+        try {
+          col = await Isolate.run(() => _decide(job));
+        } on Object {
+          col = _bot.decide(game); // thinking here beats never moving
+        }
       } else {
         col = _bot.decide(game);
       }
@@ -122,4 +124,13 @@ class RowController extends ChangeNotifier {
     _timer?.cancel();
     super.dispose();
   }
+}
+
+/// The bot's move for a position given as plain data (runs in an isolate).
+int _decide(({List<int> moves, int first, int level, int seed}) job) {
+  final g = FourInARow(first: job.first);
+  for (final m in job.moves) {
+    g.drop(m);
+  }
+  return RowBot(difficulty: Difficulty.values[job.level], rng: Random(job.seed)).decide(g);
 }

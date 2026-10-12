@@ -214,3 +214,12 @@ Ships as app version **0.4.1**.
   `docs/ONLINE.md`. Decided: live first (play-by-turn later), money works
   like bot games (free, optional stakes; server wallet), Apple Developer
   account likely.
+
+### 12. Fixes
+
+- [x] **12.1 Fix: Four in a Row bot never moved** (Normal / Hard, real
+  speed): its background look-ahead sent a closure that dragged the
+  controller (and its timer) into the isolate, which can't be sent, so the
+  bot sat on "Thinking…" forever. Now only plain data crosses, with a
+  fallback to thinking on the main thread; `row_isolate_test.dart` runs it
+  at real speed. → 0.5.0 · 2026-10-12
