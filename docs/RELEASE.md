@@ -10,7 +10,7 @@ Do these in this order: the first .aab has to be signed with the real
 upload key, because whatever key signs the first upload becomes the app's
 upload key on Play.
 
-- [ ] **1.1 Repo secrets and variable** (L). GitHub > Delectible/Duel >
+- [x] **1.1 Repo secrets and variable** (L). GitHub > Delectible/Duel >
   Settings > Secrets and variables > Actions.
   - Secrets tab > New repository secret:
     - `ANDROID_KEYSTORE_BASE64`: the whole contents of
@@ -27,7 +27,7 @@ upload key on Play.
   **Duel**, default language English (Australia) – en-AU, **App**, **Free**,
   tick the declarations > Create app. The package name is set by the
   first upload (`com.dingo.duel`; it can never change).
-- [ ] **1.3 First .aab by hand** (L). Test and release > Testing >
+- [x] **1.3 First .aab by hand** (L). Test and release > Testing >
   Internal testing > Create new release > (accept Play App Signing if
   asked) > upload `Duel-N.aab` from the signed build in 1.1 > release
   name/notes are filled in > Next > Save and publish (or "Roll out").
@@ -35,14 +35,14 @@ upload key on Play.
   "Join on the web" link once on your phone. If Play won't roll out yet,
   it lists what's missing under Dashboard > "Set up your app" (usually
   items from 1.6).
-- [ ] **1.4 Give the service account the app** (L). Play Console (account
+- [x] **1.4 Give the service account the app** (L). Play Console (account
   level, not inside the app) > Users and permissions > find Darkroom's
   service account (`…@….iam.gserviceaccount.com`) > Manage > App
   permissions > Add app > **Duel** > tick: View app information;
   Release apps to testing tracks; Manage testing tracks and edit tester
   lists; Edit store listing, pricing & distribution > Apply > Save changes.
   (If it already has account-wide permissions it covers Duel too.)
-- [ ] **1.5 Secret `PLAY_SERVICE_ACCOUNT_JSON`** (L): same place as 1.1,
+- [x] **1.5 Secret `PLAY_SERVICE_ACCOUNT_JSON`** (L): same place as 1.1,
   paste the full JSON key file of that service account (the one used for
   Darkroom; GitHub can't show Darkroom's copy back, so if you don't have
   the file: Google Cloud Console > IAM & Admin > Service accounts > that
@@ -121,3 +121,6 @@ upload key on Play.
   to the private key (SHA1 43:F2:1B…) requested 2026-10-11; valid from
   2026-10-12 14:00 UTC. `play` uploads fail until then; afterwards re-run
   build 2's `play` job.
+- 2026-10-12: upload key reset done. Build 8 (0.5.0) re-run at 14:17 UTC:
+  `play` uploaded to internal testing. Automatic uploads work from here
+  (builds 3–7 never reached Play; 8 includes everything).
