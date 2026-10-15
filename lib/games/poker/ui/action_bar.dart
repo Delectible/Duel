@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
-import '../engine/poker_hand.dart';
+import 'package:duel_engine/poker/poker_hand.dart';
 import 'poker_controller.dart';
 
 /// Fold / Check or Call / Raise, with a raise panel: − and + in big-blind

@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'package:duel/core/cards/cards.dart';
-import 'package:duel/games/poker/engine/poker_hand.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A deck that deals [holes] (by player index) and [board].

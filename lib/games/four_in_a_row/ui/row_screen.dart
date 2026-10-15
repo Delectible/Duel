@@ -7,10 +7,10 @@ import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/help/game_guide.dart';
-import '../../../core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
-import '../engine/four_in_a_row.dart';
+import 'package:duel_engine/four_in_a_row/four_in_a_row.dart';
 import 'row_controller.dart';
 
 const rowGuide = [

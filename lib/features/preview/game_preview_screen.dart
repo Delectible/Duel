@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/account/account.dart';
 import '../../core/account/stake.dart';
 import '../../core/help/home_guide.dart';
-import '../../core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';

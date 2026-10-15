@@ -1,4 +1,4 @@
-import 'package:duel/core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/games/crazy_eights/ui/eights_screen.dart';
 import 'package:flutter/material.dart';

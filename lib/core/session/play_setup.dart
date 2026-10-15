@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 
 /// Who you're playing with: bots, or a friend in a party.
 enum PlayMode { bots, friends }

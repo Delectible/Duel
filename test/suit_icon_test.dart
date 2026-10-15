@@ -1,5 +1,5 @@
 import 'package:duel/core/cards/card_view.dart';
-import 'package:duel/core/cards/cards.dart';
+import 'package:duel_engine/cards.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

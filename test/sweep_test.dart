@@ -1,5 +1,5 @@
 import 'package:duel/core/account/account.dart';
-import 'package:duel/core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/features/home/home_screen.dart';

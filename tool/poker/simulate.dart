@@ -5,10 +5,10 @@
 //   dart run tool/poker/simulate.dart [tournaments] [difficulty]
 import 'dart:math';
 
-import 'package:duel/core/session/difficulty.dart';
-import 'package:duel/games/poker/engine/bot.dart';
-import 'package:duel/games/poker/engine/poker_hand.dart';
-import 'package:duel/games/poker/engine/sit_and_go.dart';
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/poker/bot.dart';
+import 'package:duel_engine/poker/poker_hand.dart';
+import 'package:duel_engine/poker/sit_and_go.dart';
 
 void main(List<String> args) {
   final runs = args.isNotEmpty ? int.parse(args[0]) : 20;

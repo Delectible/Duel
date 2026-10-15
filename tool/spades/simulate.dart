@@ -2,9 +2,9 @@
 // Bot-only Spades for tuning: dart run tool/spades/simulate.dart [games]
 import 'dart:math';
 
-import 'package:duel/core/session/difficulty.dart';
-import 'package:duel/games/spades/engine/spades.dart';
-import 'package:duel/games/spades/engine/spades_bot.dart';
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/spades/spades.dart';
+import 'package:duel_engine/spades/spades_bot.dart';
 
 void main(List<String> args) {
   final n = args.isEmpty ? 200 : int.parse(args.first);

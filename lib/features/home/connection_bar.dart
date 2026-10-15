@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
 import '../party/party_screen.dart';

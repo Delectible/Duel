@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../../../core/cards/cards.dart';
-import '../../../core/session/difficulty.dart';
+import '../cards.dart';
+import '../difficulty.dart';
 import 'crazy_eights.dart';
 
 /// A bot's move: play [card] (naming [suit] for an eight), draw, or pass.

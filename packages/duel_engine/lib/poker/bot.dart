@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../../../core/session/difficulty.dart';
-import '../../../core/cards/cards.dart';
+import '../difficulty.dart';
+import '../cards.dart';
 import 'hand_eval.dart';
 import 'poker_hand.dart';
 

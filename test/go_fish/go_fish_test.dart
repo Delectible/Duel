@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:duel/core/cards/cards.dart';
-import 'package:duel/core/session/difficulty.dart';
-import 'package:duel/games/go_fish/engine/fish_bot.dart';
-import 'package:duel/games/go_fish/engine/go_fish.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/go_fish/fish_bot.dart';
+import 'package:duel_engine/go_fish/go_fish.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 GoFish rigged(List<String> hands, {String pond = ''}) {

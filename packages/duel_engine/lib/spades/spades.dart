@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../../core/cards/cards.dart';
+import '../cards.dart';
 
 /// What happened, in order: the commentary and animations read these.
 sealed class SpadesEvent {

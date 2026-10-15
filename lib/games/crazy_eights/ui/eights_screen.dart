@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/cards/card_view.dart';
-import '../../../core/cards/cards.dart';
+import 'package:duel_engine/cards.dart';
 import '../../../core/help/game_guide.dart';
-import '../../../core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../../../core/theme/toon.dart';
 import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/table/table_bits.dart';
-import '../engine/crazy_eights.dart';
+import 'package:duel_engine/crazy_eights/crazy_eights.dart';
 import 'eights_controller.dart';
 
 /// Stages of a Crazy Eights game for the "How to play" sheet.

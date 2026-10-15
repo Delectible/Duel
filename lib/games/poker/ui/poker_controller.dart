@@ -3,13 +3,13 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-import '../../../core/cards/cards.dart';
-import '../../../core/session/difficulty.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../../../core/theme/toon.dart';
-import '../engine/bot.dart';
-import '../engine/hand_eval.dart';
-import '../engine/poker_hand.dart';
-import '../engine/sit_and_go.dart';
+import 'package:duel_engine/poker/bot.dart';
+import 'package:duel_engine/poker/hand_eval.dart';
+import 'package:duel_engine/poker/poker_hand.dart';
+import 'package:duel_engine/poker/sit_and_go.dart';
 import '../../../core/avatars/faces.dart';
 
 enum TablePhase {

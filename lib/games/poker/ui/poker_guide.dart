@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/help/game_guide.dart';
-import '../engine/poker_hand.dart';
+import 'package:duel_engine/poker/poker_hand.dart';
 import 'poker_controller.dart';
 
 /// Stages of a Texas Hold'em hand for the "How to play" sheet.

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 
 import '../avatars/faces.dart';
-import '../session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../theme/toon.dart';
 
 /// How money is shown. One pip is one of anything: it's display only.

@@ -1,0 +1,7 @@
+name: duel_engine
+description: Duel's game rules and bots, in pure Dart (no Flutter). Shared by the app and the online referee server.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.12.0

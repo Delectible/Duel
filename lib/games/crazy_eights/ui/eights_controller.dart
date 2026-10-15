@@ -3,11 +3,11 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-import '../../../core/cards/cards.dart';
-import '../../../core/session/difficulty.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../../../core/avatars/faces.dart';
-import '../engine/crazy_eights.dart';
-import '../engine/eights_bot.dart';
+import 'package:duel_engine/crazy_eights/crazy_eights.dart';
+import 'package:duel_engine/crazy_eights/eights_bot.dart';
 
 enum EightsPhase {
   /// Cards going out.

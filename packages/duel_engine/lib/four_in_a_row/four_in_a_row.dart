@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../../core/session/difficulty.dart';
+import '../difficulty.dart';
 
 /// Four in a Row on the classic 7 x 6 board. Players are 0 (you, red) and
 /// 1 (the bot, yellow). Row 0 is the bottom.

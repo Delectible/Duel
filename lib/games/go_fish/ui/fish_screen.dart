@@ -6,12 +6,12 @@ import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/cards/card_view.dart';
-import '../../../core/cards/cards.dart';
+import 'package:duel_engine/cards.dart';
 import '../../../core/help/game_guide.dart';
-import '../../../core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
-import '../engine/go_fish.dart';
+import 'package:duel_engine/go_fish/go_fish.dart';
 import 'fish_controller.dart';
 
 const fishGuide = [

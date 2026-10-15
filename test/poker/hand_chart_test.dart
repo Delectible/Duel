@@ -1,6 +1,6 @@
-import 'package:duel/core/cards/cards.dart';
+import 'package:duel_engine/cards.dart';
 import 'package:duel/core/theme/toon.dart';
-import 'package:duel/games/poker/engine/hand_eval.dart';
+import 'package:duel_engine/poker/hand_eval.dart';
 import 'package:duel/games/poker/ui/hand_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

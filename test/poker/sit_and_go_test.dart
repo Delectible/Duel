@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:duel/core/session/difficulty.dart';
-import 'package:duel/games/poker/engine/bot.dart';
-import 'package:duel/core/cards/cards.dart';
-import 'package:duel/games/poker/engine/sit_and_go.dart';
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/poker/bot.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/poker/sit_and_go.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

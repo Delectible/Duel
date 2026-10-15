@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../../core/cards/cards.dart';
+import '../cards.dart';
 import 'hand_eval.dart';
 
 enum Street { preflop, flop, turn, river, showdown }

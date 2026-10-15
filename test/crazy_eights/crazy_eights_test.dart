@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:duel/core/cards/cards.dart';
-import 'package:duel/core/session/difficulty.dart';
-import 'package:duel/games/crazy_eights/engine/crazy_eights.dart';
-import 'package:duel/games/crazy_eights/engine/eights_bot.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/crazy_eights/crazy_eights.dart';
+import 'package:duel_engine/crazy_eights/eights_bot.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 PlayingCard c(String s) => PlayingCard.parse(s);

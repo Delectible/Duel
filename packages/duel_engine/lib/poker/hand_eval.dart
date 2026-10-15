@@ -1,4 +1,4 @@
-import '../../../core/cards/cards.dart';
+import '../cards.dart';
 
 enum HandCategory { highCard, pair, twoPair, trips, straight, flush, fullHouse, quads, straightFlush }
 

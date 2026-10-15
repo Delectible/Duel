@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/toon.dart';
-import 'cards.dart';
+import 'package:duel_engine/cards.dart';
 
 const cardRed = Color(0xFFE23B48);
 const cardBlack = Toon.inkLight;

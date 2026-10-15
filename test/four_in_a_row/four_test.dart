@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'package:duel/core/session/difficulty.dart';
-import 'package:duel/games/four_in_a_row/engine/four_in_a_row.dart';
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/four_in_a_row/four_in_a_row.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 FourInARow play(String cols) {

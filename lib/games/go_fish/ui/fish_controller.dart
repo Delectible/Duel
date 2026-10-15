@@ -4,10 +4,10 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/avatars/faces.dart';
-import '../../../core/cards/cards.dart';
-import '../../../core/session/difficulty.dart';
-import '../engine/fish_bot.dart';
-import '../engine/go_fish.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/go_fish/fish_bot.dart';
+import 'package:duel_engine/go_fish/go_fish.dart';
 
 enum FishPhase { dealing, playing, over }
 

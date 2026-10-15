@@ -4,10 +4,10 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/avatars/faces.dart';
-import '../../../core/cards/cards.dart';
-import '../../../core/session/difficulty.dart';
-import '../engine/spades.dart';
-import '../engine/spades_bot.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/spades/spades.dart';
+import 'package:duel_engine/spades/spades_bot.dart';
 
 enum SpadesStage {
   /// Cards going out (four players).

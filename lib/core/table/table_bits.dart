@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../account/stake.dart';
 import '../avatars/faces.dart';
 import '../cards/card_view.dart';
-import '../cards/cards.dart';
+import 'package:duel_engine/cards.dart';
 import '../help/game_guide.dart';
 import '../theme/toon.dart';
 

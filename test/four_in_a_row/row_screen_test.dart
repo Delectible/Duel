@@ -1,4 +1,4 @@
-import 'package:duel/core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/games/four_in_a_row/ui/row_screen.dart';
 import 'package:flutter/material.dart';

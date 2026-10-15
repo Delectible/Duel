@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/help/game_guide.dart';
-import '../../../core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../../../core/theme/toon.dart';
 import 'action_bar.dart';
 import '../../../core/account/account.dart';

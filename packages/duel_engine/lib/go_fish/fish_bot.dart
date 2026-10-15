@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../../core/session/difficulty.dart';
+import '../difficulty.dart';
 import 'go_fish.dart';
 
 /// A Go Fish bot. It only uses what everyone at the table can see: who

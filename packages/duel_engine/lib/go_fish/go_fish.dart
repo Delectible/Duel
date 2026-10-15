@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../../core/cards/cards.dart';
+import '../cards.dart';
 
 /// Something that happened, for the commentary and animations.
 sealed class FishEvent {

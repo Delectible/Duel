@@ -3,10 +3,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/cards/card_view.dart';
-import '../../../core/cards/cards.dart';
+import 'package:duel_engine/cards.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
-import '../engine/poker_hand.dart';
+import 'package:duel_engine/poker/poker_hand.dart';
 import '../../../core/avatars/faces.dart';
 import 'hand_chart.dart';
 import 'shuffle_deck.dart';

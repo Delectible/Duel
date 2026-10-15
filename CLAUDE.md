@@ -110,6 +110,12 @@ weights cut from the variable font.
 
 ## App layout
 
+- **Game rules and bots** live in `packages/duel_engine/` (pure Dart path
+  package, no Flutter: `cards.dart`, `difficulty.dart`, `<game>/…`), shared
+  by the app and the online referee (`server/`). Below, a game's
+  `engine/x.dart` means `packages/duel_engine/lib/<game>/x.dart`; import it
+  as `package:duel_engine/<game>/x.dart`. Never import Flutter there.
+
 - `lib/main.dart`: `DuelApp` (loads the `Account`, applies light / dark,
   `AccountScope` + `PlaySetupScope`).
 - `lib/core/account/`: `Account` (name, avatar, pips balance (may go
@@ -145,7 +151,7 @@ weights cut from the variable font.
   `Toon.text` inherits its colour (ToonBox / ToonButton pick a readable
   one); on a bright fill use `Toon.on(color)`. Cards stay white
   (`cardFace`).
-- `lib/core/cards/`: `PlayingCard` / `Deck` and `CardView` (suits are drawn
+- `lib/core/cards/` (+ `duel_engine/cards.dart`): `PlayingCard` / `Deck` and `CardView` (suits are drawn
   paths; Fredoka has no suit glyphs). Shared by every card game.
 - `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player
   range, tile art, sample `board` (`previews.dart`), `rules`, `minutes`
@@ -155,7 +161,7 @@ weights cut from the variable font.
 - `lib/features/preview/`: every game tile opens `GamePreviewScreen`
   (rules, time, sample board, Play! / Nevermind). Only Play! counts; in a
   party it will be the vote / pick, browsing never is.
-- `lib/games/poker/engine/`: pure Dart, no Flutter. `hand_eval.dart`
+- poker engine (`packages/duel_engine/lib/poker/`): `hand_eval.dart`
   (best five of seven, descriptions), `poker_hand.dart` (one no-limit hand:
   blinds, betting rules incl. incomplete all-in raises, side pots, odd
   chips), `sit_and_go.dart` (button, blind levels per table size, places),

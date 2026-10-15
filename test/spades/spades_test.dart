@@ -1,10 +1,10 @@
 import 'dart:math';
 
-import 'package:duel/core/cards/cards.dart';
-import 'package:duel/core/session/difficulty.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/difficulty.dart';
 import 'package:duel/games/catalog.dart';
-import 'package:duel/games/spades/engine/spades.dart';
-import 'package:duel/games/spades/engine/spades_bot.dart';
+import 'package:duel_engine/spades/spades.dart';
+import 'package:duel_engine/spades/spades_bot.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 List<PlayingCard> cards(String s) => PlayingCard.parseAll(s);

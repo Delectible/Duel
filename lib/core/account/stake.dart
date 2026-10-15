@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import '../theme/toon.dart';
 import 'account.dart';
 

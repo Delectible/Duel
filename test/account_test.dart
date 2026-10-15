@@ -1,7 +1,7 @@
 import 'package:duel/core/account/account.dart';
 import 'package:duel/core/avatars/faces.dart';
 import 'package:duel/core/account/stake.dart';
-import 'package:duel/core/session/difficulty.dart';
+import 'package:duel_engine/difficulty.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

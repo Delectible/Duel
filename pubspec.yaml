@@ -17,6 +17,10 @@ dependencies:
   # Package on iOS: no Podfile).
   shared_preferences: ^2.5.5
 
+  # The game rules and bots (pure Dart, shared with the online referee).
+  duel_engine:
+    path: packages/duel_engine
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

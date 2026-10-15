@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../../../core/cards/cards.dart';
-import '../../../core/session/difficulty.dart';
+import '../cards.dart';
+import '../difficulty.dart';
 import 'spades.dart';
 
 /// A Spades bot.

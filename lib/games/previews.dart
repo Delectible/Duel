@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../core/cards/card_view.dart';
-import '../core/cards/cards.dart';
+import 'package:duel_engine/cards.dart';
 import '../core/theme/toon.dart';
 import '../core/avatars/faces.dart';
 
