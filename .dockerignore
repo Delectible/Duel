@@ -1,0 +1,6 @@
+# The referee image (server/Dockerfile) only needs these.
+*
+!packages/duel_engine/
+!server/
+**/.dart_tool/
+**/build/

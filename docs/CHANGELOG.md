@@ -214,6 +214,13 @@ Ships as app version **0.4.1**.
   `docs/ONLINE.md`. Decided: live first (play-by-turn later), money works
   like bot games (free, optional stakes; server wallet), Apple Developer
   account likely.
+- [~] **11.2 Online foundations** (requested 2026-10-15: "do whatever you
+  can on your end, then tell me what I have to do"): shared rules package
+  (`packages/duel_engine`), Firebase in the app (off until configured;
+  iOS + Android builds checked), the referee (`server/`: parties, Four in a
+  Row moves, turn timer, rematch; tested on the Firestore emulator),
+  security rules, deploy pipeline (`online.yml`, `setup_gcp.sh`). Luca's
+  steps: `docs/ONLINE.md`, "Your steps".
 
 ### 12. Fixes
 

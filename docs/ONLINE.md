@@ -60,6 +60,58 @@ Tick items as they land (and log them in `CHANGELOG.md` as usual).
 - Own Dart WebSocket server: fastest (~0.1 s) but we'd own reconnects,
   storage and scaling: worse for stability.
 
+## Your steps (Luca)
+
+What only you can do: the accounts and the clicks. About 30 minutes.
+Everything after this deploys by itself from `main`.
+
+1. **Firebase project.** console.firebase.google.com > Create a project,
+   name it `Duel` (note the project id it gives, e.g. `duel-1a2b3`).
+   Google Analytics: off (we don't need it; less in the privacy policy).
+2. **Blaze plan** (pay as you go; Cloud Run needs billing). Project
+   settings (gear) > Usage and billing > Modify plan > Blaze. Then set a
+   budget alert: console.cloud.google.com > Billing > Budgets & alerts >
+   Create budget, AUD 10 a month, alerts at 50 / 90 / 100 %. At our size
+   it should cost roughly nothing (free tiers), the alert is the safety net.
+3. **Sign-in.** Build > Authentication > Get started > Sign-in method >
+   Anonymous > Enable.
+4. **Database.** Build > Firestore Database > Create database > Standard
+   edition, **location `australia-southeast1` (Sydney)**: this can never be
+   changed. Start in **production mode** (our rules replace the defaults).
+5. **The apps.** Project overview > Add app:
+   - Android: package name `com.dingo.duel`, nickname Duel. Download
+     `google-services.json`. Skip the remaining steps (no Gradle edits:
+     I wire it in code).
+   - iOS: bundle id `com.dingo.duel`. Download `GoogleService-Info.plist`.
+     Skip the rest.
+   Send me both files (or paste their contents). They're public
+   identifiers, not secrets; I put the values in
+   `lib/core/online/firebase_config.dart`.
+6. **Server accounts.** console.cloud.google.com with the Duel project
+   selected > the `>_` button (Cloud Shell) top right. Run:
+   ```
+   curl -sL https://raw.githubusercontent.com/Delectible/Duel/main/tool/online/setup_gcp.sh | bash -s YOUR-PROJECT-ID
+   ```
+   (or paste the script's contents from `tool/online/setup_gcp.sh` if it
+   isn't on `main` yet). It ends by printing a key between two lines.
+7. **GitHub.** Delectible/Duel > Settings > Secrets and variables >
+   Actions:
+   - Secrets > New repository secret: `GCP_DEPLOY_KEY` = the key from
+     step 6 (everything between the lines, braces included).
+   - Variables > New repository variable: `FIREBASE_PROJECT` = the
+     project id.
+   Then Actions > Online > Run workflow (branch `main`). When it's green,
+   its summary shows the referee's address: send it to me.
+8. **Later, not now:** the Apple Developer account (USD 99 a year) when we
+   get to push notifications ("your turn", invites) and TestFlight. App
+   Check (stops fake clients) comes with it.
+
+What's already done on my side: the shared rules package, the referee
+(parties, moves, timeouts, rematch) tested against a local Firestore,
+the security rules, the deploy pipeline, Firebase in the app (switched
+off until step 5's values are in), and the iPhone / Android builds
+checked with Firebase.
+
 ## Roadmap
 
 ### Phase 0: ready the app (no backend)
@@ -67,10 +119,11 @@ Tick items as they land (and log them in `CHANGELOG.md` as usual).
 - [ ] A `GameSession` layer: `LocalSession` (bots, today) and
       `RemoteSession` (online), same events into the existing controllers.
 - [ ] Deterministic, seeded deals so the referee and tests agree.
-- [ ] Shared `duel_engine` package used by both app and referee.
+- [x] Shared `duel_engine` package used by both app and referee.
 
 ### Phase 1: accounts and parties
-- [ ] Test iOS build with Firebase via Swift Package Manager.
+- [x] Test iOS build with Firebase via Swift Package Manager (build 9:
+      iOS and Android green with firebase_core / auth / cloud_firestore).
 - [ ] Anonymous sign-in; profile (name, face) synced.
 - [ ] Server wallet; one-time carry-over of local pips.
 - [ ] Party: create / join by 6-letter code, QR, or share link; who's here
@@ -78,9 +131,13 @@ Tick items as they land (and log them in `CHANGELOG.md` as usual).
 - [ ] Privacy policy + Play Data safety updated; in-app account deletion.
 
 ### Phase 2: first online game, Four in a Row
-- [ ] Referee on Cloud Run; moves, rematch.
+- [x] Referee (`server/`): parties, moves, rematch, tested on the
+      Firestore emulator; deploys to Cloud Run (`online.yml`).
+- [x] Security rules (`firebase/firestore.rules`): players only read
+      their own parties / games, only write their own name and face.
 - [ ] Reconnect / resume after the app is backgrounded.
-- [ ] Turn timer (live: ~45 s, then an auto-move; repeated: forfeit).
+- [x] Turn timer (live: 45 s, then an auto-move; twice: forfeit)
+      (referee side; the app's countdown comes with the online UI).
 - [ ] Stakes settled on the server.
 
 ### Phase 3: card games online

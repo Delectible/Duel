@@ -103,10 +103,30 @@ together, GamePigeon-easy. Let it guide design and development choices.
 
 ## Stack
 
-Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. One package: `shared_preferences`
-(saves the account; SPM on iOS). State is ChangeNotifier + InheritedNotifier; the online backend is planned in
-`docs/ONLINE.md` (Firebase, anonymous sign-in, Dart referee). Font: Fredoka (assets/fonts, OFL), static
+Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. Packages: `shared_preferences`
+(saves the account) and Firebase (`firebase_core`, `firebase_auth`, `cloud_firestore`), all SPM on iOS.
+State is ChangeNotifier + InheritedNotifier. Font: Fredoka (assets/fonts, OFL), static
 weights cut from the variable font.
+
+## Online (plan and Luca's setup steps: `docs/ONLINE.md`)
+
+- App: `lib/core/online/`: `FirebaseConfig` (Android / iOS options and
+  the referee's URL; null = offline, bot games only), `Online.start()` in
+  `main.dart` (never blocks the app if Firebase fails).
+- Referee: `server/` (own Dart package, excluded from the app's analyze):
+  `Referee` (parties, matches, moves with a `version` check, timeouts,
+  forfeit, rematch) over a `Store` (`MemoryStore` in tests,
+  `FirestoreStore` on Firestore REST), `api.dart` (shelf routes, Firebase
+  ID token check), `games.dart` (`OnlineGame` per game; only Four in a
+  Row so far). Players only read Firestore; only the referee writes.
+- `firebase/`: `firestore.rules` (+ emulator config). Test locally from
+  `firebase/`: `firebase emulators:exec --only firestore --project
+  demo-duel "cd ../server && dart test"`.
+- `.github/workflows/online.yml`: checks server/ (analyze, format, tests on
+  the emulator, image build) on every push touching it; on `main` also
+  deploys the rules and the referee (Cloud Run, australia-southeast1) if
+  secret `GCP_DEPLOY_KEY` and variable `FIREBASE_PROJECT` exist (made by
+  `tool/online/setup_gcp.sh`). Server-only changes don't build the app.
 
 ## App layout
 

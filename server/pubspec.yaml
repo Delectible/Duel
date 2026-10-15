@@ -1,0 +1,19 @@
+name: duel_server
+description: Duel's online referee. Runs the shared game rules (duel_engine) on Cloud Run, checks every move and writes the live game state to Firestore.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  dart_jsonwebtoken: ^3.4.1
+  duel_engine:
+    path: ../packages/duel_engine
+  googleapis: ^17.0.0
+  googleapis_auth: ^2.3.4
+  http: ^1.6.0
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+dev_dependencies:
+  test: ^1.33.0

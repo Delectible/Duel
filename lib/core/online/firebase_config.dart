@@ -10,4 +10,8 @@ import 'package:firebase_core/firebase_core.dart';
 abstract final class FirebaseConfig {
   static const FirebaseOptions? android = null;
   static const FirebaseOptions? ios = null;
+
+  /// The referee's address on Cloud Run (the deploy prints it), e.g.
+  /// `https://duel-referee-xxxxx-ts.a.run.app`.
+  static const String? referee = null;
 }

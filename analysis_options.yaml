@@ -12,6 +12,7 @@ analyzer:
     - android/**
     - ios/**
     - linux/**
+    - server/**   # its own package, checked by online.yml
 
 linter:
   rules:

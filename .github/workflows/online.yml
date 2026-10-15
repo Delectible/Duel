@@ -1,0 +1,85 @@
+name: Online
+# The online side: the referee (server/) on Cloud Run and the Firestore
+# security rules (firebase/). Checked on every push that touches them;
+# deployed from main once the Google Cloud secrets exist (docs/ONLINE.md,
+# "Your steps"). Without them the deploy jobs just say so.
+on:
+  push:
+    paths: ['server/**', 'packages/duel_engine/**', 'firebase/**', '.github/workflows/online.yml']
+  workflow_dispatch:
+concurrency:
+  group: online-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  REGION: australia-southeast1   # same place as the Firestore database
+  SERVICE: duel-referee
+
+jobs:
+  # dart analyze + the referee's tests, including a real Firestore (the
+  # emulator) with the security rules loaded.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - uses: actions/setup-java@v4   # the Firestore emulator runs on Java
+        with: { distribution: temurin, java-version: '21' }
+      - run: dart pub get
+        working-directory: server
+      - run: dart analyze --fatal-infos
+        working-directory: server
+      - run: dart format --output=none --set-exit-if-changed lib bin test
+        working-directory: server
+      - name: Tests on the Firestore emulator
+        working-directory: firebase
+        run: npx -y firebase-tools@14 emulators:exec --only firestore --project demo-duel "cd ../server && dart test"
+      - name: The image builds
+        run: docker build -f server/Dockerfile -t referee .
+
+  deploy:
+    needs: check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Secrets present?
+        id: secrets
+        env:
+          KEY: ${{ secrets.GCP_DEPLOY_KEY }}
+          PROJECT: ${{ vars.FIREBASE_PROJECT }}
+        run: |
+          if [ -n "$KEY" ] && [ -n "$PROJECT" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No GCP_DEPLOY_KEY secret / FIREBASE_PROJECT variable yet: not deploying (docs/ONLINE.md, Your steps)."
+          fi
+      - if: steps.secrets.outputs.ok
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_DEPLOY_KEY }}
+      - if: steps.secrets.outputs.ok
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Security rules
+        if: steps.secrets.outputs.ok
+        working-directory: firebase
+        run: npx -y firebase-tools@14 deploy --only firestore:rules,firestore:indexes --project "${{ vars.FIREBASE_PROJECT }}" --non-interactive
+      - name: Referee to Cloud Run
+        if: steps.secrets.outputs.ok
+        env:
+          PROJECT: ${{ vars.FIREBASE_PROJECT }}
+        run: |
+          IMAGE="$REGION-docker.pkg.dev/$PROJECT/duel/referee:${GITHUB_SHA::12}"
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -f server/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+          # Anyone may call it (the app signs in with Firebase; the referee
+          # checks every token). Scales to zero when nobody plays.
+          gcloud run deploy "$SERVICE" --project "$PROJECT" --region "$REGION" \
+            --image "$IMAGE" --allow-unauthenticated \
+            --service-account "duel-referee@$PROJECT.iam.gserviceaccount.com" \
+            --set-env-vars "FIREBASE_PROJECT=$PROJECT" \
+            --cpu 1 --memory 512Mi --concurrency 80 --min-instances 0 --max-instances 4 --quiet
+          URL=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format 'value(status.url)')
+          curl -fsS "$URL/healthz" > /dev/null
+          echo "Referee live at $URL (FirebaseConfig.referee)" >> "$GITHUB_STEP_SUMMARY"

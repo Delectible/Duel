@@ -38,3 +38,8 @@ ios/Runner/GeneratedPluginRegistrant.*
 *.jks.base64
 upload*.txt
 key.properties
+
+# Firebase emulator logs; Google Cloud service account keys never go in.
+*-debug.log
+*service-account*.json
+duel-deploy-key.json
