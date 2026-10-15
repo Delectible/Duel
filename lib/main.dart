@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/account/account.dart';
 import 'core/account/prefs_store.dart';
 import 'core/app_info.dart';
+import 'core/online/online.dart';
 import 'core/session/play_setup.dart';
 import 'core/theme/rotation_fade.dart';
 import 'core/theme/toon.dart';
@@ -11,6 +12,8 @@ import 'features/home/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Online is off until the Firebase project is set up (docs/ONLINE.md).
+  await Online.start();
   final prefs = await SharedPreferences.getInstance();
   runApp(DuelApp(account: Account(store: PrefsStore(prefs))));
 }
