@@ -124,7 +124,7 @@ weights cut from the variable font.
   demo-duel "cd ../server && dart test"`.
 - `.github/workflows/online.yml`: checks server/ (analyze, format, tests on
   the emulator, image build) on every push touching it; on `main` also
-  deploys the rules and the referee (Cloud Run, australia-southeast1) if
+  deploys the rules and the referee (Cloud Run, us-east4) if
   secret `GCP_DEPLOY_KEY` and variable `FIREBASE_PROJECT` exist (made by
   `tool/online/setup_gcp.sh`). Server-only changes don't build the app.
 

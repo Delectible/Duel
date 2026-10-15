@@ -15,6 +15,8 @@ Tick items as they land (and log them in `CHANGELOG.md` as usual).
 - **Apple Developer account ($99 USD/yr): likely.** Unlocks iOS push
   notifications ("your turn", invites), TestFlight instead of Sideloadly
   (no 7-day expiry), and the App Store release.
+- **Region `us-east4` (2026-10-15).** Luca and friends are mostly in New
+  York: ~20-40 ms there, ~250 ms from Australia (fine for turn games).
 
 ## Platform
 
@@ -23,7 +25,7 @@ Tick items as they land (and log them in `CHANGELOG.md` as usual).
 
 - Accounts: Firebase Auth, anonymous (no sign-up). Later: link Google /
   Apple sign-in to keep a profile across phones.
-- Live state: Firestore, region `australia-southeast1` (Sydney). Clients
+- Live state: Firestore, region `us-east4` (Northern Virginia, near New York). Clients
   listen; only the referee writes game state. Each player's hand is a
   private document only they can read.
 - Referee: Dart on Cloud Run, stateless, one warm instance (no cold
@@ -76,7 +78,7 @@ Everything after this deploys by itself from `main`.
 3. **Sign-in.** Build > Authentication > Get started > Sign-in method >
    Anonymous > Enable.
 4. **Database.** Build > Firestore Database > Create database > Standard
-   edition, **location `australia-southeast1` (Sydney)**: this can never be
+   edition, **location `us-east4` (Northern Virginia, near New York)**: this can never be
    changed. Start in **production mode** (our rules replace the defaults).
 5. **The apps.** Project overview > Add app:
    - Android: package name `com.dingo.duel`, nickname Duel. Download

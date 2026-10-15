@@ -4,7 +4,7 @@
 # selected), or run with: bash setup_gcp.sh <project-id>
 #
 # - Turns on the services the referee needs.
-# - A home for the referee's images (Artifact Registry, Sydney).
+# - A home for the referee's images (Artifact Registry, Northern Virginia).
 # - duel-referee: the account the referee runs as. It may read and write
 #   Firestore, nothing else.
 # - duel-deploy: the account GitHub deploys with. Its key is printed at
@@ -12,7 +12,7 @@
 # Safe to run twice.
 set -euo pipefail
 PROJECT="${1:-$(gcloud config get-value project 2>/dev/null)}"
-REGION=australia-southeast1
+REGION=us-east4
 [ -n "$PROJECT" ] || { echo "Usage: bash setup_gcp.sh <project-id>"; exit 1; }
 echo "Setting up $PROJECT"
 gcloud config set project "$PROJECT" >/dev/null

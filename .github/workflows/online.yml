@@ -11,7 +11,7 @@ concurrency:
   group: online-${{ github.ref }}
   cancel-in-progress: false
 env:
-  REGION: australia-southeast1   # same place as the Firestore database
+  REGION: us-east4   # same place as the Firestore database
   SERVICE: duel-referee
 
 jobs:
