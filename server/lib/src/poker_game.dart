@@ -171,6 +171,8 @@ class PokerGame extends OnlineGame {
       'n': state['n'],
       'button': state['button'],
       'gone': state['gone'],
+      'places': {for (final e in t.places.entries) '${e.key}': e.value},
+      'simulated': t.simulated,
       'hands': [
         for (final (i, moves) in hands.indexed) {'moves': moves, ...t.history[i]},
       ],
@@ -217,7 +219,42 @@ class PokerTable {
       (p) => humans.contains(p.seat) && !gone.contains(p.seat) && p.stack > 0,
     );
     over = game.isOver || (hand.result != null && people.isEmpty);
+    places = {
+      for (final p in game.players)
+        if (p.place != null) p.seat: p.place!,
+    };
+    simulated = over && !game.isOver;
+    if (simulated) {
+      // Nobody left to play for: the bots don't play it out. Rank who's
+      // left by their chances: the bigger the stack, the likelier to
+      // finish higher (a fair draw, the same on every replay).
+      final order = rankByChances({
+        for (final p in game.players.where((p) => p.stack > 0)) p.seat: p.stack,
+      }, Random((state['seed']! as int) ^ game.handsPlayed));
+      for (final (i, seat) in order.indexed) {
+        places[seat] = i + 1;
+      }
+    }
   }
+
+  /// Seats best first, drawn one place at a time with odds by stack.
+  static List<int> rankByChances(Map<int, int> stacks, Random rng) {
+    final left = {...stacks};
+    final order = <int>[];
+    while (left.isNotEmpty) {
+      var pick = rng.nextInt(left.values.fold(0, (a, b) => a + b));
+      final seat = left.keys.firstWhere((s) => (pick -= left[s]!) < 0);
+      order.add(seat);
+      left.remove(seat);
+    }
+    return order;
+  }
+
+  /// Finishing places so far, by table seat (everyone's once it's over).
+  late final Map<int, int> places;
+
+  /// It ended with only bots left, so they were ranked rather than played.
+  late final bool simulated;
 
   final SitAndGo game;
 
@@ -235,10 +272,6 @@ class PokerTable {
   /// Hole cards per hand, by table seat.
   final List<Map<int, List<PlayingCard>>> holes;
 
-  /// Who won: the last one with chips, or the biggest stack.
-  int get winner {
-    final first = game.players.where((p) => p.place == 1).firstOrNull;
-    if (first != null) return first.seat;
-    return game.players.reduce((a, b) => b.stack > a.stack ? b : a).seat;
-  }
+  /// Who won (first place).
+  int get winner => places.entries.firstWhere((e) => e.value == 1).key;
 }

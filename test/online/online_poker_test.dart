@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:duel/core/account/account.dart';
 import 'package:duel/core/online/party.dart';
+import 'package:duel/core/avatars/faces.dart';
 import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/games/poker/ui/table_view.dart';
 import 'package:duel/main.dart';
@@ -150,4 +151,103 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     }, timeout: const Timeout(Duration(minutes: 3)));
   }
+
+  testWidgets('both people bust: the bots are placed, a full lineup on the card', (tester) async {
+    usePhone(tester, phones['small']!);
+    // The same deal as the referee's test (seed 6): the people go out first.
+    final srv = FakeServer(seed: 6);
+    final account = Account()..name = 'Luca';
+    final party = PartyService(srv.player('luca'), account: account);
+    final sam = PartyService(srv.player('sam'), account: Account()..name = 'Sam');
+
+    Future<void> wait([int ms = 300]) async {
+      for (var i = 0; i < 4; i++) {
+        unawaited(srv.publish());
+        await tester.pump(Duration(milliseconds: ms ~/ 4));
+      }
+    }
+
+    Future<T> run<T>(Future<T> Function() f) async {
+      late T result;
+      var done = false;
+      unawaited(
+        f().then((v) {
+          result = v;
+          done = true;
+        }),
+      );
+      for (var i = 0; i < 400 && !done; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(done, isTrue);
+      return result;
+    }
+
+    await tester.pumpWidget(
+      DuelApp(
+        account: account,
+        setup: PlaySetup(party: party),
+        party: party,
+      ),
+    );
+    await wait();
+    await run(party.create);
+    await run(() => sam.join(party.code!));
+    await run(
+      () => party.setBots(const [
+        PartyBot(name: 'Pip', look: Look.cap, difficulty: Difficulty.easy),
+        PartyBot(name: 'Finn', look: Look.fin, difficulty: Difficulty.hard),
+      ]),
+    );
+    await run(() => party.start('holdem', stake: 10));
+    await wait(1500);
+    final table = tester.widget<TableView>(find.byType(TableView)).c;
+
+    // Both shove whenever they can (as in the referee's test).
+    for (var step = 0; step < 3000 && party.match!['status'] == 'live'; step++) {
+      await wait(400);
+      if (find.byKey(const Key('next hand')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('next hand')));
+        continue;
+      }
+      if (table.yourTurn) {
+        final legal = table.hand!.legalMoves();
+        table.act(
+          legal.canRaise
+              ? Move.raiseTo(legal.maxRaiseTo)
+              : legal.canCheck
+              ? const Move.check()
+              : const Move.call(),
+        );
+        continue;
+      }
+      final m = sam.match!;
+      if (m['status'] == 'live' && m['turn'] == sam.seat) {
+        Future<String?> go(String kind) => sam.move({'kind': kind, 'amount': 100000});
+        if (await run(() => go('raise')) != null && await run(() => go('call')) != null) {
+          await run(() => go('check'));
+        }
+      }
+    }
+    expect(party.match!['status'], 'over');
+    expect((party.match!['state']! as Map)['simulated'], isTrue);
+    for (var i = 0; i < 60 && find.byKey(const Key('lineup')).evaluate().isEmpty; i++) {
+      await wait(500);
+      if (find.byKey(const Key('next hand')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('next hand')));
+      }
+    }
+    expect(find.byKey(const Key('lineup')), findsOneWidget);
+    for (final place in ['1st', '2nd', '3rd', '4th']) {
+      expect(
+        find.descendant(of: find.byKey(const Key('lineup')), matching: find.text(place)),
+        findsOneWidget,
+      );
+    }
+    expect(find.textContaining('placed by their chances'), findsOneWidget);
+    expect(find.text('Rematch'), findsOneWidget);
+    await shot(tester, 'online_poker_lineup');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  }, timeout: const Timeout(Duration(minutes: 5)));
 }

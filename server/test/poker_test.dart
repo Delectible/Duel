@@ -123,4 +123,41 @@ void main() {
     m = await ref.forfeit(luca, id);
     expect(m['status'], 'over');
   });
+
+  test('both people bust: the bots are ranked by their chances, a full lineup', () async {
+    ref = Referee(store, rng: Random(6), clock: () => now); // a deal where the people go out first
+    var m = await table();
+    final id = m['id']! as String;
+    final seats = (m['seats']! as List).cast<String>();
+    final people = {seats.indexOf('luca'), seats.indexOf('sam')};
+    // The people shove every hand; play until neither has chips.
+    for (var i = 0; i < 400 && m['status'] == 'live'; i++) {
+      Future<Map<String, Object?>> go(String kind) =>
+          ref.move(who(m), id, m['version']! as int, {'kind': kind, 'amount': 100000});
+      m = await go('raise').catchError((Object _) => go('call')).catchError((Object _) => go('check'));
+    }
+    expect(m['status'], 'over');
+    final state = m['state']! as Map;
+    final places = (state['places']! as Map).map((k, v) => MapEntry(int.parse('$k'), v as int));
+    expect(places.keys.toSet(), {0, 1, 2, 3}, reason: 'everyone has a place');
+    expect(places.values.toSet(), {1, 2, 3, 4});
+    expect(places[(m['result']! as Map)['winner']], 1);
+    // The people went out first: the bots were ranked, not played out.
+    expect(state['simulated'], isTrue);
+    expect(people.map((s) => places[s]).every((p) => p! >= 3), isTrue, reason: 'people at the bottom');
+  });
+
+  test('the ranking leans on stack size', () {
+    final rng = Random(1);
+    final firsts = <int, int>{};
+    for (var i = 0; i < 3000; i++) {
+      final order = PokerTable.rankByChances({0: 3000, 1: 1500, 2: 500}, rng);
+      expect(order.toSet(), {0, 1, 2});
+      firsts[order.first] = (firsts[order.first] ?? 0) + 1;
+    }
+    // About 60% / 30% / 10%.
+    expect(firsts[0]! / 3000, closeTo(0.6, 0.05));
+    expect(firsts[1]! / 3000, closeTo(0.3, 0.05));
+    expect(firsts[2]! / 3000, closeTo(0.1, 0.04));
+  });
 }

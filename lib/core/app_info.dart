@@ -9,7 +9,8 @@ class AppInfo {
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
       "Texas Hold'em with friends online! The host can add bots to fill seats, each Easy, Normal or Hard, "
-      'up to six at a table. Your cards stay private; everyone sees the same table, moves and showdowns.';
+      'up to six at a table. Your cards stay private; everyone sees the same table, moves and showdowns. '
+      'At the end, everyone gets the full finishing order.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

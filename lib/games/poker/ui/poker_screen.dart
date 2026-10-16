@@ -114,15 +114,32 @@ class _PokerScreenState extends State<PokerScreen> {
       if (online != null) {
         final m = party.match!;
         if (m['id'] != _matchId) {
-          // A new match: put in its stake.
+          // A new match: put in its stake (after this frame: taking pips
+          // redraws everything that shows your balance).
           _matchId = m['id'] as String?;
+          final stake = m['stake'] as int? ?? 0;
+          final opponents = (m['seats']! as List).length - 1;
           _ticket = StakeTicket(
             account: _account,
             gameId: 'holdem',
-            stake: _account.placeStake(m['stake'] as int? ?? 0),
-            opponents: (m['seats']! as List).length - 1,
+            stake: 0,
+            opponents: opponents,
             difficulty: Difficulty.normal,
           );
+          if (stake > 0) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted || _ticket.settled) return;
+              setState(
+                () => _ticket = StakeTicket(
+                  account: _account,
+                  gameId: 'holdem',
+                  stake: _account.placeStake(stake),
+                  opponents: opponents,
+                  difficulty: Difficulty.normal,
+                ),
+              );
+            });
+          }
         }
         _c = online;
         online
@@ -381,6 +398,7 @@ class _GameOver extends StatelessWidget {
                       '${c.game.handsPlayed} hand${c.game.handsPlayed == 1 ? '' : 's'}',
                       style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
                     ),
+                    if (c is OnlinePokerController) _Lineup(c: c as OnlinePokerController),
                     const SizedBox(height: 10),
                     StakeResult(ticket),
                     const SizedBox(height: 14),
@@ -422,3 +440,69 @@ String _ordinal(int n) => switch (n) {
   3 => '3rd',
   _ => '${n}th',
 };
+
+/// Online: the table's finishing order (filling in as people go out).
+class _Lineup extends StatelessWidget {
+  const _Lineup({required this.c});
+
+  final OnlinePokerController c;
+
+  @override
+  Widget build(BuildContext context) {
+    final lineup = c.lineup;
+    if (lineup.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        key: const Key('lineup'),
+        children: [
+          for (final p in lineup)
+            Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: p.you ? Toon.yellow : (p.place == 1 ? Toon.green.withValues(alpha: 0.35) : null),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 40,
+                    child: Text(
+                      _ordinal(p.place),
+                      style: Toon.text(15, weight: FontWeight.w700, color: p.you ? Toon.inkLight : null),
+                    ),
+                  ),
+                  Face(p.who, size: 26),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      p.you ? 'You' : p.who.name,
+                      style: Toon.text(15, color: p.you ? Toon.inkLight : null),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (c.matchOver && c.simulated)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'No people left at the table, so the bots were placed by their chances (bigger stacks, better odds).',
+                textAlign: TextAlign.center,
+                style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
+              ),
+            )
+          else if (!c.matchOver)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'The others are still playing…',
+                style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

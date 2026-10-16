@@ -244,6 +244,12 @@ Ships as app version **0.4.1**.
   against bots, a 45 s turn clock, leaving folds you out while the rest
   play on, Rematch when the table's done. Decided for later: Spades
   partners: the host is asked who their teammate is. → 0.7.0 · 2026-10-16
+- [x] **11.6 Everyone's out but the bots** (2026-10-16): when the last
+  person busts, the bots aren't played out: they're ranked by their
+  chances (each place drawn with odds by stack), so the game ends with a
+  real 1st-to-last lineup. The game-over card shows the lineup (filling in
+  while others still play) and says when bots were placed that way.
+  → 0.7.0 · 2026-10-16
 
 ### 12. Fixes
 

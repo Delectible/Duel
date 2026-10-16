@@ -284,6 +284,25 @@ class OnlinePokerController extends PokerController {
     }
   }
 
+  // --- The final standings ---------------------------------------------------
+
+  /// Everyone placed so far, best first (all of them once it's over).
+  List<({int place, Persona who, bool you})> get lineup {
+    final places = (_state['places'] as Map?) ?? const {};
+    final list = [
+      for (final e in places.entries)
+        (
+          place: e.value as int,
+          who: personas[_local(int.parse('${e.key}'))],
+          you: _local(int.parse('${e.key}')) == 0,
+        ),
+    ]..sort((a, b) => a.place.compareTo(b.place));
+    return list;
+  }
+
+  /// It ended with only bots left: they were ranked by their chances.
+  bool get simulated => _state['simulated'] == true;
+
   // --- The turn clock --------------------------------------------------------
 
   int get _msLeft {
