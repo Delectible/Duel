@@ -78,7 +78,7 @@ Everything after this deploys by itself from `main`.
 3. **Sign-in.** Build > Authentication > Get started > Sign-in method >
    Anonymous > Enable.
 4. **Database.** Build > Firestore Database > Create database > Standard
-   edition, **location `us-east4` (Northern Virginia, near New York)**: this can never be
+   edition, database ID `(default)` (leave it), **location `us-east4` (Northern Virginia, near New York)**: this can never be
    changed. Start in **production mode** (our rules replace the defaults).
 5. **The apps.** Project overview > Add app:
    - Android: package name `com.dingo.duel`, nickname Duel. Download
