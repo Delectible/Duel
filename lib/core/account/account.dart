@@ -100,12 +100,19 @@ class Account extends ChangeNotifier {
   CurrencyChoice _currency = CurrencyChoice.pips;
   ThemeChoice _theme = ThemeChoice.system;
   final Map<String, GameStats> _stats = {};
+  String? _partyId;
 
   String get name => _name;
   Avatar get avatar => _avatar;
   int get balance => _balance;
   CurrencyChoice get currency => _currency;
   ThemeChoice get theme => _theme;
+
+  /// The online party you're in, so reopening the app takes you back.
+  String? get partyId => _partyId;
+  set partyId(String? v) {
+    if (v != _partyId) _change(() => _partyId = v);
+  }
 
   bool get inDebt => _balance < 0;
 
@@ -191,6 +198,7 @@ class Account extends ChangeNotifier {
       _balance = j['balance'] as int? ?? startingBalance;
       _currency = CurrencyChoice.values.asNameMap()[j['currency']] ?? CurrencyChoice.pips;
       _theme = ThemeChoice.values.asNameMap()[j['theme']] ?? ThemeChoice.system;
+      _partyId = j['party'] as String?;
       final stats = j['stats'] as Map<String, dynamic>? ?? {};
       stats.forEach((k, v) => _stats[k] = GameStats.fromJson(v as Map<String, dynamic>));
     } on Object {
@@ -206,6 +214,7 @@ class Account extends ChangeNotifier {
       'currency': _currency.name,
       'theme': _theme.name,
       'stats': {for (final e in _stats.entries) e.key: e.value.toJson()},
+      'party': ?_partyId,
     }),
   );
 }

@@ -376,6 +376,8 @@ class GameOverCard extends StatelessWidget {
     required this.won,
     required this.onAgain,
     required this.onLeave,
+    this.againLabel = 'Play again',
+    this.leaveLabel = 'Games',
   });
 
   final Persona face;
@@ -383,8 +385,12 @@ class GameOverCard extends StatelessWidget {
   final String subtitle;
   final StakeTicket ticket;
   final bool won;
-  final VoidCallback onAgain;
+
+  /// Null greys the button out (online: waiting for the others).
+  final VoidCallback? onAgain;
   final VoidCallback onLeave;
+  final String againLabel;
+  final String leaveLabel;
 
   @override
   Widget build(BuildContext context) => ColoredBox(
@@ -429,8 +435,9 @@ class GameOverCard extends StatelessWidget {
                           Expanded(
                             child: ToonButton(
                               color: Toon.card,
+                              key: const Key('over leave'),
                               onPressed: onLeave,
-                              child: const Text('Games'),
+                              child: FittedBox(child: Text(leaveLabel, maxLines: 1)),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -439,7 +446,7 @@ class GameOverCard extends StatelessWidget {
                               key: const Key('again'),
                               color: Toon.green,
                               onPressed: onAgain,
-                              child: const Text('Play again'),
+                              child: FittedBox(child: Text(againLabel, maxLines: 1)),
                             ),
                           ),
                         ],

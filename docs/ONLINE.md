@@ -126,21 +126,34 @@ checked with Firebase.
 ### Phase 1: accounts and parties
 - [x] Test iOS build with Firebase via Swift Package Manager (build 9:
       iOS and Android green with firebase_core / auth / cloud_firestore).
-- [ ] Anonymous sign-in; profile (name, face) synced.
-- [ ] Server wallet; one-time carry-over of local pips.
-- [ ] Party: create / join by 6-letter code, QR, or share link; who's here
-      (presence). Friend mode on home goes live.
-- [ ] Privacy policy + Play Data safety updated; in-app account deletion.
+- [x] Anonymous sign-in (on first Start / Join); your name and face go
+      with you into the party.
+- [ ] Server wallet; one-time carry-over of local pips. For now each
+      phone settles its own stake (the host sets it, everyone puts it in):
+      fine between friends, fakeable by a determined cheat.
+- [x] Party: create / join by 6-letter code; who's here; the host (crown)
+      picks. Friend mode on home is live. Reopening the app rejoins.
+- [ ] Invite link (tap to join) and a QR code that sends people without
+      Duel to the store. Code only for now (Luca, 2026-10-16).
+- [ ] Vote / first come for picking games (host picks for now).
+- [x] Privacy policy updated. [ ] Play Data safety form (Luca).
+      [ ] In-app account deletion.
 
 ### Phase 2: first online game, Four in a Row
 - [x] Referee (`server/`): parties, moves, rematch, tested on the
       Firestore emulator; deploys to Cloud Run (`online.yml`).
 - [x] Security rules (`firebase/firestore.rules`): players only read
       their own parties / games, only write their own name and face.
-- [ ] Reconnect / resume after the app is backgrounded.
-- [x] Turn timer (live: 45 s, then an auto-move; twice: forfeit)
-      (referee side; the app's countdown comes with the online UI).
-- [ ] Stakes settled on the server.
+- [x] The game in the app: host's Play! opens it on every phone; your
+      disc shows at once, the referee confirms; Rematch (both) / Back to
+      party; leaving gives the game up.
+- [x] Reconnect / resume: live documents pick up where they were after
+      the app is backgrounded.
+- [x] Turn timer (45 s, then an auto-move; twice: forfeit): a ring round
+      the face of whoever's moving; counted from when the phone heard of
+      the turn (`turnAt`), so phone clocks don't matter. Either phone
+      claims a turn that ran out.
+- [ ] Stakes settled on the server (see the wallet above).
 
 ### Phase 3: card games online
 - [ ] Crazy Eights, Go Fish (server deals; private hands).

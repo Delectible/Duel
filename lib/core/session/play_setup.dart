@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import 'package:duel_engine/difficulty.dart';
 
+import '../online/party.dart';
+
 /// Who you're playing with: bots, or a friend in a party.
 enum PlayMode { bots, friends }
 
@@ -18,7 +20,14 @@ enum PickRule {
 
 /// The connection bar's state: shared by every screen.
 class PlaySetup extends ChangeNotifier {
+  PlaySetup({this.party}) {
+    party?.addListener(notifyListeners);
+  }
+
   static const maxBots = 5;
+
+  /// Your online party (null when this build can't go online).
+  final PartyService? party;
 
   PlayMode _mode = PlayMode.bots;
   Difficulty _difficulty = Difficulty.normal;
@@ -30,8 +39,8 @@ class PlaySetup extends ChangeNotifier {
   int get botCount => _botCount;
   PickRule get pickRule => _pickRule;
 
-  /// People in the party (online play isn't there yet: just you).
-  int get partySize => 1;
+  /// People in your party (just you until a friend joins).
+  int get partySize => party != null && party!.inParty ? party!.size : 1;
 
   /// Players at the table, you included.
   int get players => _mode == PlayMode.bots ? 1 + _botCount : partySize;
@@ -52,4 +61,7 @@ class PlaySetupScope extends InheritedNotifier<PlaySetup> {
 
   static PlaySetup of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<PlaySetupScope>()!.notifier!;
+
+  static PlaySetup? read(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<PlaySetupScope>()?.notifier;
 }

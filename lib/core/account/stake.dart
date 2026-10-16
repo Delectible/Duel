@@ -175,9 +175,11 @@ class StakeResult extends StatelessWidget {
 }
 
 /// The leave-game question; with a stake it says what leaving costs.
-Future<bool> confirmLeave(BuildContext context, StakeTicket ticket) async {
+Future<bool> confirmLeave(BuildContext context, StakeTicket ticket, {String? online}) async {
   final cost = ticket.stake > 0 && !ticket.settled
       ? "Leaving now counts as a loss: you'll lose your ${ticket.account.money(ticket.stake)} stake."
+      : online != null
+      ? 'Leaving now counts as a loss.'
       : "This game won't count.";
   final leave = await showDialog<bool>(
     context: context,
@@ -192,7 +194,7 @@ Future<bool> confirmLeave(BuildContext context, StakeTicket ticket) async {
             Text('Leave the game?', style: Toon.text(22, weight: FontWeight.w700)),
             const SizedBox(height: 8),
             Text(
-              cost,
+              online == null ? cost : '$online $cost',
               textAlign: TextAlign.center,
               style: Toon.text(16, weight: FontWeight.w500),
             ),

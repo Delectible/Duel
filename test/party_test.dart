@@ -1,10 +1,7 @@
 import 'dart:math';
 
-import 'package:duel/core/account/account.dart';
-import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/features/party/coin_toss.dart';
-import 'package:duel/features/party/party_screen.dart';
 import 'package:duel/features/party/vote.dart';
 import 'package:duel/games/catalog.dart';
 import 'package:flutter/material.dart';
@@ -60,27 +57,4 @@ void main() {
       });
     }
   }
-
-  testWidgets('party screen: Vote offers a try of the coin toss', (tester) async {
-    usePhone(tester, phones['small']!);
-    final setup = PlaySetup();
-    await tester.pumpWidget(
-      AccountScope(
-        account: Account(),
-        child: PlaySetupScope(
-          setup: setup,
-          child: MaterialApp(theme: Toon.theme(), home: const PartyScreen()),
-        ),
-      ),
-    );
-    expect(find.byKey(const Key('try coin')), findsNothing);
-    await tester.tap(find.text('Vote'));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('try coin')));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('it is!'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('coin done')));
-    await tester.pumpAndSettle();
-    expect(find.byType(CoinToss), findsNothing);
-  });
 }

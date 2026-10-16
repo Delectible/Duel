@@ -8,8 +8,30 @@ import '../../../core/avatars/faces.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/four_in_a_row/four_in_a_row.dart';
 
+/// What the Four in a Row screen draws: against a bot ([RowController]) or
+/// a friend online (`OnlineRowController`). You're always red, player 0.
+abstract interface class RowTable implements Listenable {
+  FourInARow get game;
+  Persona get you;
+  Persona get bot;
+
+  /// The other side is to move.
+  bool get thinking;
+  bool get yourTurn;
+  List<int> get yourWins;
+  List<int> get threats;
+
+  /// The game has ended (online also by a timeout or someone giving up).
+  bool get over;
+  bool get draw;
+  bool get youWon;
+
+  void drop(int col);
+  String commentary();
+}
+
 /// Runs Four in a Row against one bot. You're red (player 0).
-class RowController extends ChangeNotifier {
+class RowController extends ChangeNotifier implements RowTable {
   RowController({required this.difficulty, Random? rng, this.pace = 1, this.you = const Persona.you()})
     : _rng = rng ?? Random() {
     bot = Persona.bots(1, _rng).single;
@@ -18,22 +40,36 @@ class RowController extends ChangeNotifier {
 
   final Difficulty difficulty;
   final double pace;
+  @override
   final Persona you;
   final Random _rng;
 
+  @override
   late final Persona bot;
+  @override
   late FourInARow game;
   late RowBot _bot;
   int round = 0;
+  @override
   bool thinking = false;
 
   Timer? _timer;
   var _disposed = false;
 
+  @override
   bool get yourTurn => !game.isOver && game.turn == 0 && !thinking;
 
+  @override
+  bool get over => game.isOver;
+  @override
+  bool get draw => game.draw;
+  @override
+  bool get youWon => game.winner == 0;
+
   /// Columns where you'd win now / where the bot would (to block).
+  @override
   List<int> get yourWins => game.isOver ? const [] : game.winningMoves(0);
+  @override
   List<int> get threats => game.isOver ? const [] : game.winningMoves(1);
 
   void _start(int first) {
@@ -56,6 +92,7 @@ class RowController extends ChangeNotifier {
   }
 
   /// Tap a column.
+  @override
   void drop(int col) {
     if (!yourTurn || !game.canDrop(col)) return;
     game.drop(col);
@@ -95,6 +132,7 @@ class RowController extends ChangeNotifier {
     });
   }
 
+  @override
   String commentary() {
     final g = game;
     if (g.isOver) {

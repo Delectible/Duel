@@ -31,7 +31,9 @@ class Player {
 /// - `parties/{id}`: code, host, members (uids), names, avatars, matchId.
 /// - `codes/{CODE}`: {party} so a code finds its party.
 /// - `matches/{id}`: game, party, seats (uids), names, status (live/over),
-///   version (bumps on every change), turn, state, deadline (ms), result,
+///   version (bumps on every change), turn, state, deadline and turnAt
+///   (server ms: phones count down deadline - turnAt from when they hear
+///   of the turn, so their own clocks don't matter), result,
 ///   rematch votes and the next match's id.
 class Referee {
   Referee(this.store, {Random? rng, DateTime Function()? clock, this.turnTime = const Duration(seconds: 45)})
@@ -123,24 +125,36 @@ class Referee {
 
   // --- Matches -------------------------------------------------------------
 
-  /// Starts [gameId] for everyone in the party (host only).
-  Future<Doc> startMatch(Player p, String partyId, String gameId) => store.transaction((tx) async {
-    final party = await tx.get('parties/$partyId');
-    if (party == null) throw const RefereeError(404, 'No such party');
-    if (party['host'] != p.uid) throw const RefereeError(403, 'Only the host can start a game');
-    final game = onlineGames[gameId];
-    if (game == null) throw RefereeError(400, "$gameId can't be played online yet");
-    final members = (party['members']! as List).cast<String>();
-    if (members.length < game.minPlayers || members.length > game.maxPlayers) {
-      throw RefereeError(409, '${game.id} is for ${game.minPlayers}–${game.maxPlayers} players');
-    }
-    final seats = [...members]..shuffle(_rng);
-    final match = _newMatch(game, partyId, seats, party['names']! as Map, first: _rng.nextInt(seats.length));
-    tx.set('matches/${match['id']}', match);
-    party['matchId'] = match['id'];
-    tx.set('parties/$partyId', party);
-    return match;
-  });
+  /// Biggest stake the host can set (each phone settles its own pips).
+  static const maxStake = 1000;
+
+  /// Starts [gameId] for everyone in the party (host only). [stake] is what
+  /// every player puts in; each phone takes and settles it.
+  Future<Doc> startMatch(Player p, String partyId, String gameId, {int stake = 0}) =>
+      store.transaction((tx) async {
+        final party = await tx.get('parties/$partyId');
+        if (party == null) throw const RefereeError(404, 'No such party');
+        if (party['host'] != p.uid) throw const RefereeError(403, 'Only the host can start a game');
+        final game = onlineGames[gameId];
+        if (game == null) throw RefereeError(400, "$gameId can't be played online yet");
+        final members = (party['members']! as List).cast<String>();
+        if (members.length < game.minPlayers || members.length > game.maxPlayers) {
+          throw RefereeError(409, '${game.id} is for ${game.minPlayers}–${game.maxPlayers} players');
+        }
+        final seats = [...members]..shuffle(_rng);
+        final match = _newMatch(
+          game,
+          partyId,
+          seats,
+          party['names']! as Map,
+          first: _rng.nextInt(seats.length),
+          stake: stake.clamp(0, maxStake),
+        );
+        tx.set('matches/${match['id']}', match);
+        party['matchId'] = match['id'];
+        tx.set('parties/$partyId', party);
+        return match;
+      });
 
   Doc _newMatch(
     OnlineGame game,
@@ -148,6 +162,7 @@ class Referee {
     List<String> seats,
     Map<Object?, Object?> names, {
     required int first,
+    int stake = 0,
   }) {
     final state = game.start(seats.length, _rng, first: first);
     return {
@@ -157,10 +172,12 @@ class Referee {
       'seats': seats,
       'names': [for (final s in seats) names[s] ?? 'Player'],
       'status': 'live',
+      'stake': stake,
       'version': 1,
       'turn': game.turn(state),
       'state': game.public(state),
       'deadline': _now + turnTime.inMilliseconds,
+      'turnAt': _now,
       'timeouts': List.filled(seats.length, 0),
       'result': null,
       'rematch': <String>[],
@@ -234,7 +251,14 @@ class Referee {
       final game = onlineGames[match['game']]!;
       final first = ((_state(match)['first'] as int? ?? 0) + 1) % seats.length;
       final names = {for (final (i, s) in seats.indexed) s: (match['names']! as List)[i]};
-      final next = _newMatch(game, match['party']! as String, seats, names, first: first);
+      final next = _newMatch(
+        game,
+        match['party']! as String,
+        seats,
+        names,
+        first: first,
+        stake: match['stake'] as int? ?? 0,
+      );
       tx.set('matches/${next['id']}', next);
       match['next'] = next['id'];
       final party = await tx.get('parties/${match['party']}');
@@ -276,6 +300,7 @@ class Referee {
     } else {
       match['turn'] = game.turn(state);
       match['deadline'] = _now + turnTime.inMilliseconds;
+      match['turnAt'] = _now;
     }
   }
 

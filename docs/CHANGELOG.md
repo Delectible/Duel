@@ -222,6 +222,20 @@ Ships as app version **0.4.1**.
   security rules, deploy pipeline (`online.yml`, `setup_gcp.sh`). Luca's
   steps: `docs/ONLINE.md`, "Your steps".
 
+- [~] **11.3 Play with a friend** (requested 2026-10-16): Friend mode
+  goes live. Start a party (6-letter code, Copy invite) or join with a
+  code; who's here, a crown on the host. The host picks games from home
+  (only Four in a Row online so far; the others say "Online soon"); Play!
+  opens it on both phones. Four in a Row online: your disc drops at once,
+  45 s turns with a ring round the face, auto-move / forfeit on time,
+  Rematch (both tap) or Back to party; leaving mid-game gives it up.
+  Stakes: the host sets one, each phone puts it in and settles it (server
+  wallet later). Reopening the app goes back to your party. Later: invite
+  links, QR code, vote / first come.
+- [~] **11.4 Face builder, simpler** (2026-10-16): your face on top, then
+  a 2x2 of Colour / Shape / Face / Hat, each showing just that part with
+  ‹ › arrows (was a grid of whole faces).
+
 ### 12. Fixes
 
 - [x] **12.1 Fix: Four in a Row bot never moved** (Normal / Hard, real

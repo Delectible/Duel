@@ -4,7 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/account/account.dart';
 import 'core/account/prefs_store.dart';
 import 'core/app_info.dart';
+import 'core/online/firebase_backend.dart';
+import 'core/online/firebase_config.dart';
 import 'core/online/online.dart';
+import 'core/online/party.dart';
 import 'core/session/play_setup.dart';
 import 'core/theme/rotation_fade.dart';
 import 'core/theme/toon.dart';
@@ -15,13 +18,18 @@ Future<void> main() async {
   // Online is off until the Firebase project is set up (docs/ONLINE.md).
   await Online.start();
   final prefs = await SharedPreferences.getInstance();
-  runApp(DuelApp(account: Account(store: PrefsStore(prefs))));
+  final account = Account(store: PrefsStore(prefs));
+  final party = Online.ready ? PartyService(FirebaseBackend(FirebaseConfig.referee), account: account) : null;
+  runApp(DuelApp(account: account, party: party));
 }
 
 class DuelApp extends StatefulWidget {
-  DuelApp({super.key, PlaySetup? setup, Account? account})
-    : setup = setup ?? PlaySetup(),
+  DuelApp({super.key, PlaySetup? setup, Account? account, this.party})
+    : setup = setup ?? PlaySetup(party: party),
       account = account ?? Account();
+
+  /// Online: your party (null when this build can't go online).
+  final PartyService? party;
 
   /// The connection bar's state, shared by every screen.
   final PlaySetup setup;
@@ -71,14 +79,17 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return AccountScope(
       account: widget.account,
-      child: PlaySetupScope(
-        setup: widget.setup,
-        child: MaterialApp(
-          title: AppInfo.name,
-          debugShowCheckedModeBanner: false,
-          theme: Toon.theme(),
-          builder: (context, child) => RotationFade(child: child!),
-          home: const HomeScreen(),
+      child: PartyScope(
+        party: widget.party,
+        child: PlaySetupScope(
+          setup: widget.setup,
+          child: MaterialApp(
+            title: AppInfo.name,
+            debugShowCheckedModeBanner: false,
+            theme: Toon.theme(),
+            builder: (context, child) => RotationFade(child: child!),
+            home: const HomeScreen(),
+          ),
         ),
       ),
     );

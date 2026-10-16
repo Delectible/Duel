@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/account/stake.dart';
 import '../core/cards/card_view.dart';
 import 'package:duel_engine/cards.dart';
+import '../core/online/party.dart';
 import '../core/session/play_setup.dart';
 import '../core/theme/toon.dart';
 import '../core/help/home_guide.dart';
@@ -39,6 +40,7 @@ class GameInfo {
     this.playerCounts,
     this.choice,
     this.opponentsFor,
+    this.openOnline,
   });
 
   final String id;
@@ -77,6 +79,10 @@ class GameInfo {
   /// default everyone else.
   final int Function(int players)? opponentsFor;
 
+  /// The game with your party, online (null = not online yet). Opened on
+  /// every phone when the host starts it.
+  final Widget Function(PartyService party)? openOnline;
+
   int opponents(int players) => opponentsFor?.call(players) ?? players - 1;
 
   bool get available => open != null;
@@ -114,7 +120,12 @@ class GameInfo {
       return ('$list players', '$name is for $list players: you have $players. Change the number of bots.');
     }
     if (setup.mode == PlayMode.friends) {
-      return ('Online soon', 'Playing with friends is coming soon. Switch to Bots to play now.');
+      final party = setup.party;
+      if (openOnline == null) {
+        return ('Online soon', '$name with friends is coming soon. Switch to Bots to play it now.');
+      }
+      if (party == null) return ('Offline', 'Playing with friends needs the internet.');
+      if (!party.isHost) return ('Host picks', '${party.hostName} picks the game. It starts here by itself.');
     }
     return null;
   }
@@ -215,6 +226,7 @@ final games = <GameInfo>[
     minutes: (_) => 5,
     atHome: rowAtHome,
     open: (setup, stake, _) => RowScreen(difficulty: setup.difficulty, stake: stake),
+    openOnline: (party) => RowScreen.online(party: party),
   ),
   GameInfo(
     id: 'spades',

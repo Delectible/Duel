@@ -111,8 +111,25 @@ weights cut from the variable font.
 ## Online (plan and Luca's setup steps: `docs/ONLINE.md`)
 
 - App: `lib/core/online/`: `FirebaseConfig` (Android / iOS options and
-  the referee's URL; null = offline, bot games only), `Online.start()` in
-  `main.dart` (never blocks the app if Firebase fails).
+  the referee's URL), `Online.start()` in `main.dart` (never blocks the
+  app if Firebase fails; then `PartyScope` is null and Friend mode says
+  so). `party.dart`: `PartyService` (sign-in, create / join / leave /
+  start, match calls; follows the live party + match docs, keeps the
+  newest `version`; `Account.partyId` rejoins on launch) over an
+  `OnlineBackend` (`firebase_backend.dart`; tests: `test/online/
+  fake_server.dart` = the real referee + routes in memory, run on the
+  test clock, never in `runAsync`).
+- Friend mode: `features/party/party_screen.dart` (start / join by code,
+  members, crown on the host). The host's Play! in the preview calls
+  `party.start`; home's `_MatchWatcher` opens `GameInfo.openOnline` on
+  every phone. `blocked()` greys games without `openOnline` ("Online
+  soon") and, for guests, says the host picks. Each phone puts in and
+  settles the match's `stake` locally (server wallet: later).
+- Online Four in a Row: `RowScreen.online` with `OnlineRowController`
+  (implements `RowTable`, like the bot's `RowController`): you're always
+  red (seats remapped), your drop shows at once, turn ring counted from
+  `turnAt`, either phone claims a turn that ran out, Rematch / Back to
+  party.
 - Referee: `server/` (own Dart package, excluded from the app's analyze):
   `Referee` (parties, matches, moves with a `version` check, timeouts,
   forfeit, rematch) over a `Store` (`MemoryStore` in tests,
@@ -145,7 +162,8 @@ weights cut from the variable font.
   forfeits). Win = stake back + stake x opponents x difficulty rate.
 - `lib/core/avatars/faces.dart`: `Avatar` (colour, head shape, face, hat;
   the first `Avatar.choices` of each are pickable, the rest are bots' /
-  later unlocks), `Persona`, `Face` (painted from the parts). Poker maps
+  later unlocks), `Persona`, `Face` (painted from the parts; `Face.part`
+  draws one part alone for the profile's 2x2 builder). Poker maps
   bot `Look`s to `BotStyle`s.
 - `lib/core/table/table_bits.dart`: what every game table shares:
   `GameLayout` (upright: top bar / commentary / table / controls; on its
@@ -163,7 +181,7 @@ weights cut from the variable font.
 - `lib/core/app_info.dart`: version, `latest` (Play's What's new),
   `revisions` (About).
 - `lib/core/session/`: `PlaySetup` (the connection bar: Bots / Friend,
-  `Difficulty`, bot count, party pick rule), shared by every screen.
+  `Difficulty`, bot count; `party` and `partySize`), shared by every screen.
 - `lib/core/theme/toon.dart`: the cartoon look (`Toon` colours, `ToonBox`,
   `ToonButton` with hold-to-repeat, `chips()` formatting). Use these, not
   stock Material buttons. **Dark mode:** `Toon.ink/fg/paper/card/muted/grey`
@@ -225,8 +243,8 @@ weights cut from the variable font.
   bubbles, status lines).
 - `lib/features/home/`: home (connection bar + game grid, About),
   `lib/features/party/`: party screen, `vote.dart` (`tallyVotes`,
-  `tossCoin`), `coin_toss.dart` (tie-break animation; takes the result,
-  so online it plays what the server tossed).
+  `tossCoin`) and `coin_toss.dart` (tie-break animation; takes the
+  result), kept for when Vote / First come arrive (host picks for now).
 - Tests: engine rules in `test/<game>/`; screens at Pixel 9 Pro and 360 dp
   with the real fonts (`test/flutter_test_config.dart`); `SHOTS=dir flutter
   test` saves PNGs of the screens (`test/screens.dart`) to check layouts

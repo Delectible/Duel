@@ -131,4 +131,15 @@ void main() {
     expect(next['status'], 'live');
     expect((next['state']! as Map)['first'], (first + 1) % 2);
   });
+
+  test('the stake rides along, capped, into the rematch', () async {
+    final party = await ref.createParty(luca);
+    await ref.joinParty(sam, party['code']! as String);
+    var m = await ref.startMatch(luca, party['id']! as String, 'connect4', stake: 5000);
+    expect(m['stake'], Referee.maxStake);
+    m = await ref.forfeit(sam, m['id']! as String);
+    await ref.rematch(luca, m['id']! as String);
+    m = await ref.rematch(sam, m['id']! as String);
+    expect((await store.get('matches/${m['next']}'))!['stake'], Referee.maxStake);
+  });
 }

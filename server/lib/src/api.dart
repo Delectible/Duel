@@ -13,7 +13,7 @@ import 'store.dart';
 /// - POST /v1/parties                {name, avatar}          -> party
 /// - POST /v1/parties/join           {code, name, avatar}    -> party
 /// - POST /v1/parties/<id>/leave                             -> {}
-/// - POST /v1/parties/<id>/start     {game}                  -> match
+/// - POST /v1/parties/<id>/start     {game, stake}           -> match
 /// - POST /v1/matches/<id>/move      {version, move}         -> match
 /// - POST /v1/matches/<id>/timeout                           -> match
 /// - POST /v1/matches/<id>/forfeit                           -> match
@@ -54,7 +54,15 @@ Handler api(Referee referee, TokenVerifier verifier) {
     ..post('/v1/parties/<id>/leave', (Request q, String id) => call(q, (p, _) => referee.leaveParty(p, id)))
     ..post(
       '/v1/parties/<id>/start',
-      (Request q, String id) => call(q, (p, b) => referee.startMatch(p, id, '${b['game'] ?? ''}')),
+      (Request q, String id) => call(
+        q,
+        (p, b) => referee.startMatch(
+          p,
+          id,
+          '${b['game'] ?? ''}',
+          stake: b['stake'] is int ? b['stake']! as int : 0,
+        ),
+      ),
     )
     ..post(
       '/v1/matches/<id>/move',

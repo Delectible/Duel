@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/account/account.dart';
 import '../../core/app_info.dart';
 import '../../core/avatars/faces.dart';
+import '../../core/online/party.dart';
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
@@ -28,7 +29,9 @@ class HomeScreen extends StatelessWidget {
       Text(
         setup.mode == PlayMode.bots
             ? 'You + ${setup.botCount} ${setup.botCount == 1 ? 'bot' : 'bots'} · ${setup.players} players'
-            : 'Party of ${setup.partySize}: invite a friend to play',
+            : setup.partySize < 2
+            ? 'Party of ${setup.partySize}: invite a friend to play'
+            : 'Party of ${setup.partySize} · ${setup.party!.isHost ? 'you pick the game' : '${setup.party!.hostName} picks the game'}',
         style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
       ),
       const SizedBox(height: 12),
@@ -48,44 +51,46 @@ class HomeScreen extends StatelessWidget {
         children: [for (final g in games) _GameTile(game: g, setup: setup)],
       ),
     );
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, box) {
-            // On its side: you and the connection bar on the left, the
-            // games on the right.
-            if (box.maxWidth > box.maxHeight * 1.15 && box.maxWidth >= 600) {
-              final side = (box.maxWidth * 0.42).clamp(340.0, 400.0);
-              return Row(
-                children: [
-                  SizedBox(
-                    width: side,
-                    child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 8, 16), children: header),
-                  ),
-                  Expanded(
-                    child: CustomScrollView(
-                      slivers: [
-                        grid(
-                          box.maxWidth - side,
-                          padding: const EdgeInsets.fromLTRB(8, 14, 16, 24),
-                          wide: true,
-                        ),
-                      ],
+    return _MatchWatcher(
+      child: Scaffold(
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, box) {
+              // On its side: you and the connection bar on the left, the
+              // games on the right.
+              if (box.maxWidth > box.maxHeight * 1.15 && box.maxWidth >= 600) {
+                final side = (box.maxWidth * 0.42).clamp(340.0, 400.0);
+                return Row(
+                  children: [
+                    SizedBox(
+                      width: side,
+                      child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 8, 16), children: header),
                     ),
+                    Expanded(
+                      child: CustomScrollView(
+                        slivers: [
+                          grid(
+                            box.maxWidth - side,
+                            padding: const EdgeInsets.fromLTRB(8, 14, 16, 24),
+                            wide: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    sliver: SliverList.list(children: header),
                   ),
+                  grid(box.maxWidth),
                 ],
               );
-            }
-            return CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  sliver: SliverList.list(children: header),
-                ),
-                grid(box.maxWidth),
-              ],
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -252,4 +257,52 @@ void showAboutSheet(BuildContext context) {
       ),
     ),
   );
+}
+
+/// When the host starts a game, every phone in the party goes to it (over
+/// whatever screen is open), once.
+class _MatchWatcher extends StatefulWidget {
+  const _MatchWatcher({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_MatchWatcher> createState() => _MatchWatcherState();
+}
+
+class _MatchWatcherState extends State<_MatchWatcher> {
+  PartyService? _party;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final party = PartyScope.read(context);
+    if (party == _party) return;
+    _party?.removeListener(_check);
+    _party = party?..addListener(_check);
+    _check();
+  }
+
+  @override
+  void dispose() {
+    _party?.removeListener(_check);
+    super.dispose();
+  }
+
+  void _check() {
+    final party = _party;
+    if (party == null || !party.playing || party.onScreen || party.seat < 0) return;
+    final game = games.where((g) => g.id == party.match!['game']).firstOrNull;
+    final open = game?.openOnline;
+    if (open == null) return;
+    party.onScreen = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      PlaySetupScope.read(context)?.mode = PlayMode.friends;
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => open(party)));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

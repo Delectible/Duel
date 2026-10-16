@@ -4,6 +4,7 @@ import '../../core/account/account.dart';
 import '../../core/account/stake.dart';
 import '../../core/help/home_guide.dart';
 import 'package:duel_engine/difficulty.dart';
+import '../../core/online/party.dart';
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
@@ -37,6 +38,9 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
     final account = AccountScope.of(context);
     _stake = _stake.clamp(0, account.maxStake);
     final blocked = game.blocked(setup);
+    // With your party: Play! starts it online for everyone (host only).
+    final party = PartyScope.of(context);
+    final online = setup.mode == PlayMode.friends && party != null;
     // Time for this table if it fits, else for the nearest that does.
     var players = setup.players.clamp(game.minPlayers, game.maxPlayers);
     final counts = game.playerCounts;
@@ -145,7 +149,7 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
               stake: _stake,
               account: account,
               opponents: game.opponents(setup.players),
-              difficulty: setup.difficulty,
+              difficulty: online ? Difficulty.normal : setup.difficulty,
               onChanged: (v) => setState(() => _stake = v),
             ),
             const SizedBox(height: 10),
@@ -176,8 +180,21 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
                   color: Toon.green,
                   // Play! is the only thing that counts: it starts the game
                   // here, and will be your vote / pick in a party.
-                  onPressed: blocked != null
+                  onPressed: blocked != null || (online && party.busy)
                       ? null
+                      : online
+                      ? () async {
+                          // Starts on every phone; each takes the stake.
+                          final error = await party.start(game.id, stake: _stake);
+                          if (!context.mounted) return;
+                          if (error != null) {
+                            ScaffoldMessenger.of(context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(SnackBar(content: Text(error)));
+                          } else {
+                            Navigator.of(context).pop();
+                          }
+                        }
                       : () {
                           // The stake is taken now; the game settles it.
                           final ticket = StakeTicket(

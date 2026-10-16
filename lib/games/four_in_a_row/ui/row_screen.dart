@@ -11,6 +11,8 @@ import 'package:duel_engine/difficulty.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/four_in_a_row/four_in_a_row.dart';
+import '../../../core/online/party.dart';
+import 'online_row.dart';
 import 'row_controller.dart';
 
 const rowGuide = [
@@ -51,12 +53,20 @@ const rowGuide = [
 
 /// Four in a Row against one bot.
 class RowScreen extends StatefulWidget {
-  const RowScreen({super.key, required this.difficulty, this.pace = 1, this.seed, this.stake});
+  const RowScreen({super.key, required this.difficulty, this.pace = 1, this.seed, this.stake}) : party = null;
+
+  /// With your party's friend, online: the referee runs the game.
+  const RowScreen.online({super.key, required PartyService this.party})
+    : difficulty = Difficulty.normal,
+      pace = 1,
+      seed = null,
+      stake = null;
 
   final Difficulty difficulty;
   final double pace;
   final int? seed;
   final StakeTicket? stake;
+  final PartyService? party;
 
   @override
   State<RowScreen> createState() => _RowScreenState();
@@ -73,23 +83,63 @@ class _RowScreenState extends State<RowScreen> {
         opponents: 1,
         difficulty: widget.difficulty,
       );
-  late final RowController _c = RowController(
-    difficulty: widget.difficulty,
-    pace: widget.pace,
-    rng: widget.seed == null ? null : Random(widget.seed),
-    you: _account.persona,
-  )..addListener(_settle);
+  late final RowTable _c =
+      (widget.party != null
+            ? OnlineRowController(widget.party!, you: _account.persona)
+            : RowController(
+                difficulty: widget.difficulty,
+                pace: widget.pace,
+                rng: widget.seed == null ? null : Random(widget.seed),
+                you: _account.persona,
+              ))
+        ..addListener(_settle);
+
+  OnlineRowController? get _online => _c is OnlineRowController ? _c : null;
+
+  /// The online match the stake is for.
+  String? _ticketFor;
 
   /// Shown a moment after the last disc lands.
   var _showOver = false;
 
+  @override
+  void initState() {
+    super.initState();
+    widget.party?.onScreen = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _settle());
+  }
+
   void _settle() {
-    final g = _c.game;
-    if (g.isOver && !_ticket.settled) {
+    final online = _online;
+    if (online != null) {
+      // Each new match (the first, a rematch): put in its stake.
+      final id = online.matchId;
+      if (id != null && id != _ticketFor) {
+        _ticketFor = id;
+        setState(() {
+          _showOver = false;
+          _ticket = StakeTicket(
+            account: _account,
+            gameId: 'connect4',
+            stake: _account.placeStake(online.stake),
+            opponents: 1,
+            difficulty: Difficulty.normal,
+          );
+        });
+      }
+      final error = online.error;
+      if (error != null && mounted) {
+        online.error = null;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(error)));
+      }
+    }
+    if (_c.over && !_ticket.settled) {
       _ticket.settle(
-        g.draw
+        _c.draw
             ? Outcome.tie
-            : g.winner == 0
+            : _c.youWon
             ? Outcome.win
             : Outcome.loss,
       );
@@ -101,28 +151,49 @@ class _RowScreenState extends State<RowScreen> {
   }
 
   void _playAgain() {
+    final online = _online;
+    if (online != null) {
+      online.rematch().then((e) {
+        if (e != null && mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(e)));
+        }
+      });
+      return;
+    }
     setState(() {
       _ticket = _ticket.again();
       _showOver = false;
     });
-    _c.playAgain();
+    (_c as RowController).playAgain();
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    widget.party?.onScreen = false;
+    (_c as ChangeNotifier).dispose();
     super.dispose();
   }
 
   String? _stage() {
-    final g = _c.game;
-    if (g.isOver) return g.draw ? 'end' : 'win';
+    if (_c.over) return _c.draw ? 'end' : 'win';
     if (_c.yourTurn && (_c.threats.isNotEmpty || _c.yourWins.isNotEmpty)) return 'block';
     return 'turn';
   }
 
   Future<void> _leave() async {
-    if (_c.game.isOver || await confirmLeave(context, _ticket)) {
+    final online = _online;
+    if (online != null) {
+      if (online.live) {
+        if (!await confirmLeave(context, _ticket, online: '${_c.bot.name} wins if you go.')) return;
+        await online.forfeit();
+      }
+      // Back to the party: home, still together.
+      if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+      return;
+    }
+    if (_c.over || await confirmLeave(context, _ticket)) {
       if (mounted) Navigator.of(context).pop();
     }
   }
@@ -143,7 +214,9 @@ class _RowScreenState extends State<RowScreen> {
                 GameLayout(
                   top: GameTopBar(
                     title: 'Four in a Row',
-                    subtitle: 'You vs ${_c.bot.name} · ${widget.difficulty.label}',
+                    subtitle: _online != null
+                        ? 'You vs ${_c.bot.name} · Online'
+                        : 'You vs ${_c.bot.name} · ${widget.difficulty.label}',
                     onLeave: _leave,
                     ticket: _ticket,
                     guide: rowGuide,
@@ -182,31 +255,69 @@ class _RowScreenState extends State<RowScreen> {
     );
   }
 
+  /// Online: seconds left on the turn, for whoever is moving.
+  String _clock() {
+    final online = _online;
+    return online == null ? '' : ' · ${online.secondsLeft}s';
+  }
+
+  /// How much of the turn is left (online), for the ring round the face.
+  double? _time(bool active) {
+    final online = _online;
+    if (online == null || !active) return null;
+    return online.secondsLeft / 45;
+  }
+
   Widget _botRow() => _Player(
     persona: _c.bot,
     color: Toon.yellow,
     active: _c.thinking,
-    label: _c.thinking ? 'Thinking…' : null,
+    time: _time(_c.thinking),
+    label: _c.thinking ? (_online != null ? 'Their turn${_clock()}' : 'Thinking…') : null,
   );
 
-  Widget _youRow() =>
-      _Player(persona: _c.you, color: Toon.red, active: _c.yourTurn, label: _c.yourTurn ? 'Your turn' : null);
+  Widget _youRow() {
+    final mine = _c.yourTurn || (_online?.live == true && !_c.thinking);
+    return _Player(
+      persona: _c.you,
+      color: Toon.red,
+      active: mine,
+      time: _time(mine),
+      label: mine ? 'Your turn${_clock()}' : null,
+    );
+  }
 
   Widget _over(BuildContext context) {
     final g = _c.game;
-    final won = g.winner == 0;
+    final won = _c.youWon;
+    final online = _online;
+    final name = _c.bot.name;
+    final subtitle = switch (online?.reason) {
+      'timeout' => won ? '$name ran out of time.' : 'You ran out of time.',
+      'forfeit' => won ? '$name gave up.' : 'You gave up.',
+      _ =>
+        _c.draw
+            ? 'The board filled up.'
+            : won
+            ? 'Four in a row in ${g.moves.length} moves.'
+            : 'Four in a row, ${(g.moves.length / 2).ceil()} moves each.',
+    };
     return GameOverCard(
-      face: g.draw || won ? _c.you : _c.bot,
-      title: g.draw ? "It's a draw" : (won ? 'You won!' : '${_c.bot.name} won'),
-      subtitle: g.draw
-          ? 'The board filled up.'
-          : won
-          ? 'Four in a row in ${g.moves.length} moves.'
-          : 'Four in a row, ${(g.moves.length / 2).ceil()} moves each.',
+      face: _c.draw || won ? _c.you : _c.bot,
+      title: _c.draw ? "It's a draw" : (won ? 'You won!' : '$name won'),
+      subtitle: subtitle,
       ticket: _ticket,
       won: won,
-      onAgain: _playAgain,
-      onLeave: () => Navigator.of(context).pop(),
+      onAgain: online == null ? _playAgain : (online.askedRematch || !online.friendHere ? null : _playAgain),
+      againLabel: online == null
+          ? 'Play again'
+          : !online.friendHere
+          ? '$name left'
+          : online.askedRematch
+          ? 'Waiting for $name…'
+          : 'Rematch',
+      leaveLabel: online == null ? 'Games' : 'Back to party',
+      onLeave: online == null ? () => Navigator.of(context).pop() : _leave,
     );
   }
 }
@@ -240,27 +351,50 @@ class _Disc extends StatelessWidget {
 }
 
 class _Player extends StatelessWidget {
-  const _Player({required this.persona, required this.color, required this.active, this.label});
+  const _Player({required this.persona, required this.color, required this.active, this.label, this.time});
 
   final Persona persona;
   final Color color;
   final bool active;
   final String? label;
 
+  /// Online: the share of the turn left, drawn as a ring round the face.
+  final double? time;
+
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     child: Row(
       children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: active ? color : Toon.card,
-            shape: BoxShape.circle,
-            border: Border.all(color: Toon.ink, width: Toon.outline),
-          ),
-          child: Face(persona, size: 36),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: active ? color : Toon.card,
+                shape: BoxShape.circle,
+                border: Border.all(color: Toon.ink, width: Toon.outline),
+              ),
+              child: Face(persona, size: 36),
+            ),
+            if (time != null)
+              SizedBox(
+                width: 52,
+                height: 52,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: time!.clamp(0, 1)),
+                  duration: const Duration(milliseconds: 900),
+                  builder: (context, t, _) => CircularProgressIndicator(
+                    value: t,
+                    strokeWidth: 4,
+                    color: t < 0.25 ? Toon.red : Toon.green,
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(width: 8),
         _Disc(color: color, size: 20),
@@ -283,7 +417,7 @@ class _Player extends StatelessWidget {
 class _Board extends StatelessWidget {
   const _Board({required this.c});
 
-  final RowController c;
+  final RowTable c;
 
   @override
   Widget build(BuildContext context) {
