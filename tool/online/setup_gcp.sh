@@ -44,7 +44,7 @@ account duel-referee "Duel referee (Cloud Run)"
 account duel-deploy "Duel deploy (GitHub Actions)"
 grant duel-referee roles/datastore.user
 for role in roles/run.admin roles/artifactregistry.writer roles/firebaserules.admin \
-  roles/datastore.indexAdmin roles/serviceusage.serviceUsageConsumer roles/firebase.viewer; do
+  roles/datastore.indexAdmin roles/datastore.viewer roles/serviceusage.serviceUsageConsumer roles/firebase.viewer; do
   grant duel-deploy "$role"
 done
 # The deployer may start the referee as duel-referee (and nothing else).
