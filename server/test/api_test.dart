@@ -67,7 +67,7 @@ void main() {
   });
 
   test('health check needs no sign-in', () async {
-    final res = await handler(Request('GET', Uri.parse('http://referee/healthz')));
+    final res = await handler(Request('GET', Uri.parse('http://referee/health')));
     expect(res.statusCode, 200);
   });
 }

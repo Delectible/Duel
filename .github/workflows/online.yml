@@ -93,5 +93,12 @@ jobs:
             --set-env-vars "FIREBASE_PROJECT=$PROJECT" \
             --cpu 1 --memory 512Mi --concurrency 80 --min-instances 0 --max-instances 4 --quiet
           URL=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format 'value(status.url)')
-          curl -fsS "$URL/healthz" > /dev/null
+          curl -fsS "$URL/health" > /dev/null
           echo "Referee live at $URL (FirebaseConfig.referee)" >> "$GITHUB_STEP_SUMMARY"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+        id: referee
+      - name: Live check (two test players play a game)
+        if: steps.secrets.outputs.ok
+        env:
+          KEY: ${{ vars.FIREBASE_WEB_KEY || 'AIzaSyAhfArKUtca12ULpDxe0t9P0m12Yj87lQ0' }}
+        run: python3 tool/online/smoke.py "${{ steps.referee.outputs.url }}" "${{ vars.FIREBASE_PROJECT }}" "$KEY"

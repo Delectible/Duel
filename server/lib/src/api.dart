@@ -7,7 +7,7 @@ import 'auth.dart';
 import 'referee.dart';
 import 'store.dart';
 
-/// The referee over HTTP. Every call but /healthz needs a Firebase ID
+/// The referee over HTTP. Every call but /health needs a Firebase ID
 /// token (`Authorization: Bearer …`); bodies and answers are JSON.
 ///
 /// - POST /v1/parties                {name, avatar}          -> party
@@ -21,7 +21,7 @@ import 'store.dart';
 ///
 /// Errors: {error: "…"} with 400 (bad move), 401 (sign in), 403, 404, 409.
 Handler api(Referee referee, TokenVerifier verifier) {
-  final r = Router()..get('/healthz', (Request _) => Response.ok('ok'));
+  final r = Router()..get('/health', (Request _) => Response.ok('ok'));
 
   Future<Response> call(Request req, Future<Object?> Function(Player p, Doc body) body) async {
     final auth = req.headers['authorization'] ?? '';
