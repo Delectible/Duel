@@ -92,7 +92,7 @@ Everything after this deploys by itself from `main`.
 6. **Server accounts.** console.cloud.google.com with the Duel project
    selected > the `>_` button (Cloud Shell) top right. Run:
    ```
-   curl -sL https://raw.githubusercontent.com/Delectible/Duel/main/tool/online/setup_gcp.sh | bash -s YOUR-PROJECT-ID
+   curl -sL https://raw.githubusercontent.com/Delectible/Duel/ccr-4cb2398f-cb9pdu/tool/online/setup_gcp.sh | bash -s dingo-duel
    ```
    (or paste the script's contents from `tool/online/setup_gcp.sh` if it
    isn't on `main` yet). It ends by printing a key between two lines.
