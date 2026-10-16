@@ -131,23 +131,33 @@ class Persona {
   }
 }
 
+/// One part of a face, for the face builder.
+enum FacePart { color, shape, face, hat }
+
 /// A cartoon face, drawn from its [Avatar] parts.
 class Face extends StatelessWidget {
-  Face(Persona persona, {super.key, required this.size}) : avatar = persona.avatar;
+  Face(Persona persona, {super.key, required this.size}) : avatar = persona.avatar, only = null;
 
-  const Face.of(this.avatar, {super.key, required this.size});
+  const Face.of(this.avatar, {super.key, required this.size}) : only = null;
+
+  /// Just one part of [avatar] (a colour swatch, a bare head, the eyes and
+  /// mouth, or the hat), centred.
+  const Face.part(this.avatar, FacePart part, {super.key, required this.size}) : only = part;
 
   final Avatar avatar;
   final double size;
+  final FacePart? only;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(size: Size.square(size), painter: _FacePainter(avatar));
+  Widget build(BuildContext context) =>
+      CustomPaint(size: Size.square(size), painter: _FacePainter(avatar, only));
 }
 
 class _FacePainter extends CustomPainter {
-  _FacePainter(this.a);
+  _FacePainter(this.a, [this.only]);
 
   final Avatar a;
+  final FacePart? only;
 
   static Rect _head(HeadShape shape) => switch (shape) {
     HeadShape.round => const Rect.fromLTWH(10, 14, 80, 80),
@@ -176,9 +186,25 @@ class _FacePainter extends CustomPainter {
 
     final h = _head(a.shape);
     final top = h.top;
+    final all = only == null;
+
+    switch (only) {
+      case FacePart.color:
+        blob(Path()..addOval(const Rect.fromLTWH(14, 14, 72, 72)), a.color.color);
+        return;
+      case FacePart.face:
+        canvas.translate(0, -14); // eyes and mouth, centred
+      case FacePart.hat:
+        canvas
+          ..translate(50, 50) // the hat, centred and a bit bigger
+          ..scale(1.3)
+          ..translate(-50, -(top + 6));
+      case FacePart.shape || null:
+        break;
+    }
 
     // Behind the head: a shark's fin, wild spiky hair.
-    if (a.hat == Hat.fin) {
+    if (a.hat == Hat.fin && (all || only == FacePart.hat)) {
       blob(
         Path()
           ..moveTo(38, top + 8)
@@ -188,7 +214,7 @@ class _FacePainter extends CustomPainter {
         const Color(0xFF5E9BD1),
       );
     }
-    if (a.hat == Hat.spiky) {
+    if (a.hat == Hat.spiky && (all || only == FacePart.hat)) {
       double x(num v) => h.left + (v - 10) / 80 * h.width;
       final hair = Path()..moveTo(x(14), top + 30);
       const spikes = [(18, -6), (34, 16), (42, -12), (54, 14), (66, -10), (72, 16), (88, -2), (86, 30)];
@@ -200,12 +226,22 @@ class _FacePainter extends CustomPainter {
     }
 
     // Head.
-    blob(switch (a.shape) {
-      HeadShape.square => RRectPath.of(h, 22),
-      _ => Path()..addOval(h),
-    }, a.color.color);
+    if (all || only == FacePart.shape) {
+      blob(switch (a.shape) {
+        HeadShape.square => RRectPath.of(h, 22),
+        _ => Path()..addOval(h),
+      }, a.color.color);
+    }
+    if (only == FacePart.shape) return;
 
     // Eyes.
+    if (all || only == FacePart.face) _features(canvas, ink, inkFill, blob);
+
+    // On top: the hat.
+    if (all || only == FacePart.hat) _hat(canvas, h, blob);
+  }
+
+  void _features(Canvas canvas, Paint ink, Paint inkFill, void Function(Path, Color) blob) {
     switch (a.face) {
       case Expression.cool:
         final glasses = Path()
@@ -273,8 +309,10 @@ class _FacePainter extends CustomPainter {
           Paint()..color = Toon.red,
         );
     }
+  }
 
-    // On top: the hat.
+  void _hat(Canvas canvas, Rect h, void Function(Path, Color) blob) {
+    final top = h.top;
     switch (a.hat) {
       case Hat.cap:
         blob(
@@ -309,7 +347,7 @@ class _FacePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FacePainter old) => old.a != a || old._dark != Toon.dark;
+  bool shouldRepaint(_FacePainter old) => old.a != a || old.only != only || old._dark != Toon.dark;
 
   final _dark = Toon.dark;
 }

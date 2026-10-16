@@ -29,17 +29,20 @@ void main() {
       expect(a.name, 'Luca');
 
       for (final part in ['color', 'shape', 'face', 'hat']) {
-        for (var i = 0; i < Avatar.choices; i++) {
-          expect(find.byKey(Key('$part $i')), findsOneWidget);
+        expect(find.byKey(Key('$part box')), findsOneWidget);
+      }
+      Future<void> tap(String key, int times) async {
+        await tester.ensureVisible(find.byKey(Key(key)));
+        for (var i = 0; i < times; i++) {
+          await tester.tap(find.byKey(Key(key)));
+          await tester.pumpAndSettle();
         }
       }
-      await tester.tap(find.byKey(const Key('color 2')));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const Key('hat 2')));
-      for (final k in ['shape 1', 'face 3', 'hat 2']) {
-        await tester.tap(find.byKey(Key(k)));
-        await tester.pumpAndSettle();
-      }
+
+      await tap('color next', 2);
+      await tap('shape next', 1);
+      await tap('face prev', 1); // wraps round to the last
+      await tap('hat next', 2);
       expect(
         a.avatar,
         const Avatar(

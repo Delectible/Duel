@@ -103,7 +103,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-/// Build your face: four of each part (more unlock later).
+/// Build your face: one box per part (colour, shape, face, hat), each
+/// showing just that part with arrows to step through the four choices
+/// (more unlock later).
 class _AvatarPicker extends StatelessWidget {
   const _AvatarPicker({required this.account});
 
@@ -112,65 +114,133 @@ class _AvatarPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = account.avatar;
-    Widget row(String label, String key, List<Avatar> options) => Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Toon.text(16)),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              for (final (i, o) in options.indexed) ...[
-                if (i > 0) const SizedBox(width: 10),
-                Expanded(
-                  child: _PartTile(
-                    key: Key('$key $i'),
-                    avatar: o,
-                    selected: o == a,
-                    onTap: () => account.avatar = o,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
     const n = Avatar.choices;
+    final boxes = [
+      _PartBox(
+        part: FacePart.color,
+        label: 'Colour',
+        options: [for (final c in AvatarColor.values.take(n)) a.copyWith(color: c)],
+        index: AvatarColor.values.indexOf(a.color),
+        onPick: (v) => account.avatar = v,
+      ),
+      _PartBox(
+        part: FacePart.shape,
+        label: 'Shape',
+        options: [for (final s in HeadShape.values.take(n)) a.copyWith(shape: s)],
+        index: HeadShape.values.indexOf(a.shape),
+        onPick: (v) => account.avatar = v,
+      ),
+      _PartBox(
+        part: FacePart.face,
+        label: 'Face',
+        options: [for (final f in Expression.values.take(n)) a.copyWith(face: f)],
+        index: Expression.values.indexOf(a.face),
+        onPick: (v) => account.avatar = v,
+      ),
+      _PartBox(
+        part: FacePart.hat,
+        label: 'Hat',
+        options: [for (final h in Hat.values.take(n)) a.copyWith(hat: h)],
+        index: Hat.values.indexOf(a.hat),
+        onPick: (v) => account.avatar = v,
+      ),
+    ];
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        row('Colour', 'color', [for (final c in AvatarColor.values.take(n)) a.copyWith(color: c)]),
-        row('Shape', 'shape', [for (final s in HeadShape.values.take(n)) a.copyWith(shape: s)]),
-        row('Face', 'face', [for (final f in Expression.values.take(n)) a.copyWith(face: f)]),
-        row('Hat', 'hat', [for (final h in Hat.values.take(n)) a.copyWith(hat: h)]),
+        for (final row in [boxes.sublist(0, 2), boxes.sublist(2)])
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Expanded(child: row[0]),
+                const SizedBox(width: 10),
+                Expanded(child: row[1]),
+              ],
+            ),
+          ),
       ],
     );
   }
 }
 
-class _PartTile extends StatelessWidget {
-  const _PartTile({super.key, required this.avatar, required this.selected, required this.onTap});
+/// One part: its name, the part on its own, and ‹ › to change it.
+class _PartBox extends StatelessWidget {
+  const _PartBox({
+    required this.part,
+    required this.label,
+    required this.options,
+    required this.index,
+    required this.onPick,
+  });
 
-  final Avatar avatar;
-  final bool selected;
-  final VoidCallback onTap;
+  final FacePart part;
+  final String label;
+  final List<Avatar> options;
+
+  /// Which option is on (may be past the pickable ones: a bot's part).
+  final int index;
+  final ValueChanged<Avatar> onPick;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      height: 72,
-      transform: Matrix4.translationValues(0, selected ? 2 : 0, 0),
-      decoration: Toon.box(selected ? Toon.yellow : Toon.card, radius: 16, shadow: selected ? 1 : 3),
-      alignment: Alignment.center,
-      child: LayoutBuilder(
-        builder: (context, box) => Face.of(avatar, size: (box.maxWidth - 16).clamp(30, 56)),
+  Widget build(BuildContext context) {
+    final n = options.length;
+    final at = index.clamp(0, n - 1);
+    final shown = index < n ? options[index] : options[0];
+    Widget arrow(IconData icon, int step) => ToonButton(
+      key: Key('${part.name} ${step < 0 ? 'prev' : 'next'}'),
+      color: Toon.card,
+      padding: const EdgeInsets.all(4),
+      tooltip: step < 0 ? 'Previous $label' : 'Next $label',
+      onPressed: () => onPick(options[(at + step) % n]),
+      child: Icon(icon, size: 22),
+    );
+    final none = part == FacePart.hat && shown.hat == Hat.none;
+    return ToonBox(
+      key: Key('${part.name} box'),
+      padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+      shadow: 3,
+      child: Column(
+        children: [
+          Text(label, style: Toon.text(15)),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              arrow(Icons.chevron_left_rounded, -1),
+              Expanded(
+                child: SizedBox(
+                  height: 64,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, t) => ScaleTransition(scale: t, child: child),
+                    child: none
+                        ? Center(
+                            key: const ValueKey('none'),
+                            child: Text('No hat', style: Toon.text(14, color: Toon.muted)),
+                          )
+                        : Face.part(shown, part, key: ValueKey(shown), size: 64),
+                  ),
+                ),
+              ),
+              arrow(Icons.chevron_right_rounded, 1),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < n; i++)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: i == index ? Toon.fg : Toon.grey),
+                ),
+            ],
+          ),
+        ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _Wallet extends StatelessWidget {
