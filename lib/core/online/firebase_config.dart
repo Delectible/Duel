@@ -26,5 +26,5 @@ abstract final class FirebaseConfig {
 
   /// The referee's address on Cloud Run (the deploy prints it), e.g.
   /// `https://duel-referee-xxxxx-ts.a.run.app`.
-  static const String? referee = 'https://duel-referee-790990305285.us-east4.run.app';
+  static const String referee = 'https://duel-referee-790990305285.us-east4.run.app';
 }
