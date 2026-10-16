@@ -60,10 +60,22 @@ jobs:
           credentials_json: ${{ secrets.GCP_DEPLOY_KEY }}
       - if: steps.secrets.outputs.ok
         uses: google-github-actions/setup-gcloud@v2
+      # Straight to the Rules API (firebase deploy wants more rights than
+      # publishing rules needs). The live database has no custom indexes.
       - name: Security rules
         if: steps.secrets.outputs.ok
-        working-directory: firebase
-        run: npx -y firebase-tools@14 deploy --only firestore:rules,firestore:indexes --project "${{ vars.FIREBASE_PROJECT }}" --non-interactive
+        env:
+          PROJECT: ${{ vars.FIREBASE_PROJECT }}
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          API="https://firebaserules.googleapis.com/v1/projects/$PROJECT"
+          BODY=$(python3 -c 'import json;print(json.dumps({"source":{"files":[{"name":"firestore.rules","content":open("firebase/firestore.rules").read()}]}}))')
+          RULESET=$(curl -fsS -X POST "$API/rulesets" -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d "$BODY" | python3 -c 'import sys,json;print(json.load(sys.stdin)["name"])')
+          RELEASE="projects/$PROJECT/releases/cloud.firestore"
+          REL=$(python3 -c "import json;print(json.dumps({'release':{'name':'$RELEASE','rulesetName':'$RULESET'}}))")
+          curl -fsS -X PATCH "https://firebaserules.googleapis.com/v1/$RELEASE" -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d "$REL" > /dev/null ||
+            curl -fsS -X POST "$API/releases" -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d "{\"name\":\"$RELEASE\",\"rulesetName\":\"$RULESET\"}" > /dev/null
+          echo "Rules live: $RULESET" >> "$GITHUB_STEP_SUMMARY"
       - name: Referee to Cloud Run
         if: steps.secrets.outputs.ok
         env:
