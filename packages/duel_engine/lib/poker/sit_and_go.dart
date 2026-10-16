@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../cards.dart';
 import 'poker_hand.dart';
 
 /// Blind levels shared by every table size; the pace differs (see
@@ -44,13 +45,13 @@ class TablePlayer {
 /// A single-table tournament: everyone buys in once, blinds rise, last one
 /// with chips wins. Seat 0 is the human.
 class SitAndGo {
-  SitAndGo({required List<String> names, required this.config, required this.rng})
+  SitAndGo({required List<String> names, required this.config, required this.rng, int? button})
     : players = [
         for (var i = 0; i < names.length; i++)
           TablePlayer(seat: i, name: names[i], stack: config.startingStack),
       ] {
     assert(names.length >= 2 && names.length <= 6);
-    buttonSeat = rng.nextInt(players.length);
+    buttonSeat = button ?? rng.nextInt(players.length);
   }
 
   final SitAndGoConfig config;
@@ -94,8 +95,8 @@ class SitAndGo {
   int get nextButtonSeat =>
       handsPlayed > 0 || players[buttonSeat].stack == 0 ? _nextActiveSeat(buttonSeat) : buttonSeat;
 
-  /// Moves the button and deals a new hand.
-  PokerHand startHand() {
+  /// Moves the button and deals a new hand (from [deck], else shuffled).
+  PokerHand startHand({Deck? deck}) {
     if (isOver) throw StateError('Tournament is over');
     buttonSeat = nextButtonSeat;
     final seats = [
@@ -110,6 +111,7 @@ class SitAndGo {
       smallBlind: sb,
       bigBlind: bb,
       rng: rng,
+      deck: deck,
     );
   }
 

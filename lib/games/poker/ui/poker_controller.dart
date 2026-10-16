@@ -11,6 +11,9 @@ import 'package:duel_engine/poker/hand_eval.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/sit_and_go.dart';
 import '../../../core/avatars/faces.dart';
+import '../../../core/online/party.dart';
+
+part 'online_poker.dart';
 
 enum TablePhase {
   /// Your deal: shuffle the deck, then tap Deal.
@@ -54,6 +57,25 @@ class PokerController extends ChangeNotifier {
       for (final (i, p) in personas.indexed)
         i == 0 ? null : PokerBot(style: _styleFor[p.look]!, difficulty: difficulty, rng: _rng),
     ];
+  }
+
+  /// A table set up elsewhere (online: the server's seats, you at 0).
+  PokerController._seated({
+    required this.difficulty,
+    required this.you,
+    required List<Persona> seats,
+    required int button,
+    this.pace = 1,
+    this.resultTimeout,
+  }) : _rng = Random() {
+    personas = seats;
+    game = SitAndGo(
+      names: [for (final p in personas) p.name],
+      config: SitAndGoConfig.forPlayers(seats.length),
+      rng: _rng,
+      button: button,
+    );
+    _bots = List.filled(seats.length, null);
   }
 
   final Difficulty difficulty;
@@ -154,9 +176,53 @@ class PokerController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  // --- Hooks (the online table answers these from the server) -------------
+
+  /// The button's come round to you: you shuffle and deal.
+  bool get _youDeal => game.nextButtonSeat == 0;
+
+  /// The deck for the next hand (null: shuffled here).
+  Deck? _nextDeck() => null;
+
+  /// The cards for the next hand are known.
+  bool _canDeal() => true;
+
+  /// Just dealt [h] (online: put your real cards in).
+  void _dealt(PokerHand h) {}
+
+  /// The next street's cards (or the showdown) are known.
+  bool _canAdvance(PokerHand h) => true;
+
+  /// About to deal a street or show down (online: turn up shown cards).
+  void _beforeAdvance(PokerHand h) {}
+
+  /// [seat] is to act: a bot thinks and moves; you get the buttons.
+  void _actFor(int seat, PokerHand h) {
+    final bot = _bots[seat];
+    if (bot == null) return; // your move
+    // Bots take their time while you're in the hand; once you've folded
+    // they hurry up.
+    final think = youAreIn ? 650 + _rng.nextInt(800) : 300 + _rng.nextInt(200);
+    _after(think, () {
+      h.apply(bot.decide(h));
+      _afterMove();
+    });
+  }
+
+  /// Seconds left for whoever is acting (online), or null.
+  int? get turnSecondsLeft => null;
+
+  /// Waiting for something to arrive before [_parked] can go on.
+  VoidCallback? _parked;
+
+  void _park(VoidCallback f) {
+    _parked = f;
+    _notify();
+  }
+
   void _newHand() {
     revealed.clear();
-    if (game.nextButtonSeat == 0) {
+    if (_youDeal) {
       // The button's come round to you: you shuffle and deal.
       shuffles = 0;
       phase = TablePhase.shuffle;
@@ -180,7 +246,9 @@ class PokerController extends ChangeNotifier {
   }
 
   void _deal() {
-    game.startHand();
+    if (!_canDeal()) return _park(_deal);
+    _parked = null;
+    _dealt(game.startHand(deck: _nextDeck()));
     handNumber++;
     justBusted = const [];
     final (sb, bb) = game.blinds;
@@ -199,6 +267,9 @@ class PokerController extends ChangeNotifier {
     }
     if (h.toAct == null) {
       // Betting round over: collect, then the next street.
+      if (!_canAdvance(h)) return _park(_step);
+      _parked = null;
+      _beforeAdvance(h);
       if (h.isAllInRunout) {
         for (var i = 0; i < h.players.length; i++) {
           if (!h.players[i].folded) revealed.add(game.handSeats[i]);
@@ -219,17 +290,9 @@ class PokerController extends ChangeNotifier {
       return;
     }
     phase = TablePhase.acting;
+    _parked = null;
     _notify();
-    final seat = game.handSeats[h.toAct!];
-    final bot = _bots[seat];
-    if (bot == null) return; // your move
-    // Bots take their time while you're in the hand; once you've folded
-    // they hurry up.
-    final think = youAreIn ? 650 + _rng.nextInt(800) : 300 + _rng.nextInt(200);
-    _after(think, () {
-      h.apply(bot.decide(h));
-      _afterMove();
-    });
+    _actFor(game.handSeats[h.toAct!], h);
   }
 
   void _afterMove() {
@@ -290,8 +353,12 @@ class PokerController extends ChangeNotifier {
     _endHand();
   }
 
+  /// A hand's chips are settled (online: on to the next hand's moves).
+  void _handEnded() {}
+
   void _endHand() {
     justBusted = game.finishHand();
+    _handEnded();
     if (game.isOver || game.players[0].stack == 0) {
       phase = TablePhase.finished;
       _notify();

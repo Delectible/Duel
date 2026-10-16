@@ -111,6 +111,10 @@ class Persona {
     Look.spiky: Avatar(color: AvatarColor.pink, face: Expression.wild, hat: Hat.spiky),
   };
 
+  /// A bot by its look (online: the server keeps the name and look).
+  factory Persona.bot(String name, Look look) =>
+      Persona(name: name, look: look, avatar: _faces[look] ?? _faces[Look.cap]!);
+
   /// The bot looks, in the order games map them to personalities (poker:
   /// cap = Rookie, shades = Rock, fin = Shark, spiky = Maniac).
   static const botLooks = [Look.cap, Look.shades, Look.fin, Look.spiky];

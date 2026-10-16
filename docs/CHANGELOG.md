@@ -236,9 +236,14 @@ Ships as app version **0.4.1**.
   a 2x2 of Colour / Shape / Face / Hat, each showing just that part with
   ‹ › arrows (was a grid of whole faces). → 0.6.0 · 2026-10-16
 
-- [ ] **11.5 Bots in online games** (asked 2026-10-16): fill seats with
-  server-run bots (e.g. 2 friends + 2 bots). Needs the card games online
-  first; open questions sent (first game, Spades teams, difficulty).
+- [x] **11.5 Bots in online games + Texas Hold'em online** (2026-10-16):
+  the host adds bots on the party screen (each with its own Easy / Normal
+  / Hard, up to a table of 6); the server plays them. Hold'em goes online
+  first: the server keeps the deck, each phone gets only its own two
+  cards, everyone else's show at a showdown. Same table and animations as
+  against bots, a 45 s turn clock, leaving folds you out while the rest
+  play on, Rematch when the table's done. Decided for later: Spades
+  partners: the host is asked who their teammate is. → 0.7.0 · 2026-10-16
 
 ### 12. Fixes
 

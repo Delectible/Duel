@@ -10,6 +10,7 @@ import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/table/table_bits.dart';
+import '../../../core/online/party.dart';
 import 'poker_guide.dart';
 import 'poker_controller.dart';
 import 'table_view.dart';
@@ -24,7 +25,17 @@ class PokerScreen extends StatefulWidget {
     this.seed,
     this.resultTimeout,
     this.stake,
-  });
+  }) : party = null;
+
+  /// With your party (and its bots), online: the referee deals.
+  const PokerScreen.online({super.key, required PartyService this.party, this.pace = 1})
+    : bots = 0,
+      difficulty = Difficulty.normal,
+      seed = null,
+      resultTimeout = null,
+      stake = null;
+
+  final PartyService? party;
 
   final int bots;
   final Difficulty difficulty;
@@ -51,10 +62,18 @@ class _PokerScreenState extends State<PokerScreen> {
   late StakeTicket _ticket;
   late Account _account;
 
+  /// Online: the match this table (and its stake) is for.
+  String? _matchId;
+
   @override
   void initState() {
     super.initState();
     _account = AccountScope.maybeRead(context) ?? Account();
+    final party = widget.party;
+    if (party != null) {
+      party.onScreen = true;
+      party.addListener(_follow);
+    }
     _ticket =
         widget.stake ??
         StakeTicket(
@@ -67,8 +86,51 @@ class _PokerScreenState extends State<PokerScreen> {
     _c = _newTable();
   }
 
+  /// Online: a rematch has started (or the table needs rebuilding).
+  void _follow() {
+    final id = widget.party?.match?['id'];
+    if (id != null && id != _matchId && mounted) _rebuild();
+  }
+
+  void _rebuild() {
+    setState(() {
+      _c.dispose();
+      _c = _newTable();
+    });
+  }
+
   /// A fresh table. Stored in [_c] before it starts: [_settle] reads it.
   PokerController _newTable() {
+    final party = widget.party;
+    if (party != null) {
+      final online = OnlinePokerController.forMatch(
+        party,
+        you: _account.persona,
+        pace: widget.pace,
+        onReset: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _rebuild();
+        }),
+      );
+      if (online != null) {
+        final m = party.match!;
+        if (m['id'] != _matchId) {
+          // A new match: put in its stake.
+          _matchId = m['id'] as String?;
+          _ticket = StakeTicket(
+            account: _account,
+            gameId: 'holdem',
+            stake: _account.placeStake(m['stake'] as int? ?? 0),
+            opponents: (m['seats']! as List).length - 1,
+            difficulty: Difficulty.normal,
+          );
+        }
+        _c = online;
+        online
+          ..addListener(_settle)
+          ..start();
+        return online;
+      }
+    }
     final c = _c = PokerController(
       bots: widget.bots,
       difficulty: widget.difficulty,
@@ -100,11 +162,23 @@ class _PokerScreenState extends State<PokerScreen> {
 
   @override
   void dispose() {
+    widget.party?.removeListener(_follow);
+    widget.party?.onScreen = false;
     _c.dispose();
     super.dispose();
   }
 
   Future<void> _leave() async {
+    final party = widget.party;
+    if (party != null) {
+      // Still in with chips: leaving folds you out for the rest.
+      if (party.playing && _c.phase != TablePhase.finished) {
+        if (!await confirmLeave(context, _ticket, online: 'The others play on without you.')) return;
+        await party.forfeit();
+      }
+      if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+      return;
+    }
     if (_c.phase == TablePhase.finished || await confirmLeave(context, _ticket)) {
       if (mounted) Navigator.of(context).pop();
     }
@@ -134,8 +208,10 @@ class _PokerScreenState extends State<PokerScreen> {
                     child: _GameOver(
                       c: _c,
                       ticket: _ticket,
-                      onAgain: _playAgain,
-                      onLeave: () => Navigator.of(context).pop(),
+                      onAgain: widget.party == null ? _playAgain : _rematch(),
+                      againLabel: _againLabel(),
+                      leaveLabel: widget.party == null ? 'Games' : 'Back to party',
+                      onLeave: widget.party == null ? () => Navigator.of(context).pop() : _leave,
                     ),
                   ),
               ],
@@ -144,6 +220,32 @@ class _PokerScreenState extends State<PokerScreen> {
         ),
       ),
     );
+  }
+}
+
+extension on _PokerScreenState {
+  /// Online: Rematch once the whole table is done (everyone asks).
+  VoidCallback? _rematch() {
+    final party = widget.party!;
+    final m = party.match;
+    if (m == null || m['status'] != 'over') return null;
+    if (((m['rematch'] as List?) ?? const []).contains(party.uid)) return null;
+    return () => party.rematch().then((e) {
+      if (e != null && mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(e)));
+      }
+    });
+  }
+
+  String _againLabel() {
+    final party = widget.party;
+    if (party == null) return 'Play again';
+    final m = party.match;
+    if (m == null || m['status'] != 'over') return 'Still playing…';
+    if (((m['rematch'] as List?) ?? const []).contains(party.uid)) return 'Waiting…';
+    return 'Rematch';
   }
 }
 
@@ -204,8 +306,15 @@ class _Hud extends StatelessWidget {
               color: Toon.card,
               shadow: 3,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              // While you shuffle, the coming hand's number.
-              child: Text('Hand $hand', style: Toon.text(14)),
+              // While you shuffle, the coming hand's number; online, on
+              // your turn, the time you have left.
+              child: c.yourTurn && c.turnSecondsLeft != null
+                  ? Text(
+                      '${c.turnSecondsLeft}s',
+                      key: const Key('your clock'),
+                      style: Toon.text(14, color: c.turnSecondsLeft! <= 10 ? Toon.red : null),
+                    )
+                  : Text('Hand $hand', style: Toon.text(14)),
             ),
           ],
           const SizedBox(width: 8),
@@ -217,12 +326,21 @@ class _Hud extends StatelessWidget {
 }
 
 class _GameOver extends StatelessWidget {
-  const _GameOver({required this.c, required this.ticket, required this.onAgain, required this.onLeave});
+  const _GameOver({
+    required this.c,
+    required this.ticket,
+    required this.onAgain,
+    required this.onLeave,
+    this.againLabel = 'Play again',
+    this.leaveLabel = 'Games',
+  });
 
   final PokerController c;
   final StakeTicket ticket;
-  final VoidCallback onAgain;
+  final VoidCallback? onAgain;
   final VoidCallback onLeave;
+  final String againLabel;
+  final String leaveLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -269,14 +387,20 @@ class _GameOver extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: ToonButton(color: Toon.card, onPressed: onLeave, child: const Text('Games')),
+                          child: ToonButton(
+                            key: const Key('over leave'),
+                            color: Toon.card,
+                            onPressed: onLeave,
+                            child: FittedBox(child: Text(leaveLabel, maxLines: 1)),
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: ToonButton(
+                            key: const Key('again'),
                             color: Toon.green,
                             onPressed: onAgain,
-                            child: const Text('Play again'),
+                            child: FittedBox(child: Text(againLabel, maxLines: 1)),
                           ),
                         ),
                       ],

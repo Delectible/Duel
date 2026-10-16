@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/widgets.dart';
 
 import '../account/account.dart';
@@ -41,6 +42,29 @@ class PartyMember {
   final bool you;
 }
 
+/// A bot sitting in with the party (the host adds them, each with its own
+/// difficulty).
+class PartyBot {
+  const PartyBot({required this.name, required this.look, required this.difficulty});
+
+  final String name;
+  final Look look;
+  final Difficulty difficulty;
+
+  Persona get persona => Persona.bot(name, look);
+
+  Doc toJson() => {'name': name, 'look': look.name, 'difficulty': difficulty.name};
+
+  static PartyBot fromJson(Map<Object?, Object?> j) => PartyBot(
+    name: '${j['name'] ?? 'Bot'}',
+    look: Look.values.asNameMap()[j['look']] ?? Look.cap,
+    difficulty: Difficulty.values.asNameMap()[j['difficulty']] ?? Difficulty.normal,
+  );
+
+  PartyBot copyWith({Difficulty? difficulty}) =>
+      PartyBot(name: name, look: look, difficulty: difficulty ?? this.difficulty);
+}
+
 /// Your party and the game it's playing: live from the server. Moves and
 /// party changes go to the referee; everything shown comes back through
 /// the live documents (or the referee's answer, whichever is newer).
@@ -65,6 +89,7 @@ class PartyService extends ChangeNotifier {
 
   StreamSubscription<Doc?>? _partySub;
   StreamSubscription<Doc?>? _matchSub;
+  StreamSubscription<Doc?>? _mineSub;
   String? _matchId;
   var _disposed = false;
 
@@ -98,7 +123,16 @@ class PartyService extends ChangeNotifier {
     return list;
   }
 
-  int get size => members.length;
+  /// Bots sitting in with the party.
+  List<PartyBot> get bots => [
+    for (final b in ((party?['bots'] as List?) ?? const [])) PartyBot.fromJson(b as Map),
+  ];
+
+  /// Everyone at the table: people and bots.
+  int get size => members.length + bots.length;
+
+  /// Most people and bots at one table.
+  static const maxTable = 6;
 
   String get hostName => members.where((m) => m.host).map((m) => m.persona.name).firstOrNull ?? 'The host';
 
@@ -130,6 +164,22 @@ class PartyService extends ChangeNotifier {
     await backend.call('/v1/parties/$id/leave');
     _clear();
   });
+
+  /// Host: the bots that sit in (replaces the list).
+  Future<String?> setBots(List<PartyBot> bots) => _run(() async {
+    final id = partyId;
+    if (id == null) return;
+    final p = await backend.call('/v1/parties/$id/bots', {
+      'bots': [for (final b in bots) b.toJson()],
+    });
+    if (p['id'] == id) {
+      party = p;
+      _notify();
+    }
+  });
+
+  /// Your own cards in the current game (card games), live.
+  Doc? mine;
 
   /// Host: starts [gameId] for everyone, with each player putting in [stake].
   Future<String?> start(String gameId, {int stake = 0}) => _run(() async {
@@ -184,6 +234,13 @@ class PartyService extends ChangeNotifier {
     _matchSub = backend.watch('matches/$id').listen((m) {
       if (m != null && m['id'] == _matchId) _take(m);
     }, onError: (Object _) {});
+    mine = null;
+    unawaited(_mineSub?.cancel());
+    _mineSub = backend.watch('matches/$id/hands/$uid').listen((d) {
+      if (_matchId != id) return;
+      mine = d;
+      _notify();
+    }, onError: (Object _) {});
   }
 
   /// Keeps the newest version of the current match ([adopt]: a new one).
@@ -205,8 +262,9 @@ class PartyService extends ChangeNotifier {
   void _clear() {
     unawaited(_partySub?.cancel());
     unawaited(_matchSub?.cancel());
-    _partySub = _matchSub = null;
-    party = match = null;
+    unawaited(_mineSub?.cancel());
+    _partySub = _matchSub = _mineSub = null;
+    party = match = mine = null;
     _matchId = null;
     account.partyId = null;
     _notify();
@@ -258,6 +316,7 @@ class PartyService extends ChangeNotifier {
     _disposed = true;
     unawaited(_partySub?.cancel());
     unawaited(_matchSub?.cancel());
+    unawaited(_mineSub?.cancel());
     super.dispose();
   }
 }

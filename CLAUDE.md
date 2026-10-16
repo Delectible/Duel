@@ -130,12 +130,21 @@ weights cut from the variable font.
   red (seats remapped), your drop shows at once, turn ring counted from
   `turnAt`, either phone claims a turn that ran out, Rematch / Back to
   party.
+- Bots online: the host sets `party.bots` (`PartyBot`: name, look,
+  difficulty; party screen), they take seats (`bot:N`) and the referee
+  plays them. Online Hold'em: `PokerScreen.online` +
+  `OnlinePokerController` (part of `poker_controller.dart`; replays the
+  server's moves through the same table via the controller's hooks:
+  `_canDeal`, `_nextDeck` (`Deck.lazy`), `_canAdvance`, `_actFor`; you at
+  seat 0, seats turned round). Your cards: `party.mine`.
 - Referee: `server/` (own Dart package, excluded from the app's analyze):
   `Referee` (parties, matches, moves with a `version` check, timeouts,
   forfeit, rematch) over a `Store` (`MemoryStore` in tests,
   `FirestoreStore` on Firestore REST), `api.dart` (shelf routes, Firebase
-  ID token check), `games.dart` (`OnlineGame` per game; only Four in a
-  Row so far). Players only read Firestore; only the referee writes.
+  ID token check), `games.dart` (`OnlineGame` per game: Four in a Row,
+  `poker_game.dart` Hold'em; full state in `secrets/{id}`, public in the
+  match, `private` per player in `matches/{id}/hands/{uid}`). Players only
+  read Firestore; only the referee writes.
 - `firebase/`: `firestore.rules` (+ emulator config). Test locally from
   `firebase/`: `firebase emulators:exec --only firestore --project
   demo-duel "cd ../server && dart test"`.

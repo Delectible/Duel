@@ -65,18 +65,28 @@ class PlayingCard {
 
 /// A shuffled 52-card deck dealt from the top.
 class Deck {
-  Deck.shuffled(Random rng) : _cards = [...PlayingCard.fullDeck]..shuffle(rng);
+  Deck.shuffled(Random rng) : _cards = [...PlayingCard.fullDeck]..shuffle(rng), _cardAt = null;
 
   /// A deck in a fixed order (tests); the rest of the deck follows.
   Deck.stacked(List<PlayingCard> top)
-    : _cards = [...top, ...PlayingCard.fullDeck.where((c) => !top.contains(c))];
+    : _cards = [...top, ...PlayingCard.fullDeck.where((c) => !top.contains(c))],
+      _cardAt = null;
+
+  /// A deck whose cards are only looked up as they're dealt: [cardAt]
+  /// gives the i-th card off the top. Online, a phone knows its own cards
+  /// and the board as it's turned, never the rest (a stand-in fills in).
+  Deck.lazy(PlayingCard Function(int i) cardAt) : _cards = const [], _cardAt = cardAt;
 
   final List<PlayingCard> _cards;
+  final PlayingCard Function(int i)? _cardAt;
   var _next = 0;
 
-  int get remaining => _cards.length - _next;
+  int get remaining => _cardAt != null ? 52 - _next : _cards.length - _next;
 
-  PlayingCard draw() => _cards[_next++];
+  PlayingCard draw() {
+    final at = _cardAt;
+    return at != null ? at(_next++) : _cards[_next++];
+  }
 }
 
 /// Rank names for hand descriptions.

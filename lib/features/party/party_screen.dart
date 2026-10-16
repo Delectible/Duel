@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -240,7 +243,8 @@ class _PartyScreenState extends State<PartyScreen> {
           ),
         ),
       ),
-    if (party.size < 2) const _Waiting(),
+    if (party.members.length < 2) const _Waiting(),
+    ..._bots(party),
     const SizedBox(height: 8),
     Align(
       alignment: Alignment.centerLeft,
@@ -261,6 +265,122 @@ class _PartyScreenState extends State<PartyScreen> {
     ),
     const SizedBox(height: 16),
   ];
+
+  /// Bots fill seats (each with its own difficulty). Only the host changes
+  /// them; everyone sees who's sitting in.
+  List<Widget> _bots(PartyService party) {
+    final bots = party.bots;
+    if (bots.isEmpty && !party.isHost) return const [];
+    void save(List<PartyBot> next) async => _say(await party.setBots(next));
+    return [
+      const SizedBox(height: 6),
+      Text('Bots', style: Toon.text(18, weight: FontWeight.w700)),
+      const SizedBox(height: 8),
+      for (final (i, b) in bots.indexed)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Pop(
+            key: ValueKey('bot ${b.name}'),
+            child: ToonBox(
+              key: Key('bot $i'),
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  Padding(padding: const EdgeInsets.only(left: 4), child: Face(b.persona, size: 44)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(b.name, style: Toon.text(18))),
+                  _DifficultyChip(
+                    key: Key('bot $i difficulty'),
+                    difficulty: b.difficulty,
+                    onTap: party.isHost && !party.busy
+                        ? () => save([
+                            for (final (k, x) in bots.indexed)
+                              k == i
+                                  ? x.copyWith(
+                                      difficulty: Difficulty
+                                          .values[(x.difficulty.index + 1) % Difficulty.values.length],
+                                    )
+                                  : x,
+                          ])
+                        : null,
+                  ),
+                  if (party.isHost) ...[
+                    const SizedBox(width: 6),
+                    ToonButton(
+                      key: Key('bot $i remove'),
+                      color: Toon.card,
+                      padding: const EdgeInsets.all(6),
+                      radius: 10,
+                      tooltip: 'Remove ${b.name}',
+                      onPressed: party.busy ? null : () => save([...bots]..removeAt(i)),
+                      child: const Icon(Icons.close_rounded, size: 20),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      if (party.isHost)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ToonButton(
+            key: const Key('add bot'),
+            color: Toon.teal,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            onPressed: party.busy || party.size >= PartyService.maxTable
+                ? null
+                : () {
+                    final used = {for (final b in bots) b.name};
+                    final pick = Persona.bots(4, Random()).firstWhere(
+                      (p) => !used.contains(p.name),
+                      orElse: () => Persona.bots(1, Random()).single,
+                    );
+                    save([
+                      ...bots,
+                      PartyBot(name: pick.name, look: pick.look, difficulty: Difficulty.normal),
+                    ]);
+                  },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.smart_toy_rounded, size: 20),
+                const SizedBox(width: 6),
+                Text(
+                  party.size >= PartyService.maxTable ? 'Table full (6)' : 'Add a bot',
+                  style: Toon.text(16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      const SizedBox(height: 12),
+    ];
+  }
+}
+
+/// Easy / Normal / Hard, tap to change (host).
+class _DifficultyChip extends StatelessWidget {
+  const _DifficultyChip({super.key, required this.difficulty, required this.onTap});
+
+  final Difficulty difficulty;
+  final VoidCallback? onTap;
+
+  static const _colors = {
+    Difficulty.easy: Toon.green,
+    Difficulty.normal: Toon.yellow,
+    Difficulty.hard: Toon.red,
+  };
+
+  @override
+  Widget build(BuildContext context) => ToonButton(
+    color: _colors[difficulty]!,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    radius: 10,
+    tooltip: onTap == null ? null : 'Bot difficulty',
+    onPressed: onTap ?? () {},
+    child: Text(difficulty.label, style: Toon.text(14, color: Toon.inkLight)),
+  );
 }
 
 /// A face, with a little crown on the host's.

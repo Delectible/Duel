@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/four_in_a_row/four_in_a_row.dart';
 
+import 'poker_game.dart';
 import 'store.dart';
 
 /// A move the rules don't allow (or that's not this player's turn).
@@ -24,15 +25,18 @@ class Result {
 }
 
 /// One game's rules as the referee sees them: state is plain JSON, rebuilt
-/// into the shared engine to check each move. Card games add private
-/// state (each player's hand) later.
-abstract interface class OnlineGame {
+/// into the shared engine to check each move. The full state stays on the
+/// server; players see [public] (and their own [private] part).
+abstract class OnlineGame {
+  const OnlineGame();
+
   String get id;
   int get minPlayers;
   int get maxPlayers;
 
-  /// A new game for [players] seats; [first] seat starts.
-  Doc start(int players, Random rng, {required int first});
+  /// A new game for [players] seats; [first] seat starts; [humans] are the
+  /// seats people sit in (the rest are bots).
+  Doc start(int players, Random rng, {required int first, required Set<int> humans});
 
   /// Whose turn it is, or null when the game is over.
   int? turn(Doc state);
@@ -42,15 +46,29 @@ abstract interface class OnlineGame {
 
   Result? result(Doc state);
 
-  /// What to play for a player whose time ran out.
+  /// What to play for a player whose time ran out (or who left).
   Doc autoMove(Doc state, int seat, Random rng);
+
+  /// A bot's move: [bot] is its {name, look, difficulty}.
+  Doc botMove(Doc state, int seat, Doc bot, Random rng) => autoMove(state, seat, rng);
 
   /// What every player may see.
   Doc public(Doc state);
+
+  /// What only [seat] may see (their cards), or null.
+  Doc? private(Doc state, int seat) => null;
+
+  /// [seat] left mid-game: the game without them, or null when it can't go
+  /// on (two players: the other wins).
+  Doc? leave(Doc state, int seat) => null;
+
+  /// How long phones take to show what happened from [before] to [after]
+  /// (bots' moves, a new deal): added to the next player's clock.
+  Duration show(Doc before, Doc after) => Duration.zero;
 }
 
 /// Four in a Row: the state is just who started and the columns played.
-class RowGame implements OnlineGame {
+class RowGame extends OnlineGame {
   const RowGame();
 
   @override
@@ -69,7 +87,10 @@ class RowGame implements OnlineGame {
   }
 
   @override
-  Doc start(int players, Random rng, {required int first}) => {'first': first, 'moves': <int>[]};
+  Doc start(int players, Random rng, {required int first, required Set<int> humans}) => {
+    'first': first,
+    'moves': <int>[],
+  };
 
   @override
   int? turn(Doc state) {
@@ -110,4 +131,4 @@ class RowGame implements OnlineGame {
 }
 
 /// Every game that can be played online, by id.
-const onlineGames = <String, OnlineGame>{'connect4': RowGame()};
+const onlineGames = <String, OnlineGame>{'connect4': RowGame(), 'holdem': PokerGame()};

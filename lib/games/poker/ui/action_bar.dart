@@ -128,7 +128,8 @@ class _ActionBarState extends State<ActionBar> {
     if (c.phase == TablePhase.finished) {
       text = '';
     } else if (seat != null) {
-      text = '${c.personas[seat].name} is thinking…';
+      final left = c.turnSecondsLeft;
+      text = '${c.personas[seat].name} is thinking…${left == null ? '' : ' ${left}s'}';
     } else if (c.handPlayer(0)?.folded ?? false) {
       text = 'You folded. Next hand soon…';
     } else {

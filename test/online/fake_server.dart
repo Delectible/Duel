@@ -35,8 +35,14 @@ class FakeServer {
         continue;
       }
       final doc = await store.get(w.path);
-      final key = w.path.startsWith('parties/') ? 'members' : 'seats';
-      final visible = doc != null && (doc[key]! as List).contains(w.uid);
+      // Rules: parties to members, games to players, hands to their owner.
+      final bool visible;
+      if (w.path.contains('/hands/')) {
+        visible = doc != null && w.path.endsWith('/${w.uid}');
+      } else {
+        final key = w.path.startsWith('parties/') ? 'members' : 'seats';
+        visible = doc != null && (doc[key]! as List).contains(w.uid);
+      }
       final json = visible ? jsonEncode(doc) : null;
       if (json == w.last || w.out.isClosed) continue;
       w.last = json;

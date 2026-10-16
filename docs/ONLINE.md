@@ -156,6 +156,14 @@ checked with Firebase.
 - [ ] Stakes settled on the server (see the wallet above).
 
 ### Phase 3: card games online
+- [x] Bots fill seats: the host adds them in the party, each with its own
+      difficulty (table of up to 6); the referee plays them (and anyone who
+      left) between people's moves, and adds their show time to the clock.
+- [x] Texas Hold'em (0.7.0): full state (shuffle seed + moves) secret in
+      `secrets/{id}`; `matches/{id}` has each hand's moves, board and shown
+      cards; `matches/{id}/hands/{uid}` your two cards. Phones replay the
+      moves through the engine (`OnlinePokerController`, `Deck.lazy`).
+- [ ] Spades partners: ask the host who their teammate is, fill the rest.
 - [ ] Crazy Eights, Go Fish (server deals; private hands).
 - [ ] Poker: several humans plus server bots; the 10 s showdown timeout.
 - [ ] Spades (once the game itself is built).

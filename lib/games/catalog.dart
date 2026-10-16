@@ -173,6 +173,7 @@ final games = <GameInfo>[
     minutes: (players) => const {2: 10, 3: 15, 4: 20, 5: 30}[players] ?? 35,
     atHome: holdemAtHome,
     open: (setup, stake, _) => PokerScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
+    openOnline: (party) => PokerScreen.online(party: party),
   ),
   GameInfo(
     id: 'crazy8',
