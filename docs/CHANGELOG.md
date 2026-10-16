@@ -222,7 +222,7 @@ Ships as app version **0.4.1**.
   security rules, deploy pipeline (`online.yml`, `setup_gcp.sh`). Luca's
   steps: `docs/ONLINE.md`, "Your steps".
 
-- [~] **11.3 Play with a friend** (requested 2026-10-16): Friend mode
+- [x] **11.3 Play with a friend** (requested 2026-10-16): Friend mode
   goes live. Start a party (6-letter code, Copy invite) or join with a
   code; who's here, a crown on the host. The host picks games from home
   (only Four in a Row online so far; the others say "Online soon"); Play!
@@ -231,10 +231,14 @@ Ships as app version **0.4.1**.
   Rematch (both tap) or Back to party; leaving mid-game gives it up.
   Stakes: the host sets one, each phone puts it in and settles it (server
   wallet later). Reopening the app goes back to your party. Later: invite
-  links, QR code, vote / first come.
-- [~] **11.4 Face builder, simpler** (2026-10-16): your face on top, then
+  links, QR code, vote / first come. → 0.6.0 · 2026-10-16
+- [x] **11.4 Face builder, simpler** (2026-10-16): your face on top, then
   a 2x2 of Colour / Shape / Face / Hat, each showing just that part with
-  ‹ › arrows (was a grid of whole faces).
+  ‹ › arrows (was a grid of whole faces). → 0.6.0 · 2026-10-16
+
+- [ ] **11.5 Bots in online games** (asked 2026-10-16): fill seats with
+  server-run bots (e.g. 2 friends + 2 bots). Needs the card games online
+  first; open questions sent (first game, Spades teams, difficulty).
 
 ### 12. Fixes
 
