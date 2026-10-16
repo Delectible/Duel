@@ -92,8 +92,11 @@ Handler api(Referee referee, TokenVerifier verifier) {
   return const Pipeline().addMiddleware(_errors).addHandler(r.call);
 }
 
-Response _json(int status, Object? body) =>
-    Response(status, body: jsonEncode(body), headers: {'content-type': 'application/json'});
+Response _json(int status, Object? body) => Response(
+  status,
+  body: jsonEncode(body, toEncodable: encodeTime),
+  headers: {'content-type': 'application/json'},
+);
 
 /// Anything unexpected: log it, answer 500 without details.
 Handler _errors(Handler inner) => (req) async {

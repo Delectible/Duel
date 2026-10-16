@@ -168,6 +168,11 @@ checked with Firebase.
 - [ ] Poker: several humans plus server bots; the 10 s showdown timeout.
 - [ ] Spades (once the game itself is built).
 
+### Housekeeping
+- [x] Auto-delete (Firestore TTL on `expireAt`): games, secrets and hands
+      a day after the last move; parties and codes 30 days after the last
+      change. Stats and pips live on the phones, so nothing is lost.
+
 ### Phase 4: the party flow
 - [ ] Host pick / vote / first come; coin toss decided on the server.
 - [ ] Moving between games together.

@@ -20,6 +20,9 @@ abstract interface class Store {
   Future<Doc?> get(String path);
 }
 
+/// Dates (expiry times) in JSON: as ISO 8601 text.
+Object? encodeTime(Object? o) => o is DateTime ? o.toUtc().toIso8601String() : throw UnsupportedError('$o');
+
 /// An in-memory store for tests and local runs. Transactions are serial
 /// (one at a time), which is all the referee needs to be correct.
 class MemoryStore implements Store {
@@ -66,7 +69,7 @@ class _MemoryTx implements Tx {
   }
 
   @override
-  void set(String path, Doc doc) => _writes[path] = jsonEncode(doc);
+  void set(String path, Doc doc) => _writes[path] = jsonEncode(doc, toEncodable: encodeTime);
 
   @override
   void delete(String path) => _writes[path] = null;

@@ -83,8 +83,8 @@ class Referee {
       'matchId': null,
       'createdAt': _now,
     };
-    tx.set('parties/$id', party);
-    tx.set('codes/$code', {'party': id});
+    _put(tx, 'parties/$id', party);
+    _put(tx, 'codes/$code', {'party': id});
     return party;
   });
 
@@ -102,7 +102,7 @@ class Referee {
     (party['names']! as Map)[p.uid] = cleanName(p.name);
     (party['avatars']! as Map)[p.uid] = p.avatar;
     party['members'] = members;
-    tx.set('parties/$id', party);
+    _put(tx, 'parties/$id', party);
     return party;
   });
 
@@ -121,7 +121,7 @@ class Referee {
     (party['avatars']! as Map).remove(p.uid);
     party['members'] = members;
     if (party['host'] == p.uid) party['host'] = members.first;
-    tx.set('parties/$id', party);
+    _put(tx, 'parties/$id', party);
   });
 
   /// Bot looks the app knows how to draw (each plays its own way).
@@ -152,7 +152,7 @@ class Referee {
       });
     }
     party['bots'] = clean;
-    tx.set('parties/$partyId', party);
+    _put(tx, 'parties/$partyId', party);
     return party;
   });
 
@@ -190,7 +190,7 @@ class Referee {
           stake: stake.clamp(0, maxStake),
         );
         party['matchId'] = match['id'];
-        tx.set('parties/$partyId', party);
+        _put(tx, 'parties/$partyId', party);
         return match;
       });
 
@@ -301,7 +301,7 @@ class Referee {
       final winner = people.isNotEmpty ? people.first : _nextSeat(match, seat);
       match['gone'] = gone;
       _finish(match, Result(winner: winner), reason: reason);
-      tx.set('matches/${match['id']}', match);
+      _put(tx, 'matches/${match['id']}', match);
       return;
     }
     match['gone'] = gone;
@@ -342,15 +342,34 @@ class Referee {
       final party = await tx.get('parties/${match['party']}');
       if (party != null) {
         party['matchId'] = next['id'];
-        tx.set('parties/${match['party']}', party);
+        _put(tx, 'parties/${match['party']}', party);
       }
     }
     match['version'] = (match['version']! as int) + 1;
-    tx.set('matches/$id', match);
+    _put(tx, 'matches/$id', match);
     return match;
   });
 
   // --- Helpers -------------------------------------------------------------
+
+  /// How long things last after their last change before Firestore deletes
+  /// them (its TTL policy on `expireAt`; see online.yml). Finished games
+  /// are only needed for the game-over screen, a rematch or coming back.
+  static const gameLife = Duration(days: 1);
+  static const partyLife = Duration(days: 30);
+
+  /// Writes [doc] with its expiry: games (with their secret state and
+  /// hands) a day after the last move, parties (and their codes) 30 days
+  /// after the last change.
+  void _put(Tx tx, String path, Doc doc) {
+    final party = path.startsWith('parties/') || path.startsWith('codes/');
+    final expireAt = _clock().toUtc().add(party ? partyLife : gameLife);
+    tx.set(path, {...doc, 'expireAt': expireAt});
+    // Keep the code alive as long as its party.
+    if (path.startsWith('parties/') && doc['code'] != null) {
+      tx.set('codes/${doc['code']}', {'party': doc['id'], 'expireAt': expireAt});
+    }
+  }
 
   Future<Doc> _match(Tx tx, String id) async {
     final m = await tx.get('matches/$id');
@@ -402,14 +421,14 @@ class Referee {
       match['deadline'] = _now + (turnTime + game.show(before, state)).inMilliseconds;
       match['turnAt'] = _now;
     }
-    tx.set('secrets/$id', {'state': state});
+    _put(tx, 'secrets/$id', {'state': state});
     final seats = (match['seats']! as List).cast<String>();
     for (final (i, uid) in seats.indexed) {
       if (bots[i] != null) continue;
       final mine = game.private(state, i);
-      if (mine != null) tx.set('matches/$id/hands/$uid', mine);
+      if (mine != null) _put(tx, 'matches/$id/hands/$uid', mine);
     }
-    tx.set('matches/$id', match);
+    _put(tx, 'matches/$id', match);
   }
 
   void _finish(Doc match, Result result, {required String reason}) {

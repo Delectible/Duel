@@ -76,6 +76,18 @@ jobs:
           curl -fsS -X PATCH "https://firebaserules.googleapis.com/v1/$RELEASE" -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d "$REL" > /dev/null ||
             curl -fsS -X POST "$API/releases" -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d "{\"name\":\"$RELEASE\",\"rulesetName\":\"$RULESET\"}" > /dev/null
           echo "Rules live: $RULESET" >> "$GITHUB_STEP_SUMMARY"
+      # Firestore deletes documents once their expireAt has passed (games a
+      # day after the last move, parties after 30 days; see the referee).
+      - name: Auto-delete old games and parties
+        if: steps.secrets.outputs.ok
+        env:
+          PROJECT: ${{ vars.FIREBASE_PROJECT }}
+        run: |
+          for group in matches secrets hands parties codes; do
+            gcloud firestore fields ttls update expireAt --collection-group="$group" \
+              --enable-ttl --async --quiet --project "$PROJECT" ||
+              echo "::warning::Couldn't turn on auto-delete for $group"
+          done
       - name: Referee to Cloud Run
         if: steps.secrets.outputs.ok
         env:

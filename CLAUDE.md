@@ -145,6 +145,8 @@ weights cut from the variable font.
   `poker_game.dart` Hold'em; full state in `secrets/{id}`, public in the
   match, `private` per player in `matches/{id}/hands/{uid}`). Players only
   read Firestore; only the referee writes.
+  Every write goes through `_put`, which stamps `expireAt` (games a day
+  after the last move, parties 30 days); Firestore TTL deletes them.
 - `firebase/`: `firestore.rules` (+ emulator config). Test locally from
   `firebase/`: `firebase emulators:exec --only firestore --project
   demo-duel "cd ../server && dart test"`.

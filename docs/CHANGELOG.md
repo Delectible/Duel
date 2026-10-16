@@ -251,6 +251,12 @@ Ships as app version **0.4.1**.
   while others still play) and says when bots were placed that way.
   → 0.7.0 · 2026-10-16
 
+- [x] **11.7 Old games clean themselves up** (2026-10-16): every server
+  document carries `expireAt`; Firestore's auto-delete (TTL, switched on
+  by `online.yml`) removes games, their secret deck and private hands a
+  day after the last move, and parties (with their codes) 30 days after
+  the last change. Server only.
+
 ### 12. Fixes
 
 - [x] **12.1 Fix: Four in a Row bot never moved** (Normal / Hard, real

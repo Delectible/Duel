@@ -142,4 +142,19 @@ void main() {
     m = await ref.rematch(sam, m['id']! as String);
     expect((await store.get('matches/${m['next']}'))!['stake'], Referee.maxStake);
   });
+
+  test('everything expires: games a day after the last move, parties after 30 days', () async {
+    final m = await startGame();
+    final id = m['id']! as String;
+    DateTime at(String path) => DateTime.parse(store.docs[path]!['expireAt']! as String);
+    expect(at('matches/$id'), now.add(Referee.gameLife));
+    expect(at('secrets/$id'), now.add(Referee.gameLife));
+    expect(at('parties/${m['party']}'), now.add(Referee.partyLife));
+    final code = store.docs['parties/${m['party']}']!['code'];
+    expect(at('codes/$code'), now.add(Referee.partyLife));
+    // A move later pushes the game's date on.
+    now = now.add(const Duration(hours: 5));
+    await ref.move(whoseTurn(m), id, m['version']! as int, {'column': 3});
+    expect(at('matches/$id'), now.add(Referee.gameLife));
+  });
 }

@@ -105,6 +105,8 @@ class FirestoreStore implements Store {
     final int i => fs.Value(integerValue: '$i'),
     final double d => fs.Value(doubleValue: d),
     final String s => fs.Value(stringValue: s),
+    // A real timestamp, so Firestore's auto-delete (TTL) can use it.
+    final DateTime t => fs.Value(timestampValue: t.toUtc().toIso8601String()),
     final List<Object?> l => fs.Value(arrayValue: fs.ArrayValue(values: [for (final x in l) toValue(x)])),
     final Map<Object?, Object?> m => fs.Value(mapValue: fs.MapValue(fields: toFields(m))),
     _ => throw ArgumentError('Not storable: ${v.runtimeType}'),
