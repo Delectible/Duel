@@ -3,15 +3,12 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.5.0';
+  static const version = '0.5.1';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'New game: Spades against bots. Play two-handed (you draw your cards one by one) or four players in teams, '
-      'with you and a bot partner against two bots. Bid your tricks, or go Nil for a big bonus. '
-      'Pick how long to play before you start: 150, 250 or 500 points. '
-      'Fixed: the Four in a Row bot (Normal and Hard) sometimes never made its move.';
+      'Behind the scenes: groundwork for playing online with friends (coming soon). Nothing changes in your games yet.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
