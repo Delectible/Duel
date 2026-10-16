@@ -102,3 +102,11 @@ jobs:
         env:
           KEY: ${{ vars.FIREBASE_WEB_KEY || 'AIzaSyAhfArKUtca12ULpDxe0t9P0m12Yj87lQ0' }}
         run: python3 tool/online/smoke.py "${{ steps.referee.outputs.url }}" "${{ vars.FIREBASE_PROJECT }}" "$KEY"
+      - name: Diagnose (on failure)
+        if: failure() && steps.secrets.outputs.ok
+        env:
+          PROJECT: ${{ vars.FIREBASE_PROJECT }}
+        run: |
+          echo "--- databases"; gcloud firestore databases list --project "$PROJECT" --format 'table(name,locationId,type,databaseEdition)' || true
+          echo "--- referee log"; gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE" \
+            --project "$PROJECT" --freshness 30m --limit 30 --format 'value(textPayload)' || true
