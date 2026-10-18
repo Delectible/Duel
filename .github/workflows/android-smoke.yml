@@ -1,0 +1,61 @@
+name: Android launch check
+# Installs the release APK on an Android emulator, opens it and reads the
+# log: does it get past the splash screen (first frame), does online start?
+# Runs main (what's on Play) and the pushed commit side by side.
+on:
+  push:
+    branches-ignore: [main]
+    paths: ['lib/**', 'android/**', 'pubspec.*', '.github/workflows/android-smoke.yml']
+  workflow_dispatch:
+env:
+  ORG: com.dingo
+  APP: duel
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [main, pushed]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref == 'main' && 'main' || github.sha }}
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter create --org $ORG --project-name $APP --platforms android .
+      - run: flutter build apk --release
+      - name: Enable KVM (fast emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Launch on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: |
+            adb install -r build/app/outputs/flutter-apk/app-release.apk
+            adb logcat -c
+            adb shell am start -W -n com.dingo.duel/.MainActivity || true
+            sleep 45
+            adb exec-out screencap -p > launch-${{ matrix.ref }}.png
+            adb logcat -d > logcat-${{ matrix.ref }}.txt
+            echo "=== Duel / Flutter / Firebase / crashes ==="
+            grep -iE "Duel:|flutter|firebase|FATAL|AndroidRuntime|ANR|com.dingo.duel" logcat-${{ matrix.ref }}.txt | grep -v "^--------- " | tail -150 || true
+            echo "=== Still running? ==="
+            adb shell pidof com.dingo.duel || echo "not running"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-${{ matrix.ref }}
+          path: |
+            launch-*.png
+            logcat-*.txt

@@ -23,11 +23,14 @@ Future<void> main() async {
   // The app shows straight away; online joins in when Firebase has started
   // (never waited for: a slow or stuck start mustn't hold up the app).
   runApp(DuelApp(account: account, setup: setup));
+  // Markers in the phone's log (adb logcat) for checking a launch.
+  WidgetsBinding.instance.addPostFrameCallback((_) => debugPrint('Duel: first frame'));
   unawaited(_goOnline(account, setup));
 }
 
 Future<void> _goOnline(Account account, PlaySetup setup) async {
   await Online.start();
+  debugPrint(Online.ready ? 'Duel: online ready' : 'Duel: online off');
   if (Online.ready) setup.party = PartyService(FirebaseBackend(FirebaseConfig.referee), account: account);
 }
 

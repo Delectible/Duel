@@ -5,7 +5,7 @@ name: Build
 on:
   push:
     branches: [main]
-    paths-ignore: ['**.md', 'docs/**', 'fastlane/**', 'server/**', 'firebase/**', 'tool/online/**', '.github/workflows/play-listing.yml', '.github/workflows/online.yml']
+    paths-ignore: ['**.md', 'docs/**', 'fastlane/**', 'server/**', 'firebase/**', 'tool/online/**', '.github/workflows/play-listing.yml', '.github/workflows/online.yml', '.github/workflows/android-smoke.yml']
   workflow_dispatch:
     inputs:
       ios:
