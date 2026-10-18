@@ -3,14 +3,13 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.8.2';
+  static const version = '0.8.3';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Blitz: Aces are only wild from your hand. An Ace sitting in a castle can only be struck by another Ace. '
-      'Speech bubbles no longer cover anyone\'s cards, and fade after a moment. Wars now play out on the table: '
-      'swords clash and whoever loses a card falls.';
+      'Blitz: Aces are wild again wherever they are: an Ace in a castle can be struck by any card, and an Ace '
+      'from your hand still hits anything, even face down.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

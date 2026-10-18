@@ -273,7 +273,7 @@ Ships as app version **0.4.1**.
   card on, then the face-up one on top; Aces don't fight in wars; a Blitz
   spends your lowest five of the colour (keeping Aces and pairs); over 400
   turns the biggest castle wins. Online next. → 0.8.0 · 2026-10-18
-- [x] **13.2 Aces only wild from your hand** (2026-10-18): an Ace in a
+- [x] **13.2 Aces only wild from your hand** (2026-10-18; undone by 13.5): an Ace in a
   castle is just an Ace, so only another Ace can strike (or fortify) it;
   an Ace from your hand still matches anything, face down too. Guides
   updated. → 0.8.2 · 2026-10-18
@@ -288,6 +288,10 @@ Ships as app version **0.4.1**.
   falls" when it's everyone's last card; several wars play one after
   another. The game waits for it (`fighting`). `WarScene`,
   `war_scene_test.dart`. → 0.8.2 · 2026-10-18
+- [x] **13.5 Aces wild in castles again** (2026-10-18): 13.2 was a
+  misremembered rule; back to the original: any card strikes (or
+  fortifies onto) an Ace, and an Ace from your hand matches anything.
+  → 0.8.3 · 2026-10-18
 
 ### 12. Fixes
 

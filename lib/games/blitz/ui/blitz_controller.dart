@@ -300,7 +300,7 @@ class BlitzController extends ChangeNotifier {
       now = 'An Ace hits any card, even face down. Tap a glowing card.';
     } else {
       now =
-          'Your ${rankWord(s.rank)}: hit a glowing ${rankWord(s.rank)}, scout a face-down card, '
+          'Your ${rankWord(s.rank)}: hit a glowing ${rankWord(s.rank)} or Ace, scout a face-down card, '
           'or match your own to fortify.';
     }
     return said == null ? now : '$said  ·  $now';

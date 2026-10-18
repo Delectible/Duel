@@ -57,7 +57,7 @@ void main() {
     expect(Blitz.decksFor(5), 2);
   });
 
-  test('strike: same value, or an Ace from your hand; both cards go', () {
+  test('strike: same value, or an Ace either way; both cards go', () {
     final g = table(['[2s] 3s', '[4d] 9d 9h'], ['9c Kc', '5h']);
     expect(g.moves(0), contains(const Strike(PlayingCard(9, Suit.clubs), 1, 2)));
     expect(g.moves(0), contains(const Strike(PlayingCard(9, Suit.clubs), 1, 1)), reason: 'a scouted 9 too');
@@ -67,12 +67,10 @@ void main() {
     expect(g.discard, containsAll([c('9c'), c('9h')]));
     expect(g.turn, 1);
 
-    // An Ace in hand hits anything, even face down; an Ace in a castle only
-    // falls to another Ace.
+    // An Ace in hand hits anything, even face down; anything hits an Ace.
     final a = table(['3s', '[4d] Ah'], ['As 7c', '5h']);
     expect(a.moves(0), contains(Strike(c('As'), 1, 0)));
-    expect(a.moves(0), contains(Strike(c('As'), 1, 1)));
-    expect(a.moves(0), isNot(contains(Strike(c('7c'), 1, 1))));
+    expect(a.moves(0), contains(Strike(c('7c'), 1, 1)));
     a.apply(Strike(c('As'), 1, 0));
     expect((a.events.whereType<Struck>().last).blind, isTrue);
   });
