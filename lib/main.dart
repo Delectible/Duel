@@ -17,8 +17,7 @@ import 'features/home/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final account = Account(store: PrefsStore(prefs));
+  final account = Account(store: await _store());
   final setup = PlaySetup();
   // The app shows straight away; online joins in when Firebase has started
   // (never waited for: a slow or stuck start mustn't hold up the app).
@@ -26,6 +25,17 @@ Future<void> main() async {
   // Markers in the phone's log (adb logcat) for checking a launch.
   WidgetsBinding.instance.addPostFrameCallback((_) => debugPrint('Duel: first frame'));
   unawaited(_goOnline(account, setup));
+}
+
+/// The phone's saved account; if that can't be read the app still opens
+/// (this session just isn't saved) rather than hanging on the splash.
+Future<AccountStore> _store() async {
+  try {
+    return PrefsStore(await SharedPreferences.getInstance().timeout(const Duration(seconds: 5)));
+  } catch (e) {
+    debugPrint('Duel: saved account unavailable ($e)');
+    return MemoryStore();
+  }
 }
 
 Future<void> _goOnline(Account account, PlaySetup setup) async {

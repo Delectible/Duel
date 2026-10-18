@@ -27,7 +27,10 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
-      - run: flutter create --org $ORG --project-name $APP --platforms android .
+      - run: |
+          flutter create --org $ORG --project-name $APP --platforms android .
+          git checkout -- pubspec.lock
+          flutter pub get --enforce-lockfile
       - run: flutter build apk --release
       - name: Enable KVM (fast emulator)
         run: |

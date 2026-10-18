@@ -65,7 +65,11 @@ together, GamePigeon-easy. Let it guide design and development choices.
   set; CI generates the rest (AppDelegate, SceneDelegate, Xcode project).
 - `android/` and `ios/` only contain the files we customised. CI runs
   `flutter create --org com.dingo --project-name duel --platforms android .`
-  (and `ios`) to fill in the rest (it never overwrites existing files).
+  (and `ios`) to fill in the rest (it never overwrites existing files),
+  then restores `pubspec.lock` (`flutter create` upgrades packages; that
+  once shipped a broken plugin) and runs `flutter pub get
+  --enforce-lockfile`. `android-smoke.yml` launches the release APK on an
+  emulator (branch pushes touching the app) and saves the log.
   Don't delete `AndroidManifest.xml`, `android/app/build.gradle.kts` or
   `MainActivity.kt`. Locally, run the same command (`--platforms
   android,ios`) before `flutter run`; don't commit what it generates.
