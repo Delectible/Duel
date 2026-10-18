@@ -51,7 +51,9 @@ together, GamePigeon-easy. Let it guide design and development choices.
   test`, builds `Duel-N.apk`, `Duel-N.aab` and an unsigned `Duel-N.ipa`, and
   publishes them under **Releases** (`build-N`). Other branches don't
   build on push; started by hand from the Actions tab they build as a
-  pre-release (no Play upload). Nothing is published unless the checks pass.
+  pre-release (no Play upload). Nothing is published unless the checks pass
+  and the `launch` job has opened the release APK on an emulator ("Duel:
+  first frame" in its log; keep that line in `main.dart`).
 - iOS build runs on a macOS runner. The repo is public, so it runs on every
   build (on a private repo it would only run with `[ios]` in the commit
   message or when started by hand: Mac minutes cost 10x). The .ipa is

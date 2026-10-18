@@ -107,13 +107,51 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: ios, path: dist/ }
 
+  # Opens the release APK on an Android emulator and fails unless the app
+  # draws its first frame (the "Duel: first frame" log line) and is still
+  # running. Nothing goes to Releases or Play without it: tests can't catch
+  # a native plugin that breaks only in a release build.
+  launch:
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: android, path: dist }
+      - name: Enable KVM (fast emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Launch on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: |
+            adb install -r dist/Duel-${{ github.run_number }}.apk
+            adb logcat -c
+            adb shell am start -W -n com.dingo.duel/.MainActivity || true
+            sleep 40
+            adb exec-out screencap -p > launch.png
+            adb logcat -d > logcat.txt
+            grep -E "Duel:|E flutter|FATAL|AndroidRuntime" logcat.txt | tail -60 || true
+            grep -q "Duel: first frame" logcat.txt || { echo "::error::The app never drew its first frame (stuck on the splash?)"; exit 1; }
+            adb shell pidof com.dingo.duel > /dev/null || { echo "::error::The app is no longer running"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: launch, path: "launch.png\nlogcat.txt" }
+
   release:
-    needs: [check, android, ios]
-    if: always() && needs.check.result == 'success' && needs.android.result == 'success'
+    needs: [check, android, ios, launch]
+    if: always() && needs.check.result == 'success' && needs.android.result == 'success' && needs.launch.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with: { path: dist, merge-multiple: true }
+      - run: rm -f dist/launch.png dist/logcat.txt   # the launch check's, not for release
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
@@ -129,8 +167,8 @@ jobs:
   # Play only accepts API uploads once the first .aab was uploaded by hand.
   # The store listing itself is published by play-listing.yml.
   play:
-    needs: [check, android]
-    if: github.ref == 'refs/heads/main' && needs.check.result == 'success' && needs.android.result == 'success'
+    needs: [check, android, launch]
+    if: github.ref == 'refs/heads/main' && needs.check.result == 'success' && needs.android.result == 'success' && needs.launch.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Look for the Play service account
