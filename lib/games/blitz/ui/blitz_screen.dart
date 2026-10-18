@@ -255,7 +255,29 @@ class _Table extends StatelessWidget {
   final BlitzController c;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => Stack(
+    children: [
+      Positioned.fill(child: _felt()),
+      // A war covers the felt while it's fought.
+      if (c.fighting)
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: WarScene(
+                key: ValueKey('war ${c.actionId}'),
+                wars: c.lastWars,
+                personas: c.personas,
+                each: c.warTime,
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+
+  Widget _felt() => Container(
     margin: const EdgeInsets.fromLTRB(10, 4, 10, 4),
     padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
     decoration: BoxDecoration(
@@ -302,6 +324,294 @@ class _Table extends StatelessWidget {
       },
     ),
   );
+}
+
+/// A war, fought over the felt: the fighters' faces with crossed swords
+/// between them clash, then whoever lost a card falls off the bottom of the
+/// screen and the rest hold their ground. Several wars play one after
+/// another, [each] long.
+class WarScene extends StatefulWidget {
+  const WarScene({super.key, required this.wars, required this.personas, required this.each});
+
+  final List<War> wars;
+  final List<Persona> personas;
+  final Duration each;
+
+  @override
+  State<WarScene> createState() => _WarSceneState();
+}
+
+class _WarSceneState extends State<WarScene> with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(
+    vsync: this,
+    duration: widget.each * max(1, widget.wars.length),
+  )..forward();
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _a,
+    builder: (context, _) {
+      final n = max(1, widget.wars.length);
+      final at = (_a.value * n).clamp(0.0, n - 0.0001);
+      final war = widget.wars[at.floor()];
+      return _war(war, at - at.floor());
+    },
+  );
+
+  /// One war at time [t] (0..1): in, clash, fall, out.
+  Widget _war(War war, double t) {
+    double span(double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
+    final enter = Curves.easeOutBack.transform(span(0, 0.18));
+    final clash = span(0.18, 0.42);
+    final fall = Curves.easeIn.transform(span(0.5, 0.85));
+    final fade = 1 - span(0.88, 1);
+    final shake = clash > 0 && clash < 1 ? sin(clash * pi * 10) * 4 * (1 - clash) : 0.0;
+    final name = '${rankWord(war.rank)}s';
+    final nobody = war.losers.isEmpty;
+    return Opacity(
+      opacity: fade,
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.72 * min(1, span(0, 0.08) * 1.5)),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final count = war.fighters.length;
+            // Two face off; more stand in a ring round one pair of swords.
+            final ring = min(box.maxWidth - 16, 340.0);
+            final face = (ring * (count == 2 ? 0.26 : (count <= 4 ? 0.2 : 0.16))).clamp(28.0, 72.0);
+            final drop = box.maxHeight;
+            // Short felts (on its side) shrink the whole scene to fit.
+            return Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(
+                  width: box.maxWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Transform.scale(
+                        scale: enter,
+                        child: Text(
+                          'WAR!',
+                          style: Toon.text(40, weight: FontWeight.w800, color: Toon.yellow),
+                        ),
+                      ),
+                      Opacity(
+                        opacity: span(0.1, 0.2),
+                        child: Text('over $name', style: Toon.text(18, color: Colors.white)),
+                      ),
+                      SizedBox(height: face * 0.5),
+                      Transform.translate(
+                        offset: Offset(shake, 0),
+                        child: _ring(war, face, enter, clash, fall, drop),
+                      ),
+                      SizedBox(height: face * 0.4),
+                      Opacity(
+                        opacity: span(0.55, 0.65),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            nobody ? 'Nobody falls: last cards are safe.' : _verdict(war),
+                            textAlign: TextAlign.center,
+                            style: Toon.text(15, weight: FontWeight.w600, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// The fighters round the swords: two side by side, more in a ring
+  /// (starting on the left), each sliding in from outside.
+  Widget _ring(War war, double face, double enter, double clash, double fall, double drop) {
+    final count = war.fighters.length;
+    final w = face * 1.7, h = face + 52;
+    final swords = face * (count == 2 ? 0.9 : 1.2);
+    final width = count == 2 ? 2 * w + swords + 16 : 2 * w + 2 * swords;
+    final height = count == 2 ? h : width;
+    final r = count == 2 ? (w + swords) / 2 + 8 : width / 2 - max(w, h) / 2;
+    final centre = Offset(width / 2, height / 2);
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: centre.dx - swords / 2,
+            top: centre.dy - swords / 2 - (count == 2 ? 14 : 0),
+            child: _Swords(size: swords, t: clash, enter: enter * (1 - fall)),
+          ),
+          for (var i = 0; i < count; i++)
+            () {
+              final a = pi + i * 2 * pi / count;
+              final at = centre + Offset(cos(a), sin(a)) * r * (1 + (1 - enter) * 1.5);
+              return Positioned(
+                left: at.dx - w / 2,
+                top: at.dy - h / 2,
+                width: w,
+                height: h,
+                child: _fighter(war, war.fighters[i], face, i, fall, drop),
+              );
+            }(),
+        ],
+      ),
+    );
+  }
+
+  String _who(int p) => p == 0 ? 'You' : widget.personas[p].name;
+
+  String _verdict(War war) {
+    final lost = war.losers.map(_who).toList();
+    final names = lost.length == 1
+        ? lost.single
+        : '${lost.sublist(0, lost.length - 1).join(', ')} and ${lost.last}';
+    final card = '${rankWord(war.rank)}${war.losers.length == 1 ? '' : 's'}';
+    final kept = war.fighters.where((p) => !war.losers.contains(p)).map(_who).toList();
+    final verb = lost.length == 1 && lost.single != 'You' ? 'loses' : 'lose';
+    return '$names $verb ${lost.length == 1 ? 'a' : 'their'} $card'
+        '${kept.isEmpty ? '!' : '. ${kept.join(' and ')} ${kept.length == 1 && kept.single != 'You' ? 'holds' : 'hold'} on.'}';
+  }
+
+  Widget _fighter(War war, int p, double size, int i, double fall, double drop) {
+    final lost = war.losers.contains(p);
+    // The losers tumble off the bottom.
+    final side = i.isEven ? -1 : 1;
+    final dy = lost ? fall * drop * 1.5 : 0.0;
+    final spin = lost ? fall * side * 1.2 : 0.0;
+    return Transform.translate(
+      offset: Offset(0, dy),
+      child: Transform.rotate(
+        angle: spin,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: lost && fall > 0 ? Toon.red : Toon.cardFace,
+                shape: BoxShape.circle,
+                border: Border.all(color: Toon.ink, width: 2.5),
+              ),
+              child: Face(widget.personas[p], size: size),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _who(p),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Toon.text(13, color: Colors.white),
+            ),
+            SizedBox(
+              height: 22,
+              child: lost && fall > 0
+                  ? Text(
+                      '-1',
+                      style: Toon.text(16, weight: FontWeight.w800, color: Toon.red),
+                    )
+                  : (fall > 0 ? const Icon(Icons.shield_rounded, size: 20, color: Toon.yellow) : null),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Two swords crossing: they swing in from apart and clash (a spark at the
+/// peak of [t]).
+class _Swords extends StatelessWidget {
+  const _Swords({required this.size, required this.t, required this.enter});
+
+  final double size;
+  final double t;
+  final double enter;
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+    opacity: enter.clamp(0.0, 1.0),
+    child: CustomPaint(size: Size(size, size), painter: _SwordsPainter(t)),
+  );
+}
+
+class _SwordsPainter extends CustomPainter {
+  _SwordsPainter(this.t);
+
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    // Apart (0.9 rad from crossed) swinging in, a knock back at mid-clash.
+    final swing = t < 0.3 ? 0.9 * (1 - t / 0.3) : sin((t - 0.3) / 0.7 * pi * 3) * 0.15 * (1 - t);
+    for (final dir in [-1.0, 1.0]) {
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(dir * (pi / 4 + swing));
+      _sword(canvas, r);
+      canvas.restore();
+    }
+    // Spark where the blades meet.
+    if (t > 0.25 && t < 0.75) {
+      final k = 1 - ((t - 0.5).abs() / 0.25);
+      final spark = Paint()..color = Toon.yellow.withValues(alpha: k);
+      for (var i = 0; i < 8; i++) {
+        final a = i * pi / 4;
+        canvas.drawLine(
+          c + Offset(cos(a), sin(a)) * r * 0.12,
+          c + Offset(cos(a), sin(a)) * r * (0.12 + 0.35 * k),
+          spark
+            ..strokeWidth = 2.5
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+    }
+  }
+
+  /// One sword pointing up, hilt at the bottom, centred on the origin.
+  void _sword(Canvas canvas, double r) {
+    final ink = Paint()
+      ..color = Toon.ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeJoin = StrokeJoin.round;
+    final blade = Path()
+      ..moveTo(0, -r)
+      ..lineTo(r * 0.11, -r * 0.8)
+      ..lineTo(r * 0.11, r * 0.45)
+      ..lineTo(-r * 0.11, r * 0.45)
+      ..lineTo(-r * 0.11, -r * 0.8)
+      ..close();
+    canvas.drawPath(blade, Paint()..color = const Color(0xFFDDE3EA));
+    canvas.drawPath(blade, ink);
+    final guard = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(0, r * 0.5), width: r * 0.62, height: r * 0.13),
+      Radius.circular(r * 0.06),
+    );
+    canvas.drawRRect(guard, Paint()..color = Toon.yellow);
+    canvas.drawRRect(guard, ink);
+    final grip = Rect.fromLTRB(-r * 0.07, r * 0.56, r * 0.07, r * 0.88);
+    canvas.drawRect(grip, Paint()..color = Toon.wood);
+    canvas.drawRect(grip, ink);
+    canvas.drawCircle(Offset(0, r * 0.94), r * 0.08, Paint()..color = Toon.yellow);
+    canvas.drawCircle(Offset(0, r * 0.94), r * 0.08, ink);
+  }
+
+  @override
+  bool shouldRepaint(_SwordsPainter old) => old.t != t;
 }
 
 /// One player: their face (name, cards in hand) and their castle.

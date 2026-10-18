@@ -280,6 +280,14 @@ Ships as app version **0.4.1**.
 - [x] **13.3 Bubbles don't hide cards** (2026-10-18): Blitz's speech
   bubbles ("Strike!", "-1"…) sit over the player's face instead of their
   castle, and fade out after 2.5 s. → 0.8.2 · 2026-10-18
+- [x] **13.4 War scene** (2026-10-18): a war covers the felt: "WAR! over
+  7s", the fighters' faces with crossed swords that swing in and clash
+  (two face off; three to six stand in a ring round the swords), then
+  whoever lost a card tumbles off the bottom (-1) while the rest hold
+  their ground (shield), with a line saying who lost what. "Nobody
+  falls" when it's everyone's last card; several wars play one after
+  another. The game waits for it (`fighting`). `WarScene`,
+  `war_scene_test.dart`. → 0.8.2 · 2026-10-18
 
 ### 12. Fixes
 

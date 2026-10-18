@@ -69,12 +69,20 @@ class BlitzController extends ChangeNotifier {
   /// Wars fought by the last action.
   List<War> lastWars = const [];
 
+  /// The war scene is playing (the table waits for it).
+  bool fighting = false;
+
+  /// How long one war's scene lasts (each war in [lastWars] plays in turn).
+  Duration get warTime => Duration(milliseconds: (2600 * pace).round());
+
+  int get _warPause => fighting ? 2600 * lastWars.length : 0;
+
   Timer? _timer;
   var _disposed = false;
 
   int get players => game.players;
 
-  bool get yourTurn => phase == BlitzPhase.playing && game.turn == 0 && !game.isOver;
+  bool get yourTurn => phase == BlitzPhase.playing && game.turn == 0 && !game.isOver && !fighting;
 
   List<BlitzMove> get _yours => yourTurn ? game.moves(0) : const [];
 
@@ -130,6 +138,7 @@ class BlitzController extends ChangeNotifier {
     selected = null;
     lastAction = null;
     lastWars = const [];
+    fighting = false;
     round++;
     phase = BlitzPhase.dealing;
     _after(1300, _step);
@@ -153,6 +162,7 @@ class BlitzController extends ChangeNotifier {
   }
 
   void _step() {
+    fighting = false;
     if (game.isOut(0) && !game.isOver) {
       // You're out: the bots settle the rest at once (for the final order).
       while (!game.isOver) {
@@ -173,7 +183,7 @@ class BlitzController extends ChangeNotifier {
     _after(800 + _rng.nextInt(700), () {
       _play(bot.decide(game, p));
       // A pair or a Blitz: the same bot goes again after a beat.
-      _after(game.isOver ? 900 : 1100, _step);
+      _after((game.isOver ? 900 : 1100) + _warPause, _step);
     });
   }
 
@@ -186,6 +196,7 @@ class BlitzController extends ChangeNotifier {
       orElse: () => fresh.first,
     );
     lastWars = fresh.whereType<War>().toList();
+    fighting = lastWars.isNotEmpty;
     actionId++;
     _notify();
   }
@@ -248,7 +259,7 @@ class BlitzController extends ChangeNotifier {
     if (game.turn != 0 || game.isOver) return;
     selected = null;
     _play(m);
-    _after(game.turn == 0 && !game.isOver ? 300 : 700, _step);
+    _after((game.turn == 0 && !game.isOver ? 300 : 700) + _warPause, _step);
   }
 
   // --- Words -----------------------------------------------------------------
@@ -271,6 +282,7 @@ class BlitzController extends ChangeNotifier {
       return 'BLITZ! Tap the castle to knock down (every face-up card goes).';
     }
     final said = _said();
+    if (fighting) return said ?? 'War!';
     if (!yourTurn) {
       final p = game.turn;
       return [said, '${personas[p].name} is thinking…'].whereType<String>().join('  ·  ');

@@ -257,7 +257,8 @@ weights cut from the variable font.
   `ui/blitz_controller.dart` (pick up a card, `moveAt` lights its targets),
   `ui/blitz_screen.dart` (a strip per player: face + castle; two columns on
   its side with 4+ players; your hand + Pair / BLITZ in the controls,
-  `blitzGuide`, `blitzWarsInfo`). `GameChoice` Wars (on / off, `info` (i),
+  `blitzGuide`, `blitzWarsInfo`, `WarScene`: a war's clash over the felt
+  while the controller is `fighting`). `GameChoice` Wars (on / off, `info` (i),
   `showValues: false`), `GameInfo.note` (decks chip).
 - `lib/core/help/home_guide.dart`: "Play at home" (preview button):
   `HomeGuide` (what you need, setup, gameplay, winning) per game in
