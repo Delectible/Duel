@@ -306,6 +306,11 @@ Ships as app version **0.4.1**.
 - [x] **13.8 Face builder: only the changed box swaps** (2026-10-18):
   each part box was keyed by the whole face, so changing one part popped
   all four; now each is keyed by its own part. → 0.8.3 · 2026-10-18
+- [x] **13.9 Never more than 5 in hand** (2026-10-18): every turn uses one
+  card (draw to 5, end on 4). With nothing to hit, scout or fortify you
+  used to pass and keep all five (then draw a sixth); now you throw a card
+  of your choice away (`Discard`; bots pick their least useful). A test
+  checks the hand sizes through 60 bot games. → 0.8.3 · 2026-10-18
 
 ### 14. Texas Hold'em, more fun with bots (requested 2026-10-18)
 

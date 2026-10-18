@@ -82,6 +82,9 @@ class BlitzBot {
       case Scout(:final card, :final target):
         // Scouting a castle we could then hit (a matching card in hand).
         return 20 + threat(target) * 0.5 - keep(card) * 1.5;
+      case Discard(:final card):
+        // Throw away the card worth least to keep.
+        return -50 - keep(card);
       case PassTurn():
         return -100;
     }

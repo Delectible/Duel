@@ -47,6 +47,10 @@ Future<void> playGame(WidgetTester tester, {Future<void> Function(int step)? onS
       await tester.tap(find.byKey(const Key('blitz')));
     } else if (has(const Key('pair'))) {
       await tester.tap(find.byKey(const Key('pair')));
+    } else if (has(const Key('discard'))) {
+      await tapHand(0);
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('discard')));
     } else if (has(const Key('pass'))) {
       await tester.tap(find.byKey(const Key('pass')));
     } else if (find.text('Pick up a card').evaluate().isNotEmpty) {

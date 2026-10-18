@@ -162,8 +162,8 @@ void main() {
 
     test('both on their last card: nobody loses', () {
       final g = table(['9s', '9h'], ['Kc', 'Kd'], wars: true);
-      expect(g.moves(0), [const PassTurn()], reason: 'nothing to hit or scout');
-      g.apply(const PassTurn());
+      expect(g.moves(0), [Discard(c('Kc'))], reason: 'nothing to hit or scout: throw a card away');
+      g.apply(Discard(c('Kc')));
       expect(g.castles[0], hasLength(1));
       expect(g.castles[1], hasLength(1));
     });
@@ -191,7 +191,16 @@ void main() {
         for (var p = 0; p < players; p++) BlitzBot(difficulty: Difficulty.values[p % 3], rng: rng),
       ];
       while (!g.isOver) {
-        g.apply(bots[g.turn].decide(g, g.turn));
+        final p = g.turn;
+        g.apply(bots[p].decide(g, p));
+        // Five in hand at most, ever; a turn that's over leaves four (one
+        // card used each turn), unless the deck ran dry.
+        for (var q = 0; q < players; q++) {
+          expect(g.hands[q].length, lessThanOrEqualTo(5), reason: 'seed $seed, player $q');
+        }
+        if (g.turn != p && !g.isOut(p) && g.drawPile.isNotEmpty) {
+          expect(g.hands[p].length, 4, reason: 'seed $seed: player $p ends a turn with 4');
+        }
       }
       expect(g.places.keys.toSet(), {for (var p = 0; p < players; p++) p});
       expect(g.places.values.toSet(), {for (var p = 1; p <= players; p++) p});

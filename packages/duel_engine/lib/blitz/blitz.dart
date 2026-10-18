@@ -95,7 +95,21 @@ class BlitzAttack extends BlitzMove {
   String toString() => 'Blitz(${red ? 'red' : 'black'} -> $target)';
 }
 
-/// Nothing at all can be done.
+/// Nothing to hit, scout or fortify: throw a card from your hand away (so
+/// the turn still ends with four in hand).
+class Discard extends BlitzMove {
+  const Discard(this.card);
+  final PlayingCard card;
+
+  @override
+  bool operator ==(Object o) => o is Discard && o.card == card;
+  @override
+  int get hashCode => card.hashCode ^ 0x5a5a;
+  @override
+  String toString() => 'Discard($card)';
+}
+
+/// Nothing at all can be done, not even a discard (an empty hand).
 class PassTurn extends BlitzMove {
   const PassTurn();
 
@@ -188,6 +202,12 @@ class War extends BlitzEvent {
 
 class Passed extends BlitzEvent {
   const Passed(super.player);
+}
+
+/// Had nothing to play: threw [card] away.
+class Discarded extends BlitzEvent {
+  const Discarded(super.player, this.card);
+  final PlayingCard card;
 }
 
 class Reshuffled extends BlitzEvent {
@@ -292,7 +312,10 @@ class Blitz {
 
   int faceUpCount(int p) => castles[p].where((c) => c.faceUp).length;
 
-  /// Everything [p] may do now (just [PassTurn] when there's nothing).
+  /// Everything [p] may do now. With nothing to hit, scout or fortify:
+  /// throw a card away ([Discard]); [PassTurn] only with an empty hand.
+  /// Either way every turn uses one card: you start it with five (after
+  /// the draw) and end it with four.
   List<BlitzMove> moves(int p) {
     if (isOver || p != turn) return const [];
     final out = <BlitzMove>[];
@@ -330,7 +353,8 @@ class Blitz {
         }
       }
     }
-    return out.isEmpty ? const [PassTurn()] : out;
+    if (out.isNotEmpty) return out;
+    return hand.isEmpty ? const [PassTurn()] : [for (final c in cards) Discard(c)];
   }
 
   /// Plays [move] for the player whose turn it is.
@@ -390,6 +414,11 @@ class Blitz {
         events.add(Blitzed(p, target, red: red, knocked: up.length));
         _drawInto(p, 5);
         _endAction(p, endsTurn: false, extraTurn: true);
+      case Discard(:final card):
+        hands[p].remove(card);
+        discard.add(card);
+        events.add(Discarded(p, card));
+        _endAction(p, endsTurn: true);
       case PassTurn():
         events.add(Passed(p));
         _endAction(p, endsTurn: true);
@@ -421,7 +450,8 @@ class Blitz {
       return;
     }
     if (!endsTurn) {
-      // After a pair: something else this turn (or nothing, if nothing's left).
+      // After a pair: something else this turn (a discard if nothing else;
+      // nothing at all only with an empty hand).
       if (moves(p).first is PassTurn) {
         events.add(Passed(p));
         _nextTurn();

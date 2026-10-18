@@ -28,7 +28,8 @@ const blitzGuide = [
   GuideStage(
     'turn',
     'Your turn',
-    'You draw a card, then do one thing. Tap a card in your hand to pick it up: everything it can do lights up.',
+    'You draw a card (now you have 5), then do one thing with a card (back to 4). Tap a card in your hand to pick '
+        'it up: everything it can do lights up. Nothing to hit or scout? Throw one away.',
     icon: Icons.touch_app_rounded,
   ),
   GuideStage(
@@ -1012,7 +1013,7 @@ class _Piles extends StatelessWidget {
   }
 }
 
-/// Your hand (picked-up card raised) and the Pair / Blitz / Pass buttons.
+/// Your hand (picked-up card raised) and the Pair / Blitz / Throw away buttons.
 class _Controls extends StatelessWidget {
   const _Controls({required this.c});
 
@@ -1052,6 +1053,14 @@ class _Controls extends StatelessWidget {
               Text('BLITZ (${red ? 'red' : 'black'})', style: Toon.text(15, weight: FontWeight.w700)),
             ],
           ),
+        ),
+      if (c.yourTurn && c.mustDiscard)
+        ToonButton(
+          key: const Key('discard'),
+          color: Toon.card,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          onPressed: c.selected == null ? null : c.throwAway,
+          child: Text(c.selected == null ? 'Pick a card to throw away' : 'Throw away', style: Toon.text(15)),
         ),
       if (c.yourTurn && c.mustPass)
         ToonButton(

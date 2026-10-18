@@ -24,7 +24,8 @@ const blitzAtHome = HomeGuide(
   ],
   play: [
     'Pick someone to start; turns go to the left.',
-    'On your turn, first draw a card from the deck. Then you must do one of these:',
+    'On your turn, first draw a card from the deck (you now have 5). Then you must do one of these, which uses a '
+        'card, so you end your turn with 4:',
     'Strike: show a card from your hand with the same number as a face-up card in someone else\'s castle (a 9 '
         'on a 9). Throw both away. They just lost a life.',
     'Scout: throw any card from your hand away, and turn one of someone else\'s face-down castle cards face up. '
@@ -35,6 +36,7 @@ const blitzAtHome = HomeGuide(
         'these. Only one pair a turn.',
     'Blitz: if you have 5 cards of the same colour (all red or all black), throw them away and knock down every '
         'face-up card in one player\'s castle. Draw 5 new cards and take another whole turn.',
+    'Nothing you can do? Throw one card from your hand away instead.',
     'Aces are wild numbers: an Ace matches anything and anything matches an Ace. An Ace from your hand can even '
         'strike a face-down card. For a Blitz an Ace only counts as its own colour.',
     'Wars (optional, for a faster game): whenever two castles show the same number face up, those cards fight '

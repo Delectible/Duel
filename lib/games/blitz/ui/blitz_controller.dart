@@ -138,6 +138,15 @@ class BlitzController extends ChangeNotifier {
   /// Nothing at all you can do: Pass.
   bool get mustPass => _yours.length == 1 && _yours.single is PassTurn;
 
+  /// Nothing to hit, scout or fortify: throw a card away (pick it up, then
+  /// Throw away).
+  bool get mustDiscard => _yours.isNotEmpty && _yours.every((m) => m is Discard);
+
+  void throwAway() {
+    final s = selected;
+    if (mustDiscard && s != null) _you(Discard(s));
+  }
+
   void _start(int bots) {
     personas = [you, ...Persona.bots(bots, _rng)];
     game = Blitz(players: bots + 1, rng: _rng, wars: wars);
@@ -199,7 +208,14 @@ class BlitzController extends ChangeNotifier {
     game.apply(move);
     final fresh = game.events.sublist(before);
     lastAction = fresh.firstWhere(
-      (e) => e is Struck || e is Scouted || e is Fortified || e is Paired || e is Blitzed || e is Passed,
+      (e) =>
+          e is Struck ||
+          e is Scouted ||
+          e is Fortified ||
+          e is Paired ||
+          e is Blitzed ||
+          e is Passed ||
+          e is Discarded,
       orElse: () => fresh.first,
     );
     lastWars = fresh.whereType<War>().toList();
@@ -296,7 +312,11 @@ class BlitzController extends ChangeNotifier {
     }
     final s = selected;
     String now;
-    if (mustPass) {
+    if (mustDiscard) {
+      now = s == null
+          ? 'Nothing to hit or scout: pick a card to throw away.'
+          : 'Throw away your ${rankWord(s.rank)}? Tap Throw away (or pick another).';
+    } else if (mustPass) {
       now = "Nothing you can do this turn: tap Pass.";
     } else if (s == null) {
       final extra = [if (pairRank != null) 'Pair', if (blitzRed != null) 'BLITZ'];
@@ -333,6 +353,7 @@ class BlitzController extends ChangeNotifier {
       Blitzed(:final target, :final knocked) =>
         '$who BLITZED ${_whose(target)} castle: $knocked card${knocked == 1 ? '' : 's'} down!$war',
       Passed() => '$who had nothing to do.',
+      Discarded(:final card) => '$who had nothing to hit and threw away ${_value(card)}.',
       _ => null,
     };
   }
