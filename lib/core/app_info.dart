@@ -3,13 +3,12 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.8.1';
+  static const version = '0.8.2';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Fix: the app could get stuck on the opening screen. It now opens straight away, and playing with friends '
-      'switches on by itself once it is connected. Also new: Blitz, a house game against 1 to 5 bots.';
+      'Blitz: Aces are only wild from your hand. An Ace sitting in a castle can only be struck by another Ace.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

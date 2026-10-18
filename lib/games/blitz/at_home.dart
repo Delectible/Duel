@@ -35,8 +35,8 @@ const blitzAtHome = HomeGuide(
         'these. Only one pair a turn.',
     'Blitz: if you have 5 cards of the same colour (all red or all black), throw them away and knock down every '
         'face-up card in one player\'s castle. Draw 5 new cards and take another whole turn.',
-    'Aces are wild numbers: an Ace matches anything and anything matches an Ace. An Ace from your hand can even '
-        'strike a face-down card. For a Blitz an Ace only counts as its own colour.',
+    'Aces in your hand are wild numbers: an Ace matches any card and can even strike a face-down card. An Ace '
+        'sitting in a castle is just an Ace: only another Ace matches it. For a Blitz an Ace only counts as its own colour.',
     'Wars (optional, for a faster game): whenever two castles show the same number face up, those cards fight '
         'straight away. The player with fewer castle cards keeps theirs; the others lose theirs. Same number of '
         'castle cards? They all lose it. Nobody can lose their last card to a war.',

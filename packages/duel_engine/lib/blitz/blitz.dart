@@ -21,7 +21,7 @@ sealed class BlitzMove {
 }
 
 /// Match a hand card with an opponent's castle card: both are discarded.
-/// Face up: same value (or either is an Ace). Face down: Aces only.
+/// Face up: same value, or the hand card is an Ace. Face down: Aces only.
 class Strike extends BlitzMove {
   const Strike(this.card, this.target, this.index);
   final PlayingCard card;
@@ -211,8 +211,9 @@ class Won extends BlitzEvent {
 /// opponent's face-up card with the same value, [Scout] (discard to turn an
 /// opponent's face-down card up), [Fortify] (match your own face-up card
 /// and grow your castle), [Pair] (discard a pair, draw two, go on), or
-/// [BlitzAttack] with five cards of one colour. Aces are wild values: they
-/// match anything, are matched by anything, and can hit face-down cards.
+/// [BlitzAttack] with five cards of one colour. An Ace from your hand is a
+/// wild value: it matches anything and can hit face-down cards. An Ace in a
+/// castle is just an Ace: only another Ace matches it.
 /// With [wars] on, matching face-up values across castles fight at once:
 /// the smallest castle keeps its card. Last castle standing wins.
 ///
@@ -284,7 +285,8 @@ class Blitz {
       if (!isOut(p)) p,
   ];
 
-  static bool matches(PlayingCard a, PlayingCard b) => a.rank == b.rank || a.rank == 14 || b.rank == 14;
+  /// Can hand card [a] match castle card [b]? Same value, or [a] is an Ace.
+  static bool matches(PlayingCard a, PlayingCard b) => a.rank == b.rank || a.rank == 14;
 
   int faceUpCount(int p) => castles[p].where((c) => c.faceUp).length;
 

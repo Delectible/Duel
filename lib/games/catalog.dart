@@ -295,7 +295,7 @@ final games = <GameInfo>[
       'Everyone has a castle: a row of cards, face down except the top. Those are your lives. You also hold 4 cards.',
       'On your turn draw one, then: strike a face-up castle card with the same value, scout (throw a card away to '
           'turn one face up), fortify your own castle, or play a pair to draw two and go again.',
-      'Aces are wild values. Five cards of one colour: BLITZ, knocking down every face-up card in a castle.',
+      'Aces in your hand are wild values. Five cards of one colour: BLITZ, knocking down every face-up card in a castle.',
       'Last castle standing wins. 2–4 players use one deck; 5–6 use two, shuffled together.',
     ],
     minutes: (players) => 4 + players * 2,

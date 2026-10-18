@@ -59,7 +59,8 @@ const blitzGuide = [
   GuideStage(
     'aces',
     'Aces are wild',
-    'An Ace matches any value, and anything matches an Ace. An Ace can even hit a face-down card. (For a Blitz '
+    'An Ace from your hand matches any value and can even hit a face-down card. An Ace in a castle only falls to '
+        'another Ace. (For a Blitz '
         'an Ace only counts as its own colour.)',
     icon: Icons.auto_awesome_rounded,
   ),
