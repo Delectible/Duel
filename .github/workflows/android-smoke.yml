@@ -1,11 +1,10 @@
 name: Android launch check
 # Installs the release APK on an Android emulator, opens it and reads the
 # log: does it get past the splash screen (first frame), does online start?
-# Runs main (what's on Play) and the pushed commit side by side.
+# Runs main (what's on Play) and the chosen branch side by side. By hand
+# only (Actions tab), for chasing a launch problem; every main build is
+# already checked by build-apk.yml's launch job.
 on:
-  push:
-    branches-ignore: [main]
-    paths: ['lib/**', 'android/**', 'pubspec.*', '.github/workflows/android-smoke.yml']
   workflow_dispatch:
 env:
   ORG: com.dingo
