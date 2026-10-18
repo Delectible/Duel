@@ -315,3 +315,56 @@ class SpadesPreview extends StatelessWidget {
     );
   }
 }
+
+/// Blitz: an opponent's castle with a 9 showing, your castle, and a 9 in
+/// your hand about to strike it.
+class BlitzPreview extends StatelessWidget {
+  const BlitzPreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget castle(String down, PlayingCard up, double w) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final c in _cards(down))
+          Padding(
+            padding: const EdgeInsets.only(right: 3),
+            child: CardView(card: c, width: w, faceUp: false),
+          ),
+        CardView(card: up, width: w),
+      ],
+    );
+    return _Felt(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Face(Persona.bots(1, Random(3)).single, size: 30),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: const [BoxShadow(color: Toon.red, spreadRadius: 0)],
+                  ),
+                  child: castle('2c 3c 4c 5c 6c', const PlayingCard(9, Suit.spades), 26),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                castle('2c 3c 4c 5c', const PlayingCard(12, Suit.hearts), 26),
+                const SizedBox(width: 14),
+                _Fan(_cards('9d As Kh'), width: 30, spread: 0.6),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

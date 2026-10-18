@@ -3,14 +3,13 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.7.0';
+  static const version = '0.8.0';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Texas Hold'em with friends online! The host can add bots to fill seats, each Easy, Normal or Hard, "
-      'up to six at a table. Your cards stay private; everyone sees the same table, moves and showdowns. '
-      'At the end, everyone gets the full finishing order.';
+      'New game: Blitz! Knock down every castle but yours: strike, scout, fortify, play pairs, and BLITZ with five '
+      'cards of one colour. Against 1 to 5 bots, with optional Wars for a faster, wilder game.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

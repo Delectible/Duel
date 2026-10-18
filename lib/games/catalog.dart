@@ -11,6 +11,10 @@ import '../core/theme/toon.dart';
 import '../core/help/home_guide.dart';
 import 'crazy_eights/at_home.dart';
 import 'crazy_eights/ui/eights_screen.dart';
+import 'package:duel_engine/blitz/blitz.dart';
+
+import 'blitz/at_home.dart';
+import 'blitz/ui/blitz_screen.dart';
 import 'four_in_a_row/at_home.dart';
 import 'four_in_a_row/ui/row_screen.dart';
 import 'go_fish/at_home.dart';
@@ -41,7 +45,12 @@ class GameInfo {
     this.choice,
     this.opponentsFor,
     this.openOnline,
+    this.note,
   });
+
+  /// Something about this table size worth knowing up front (Blitz: how
+  /// many decks), shown as a chip in the preview.
+  final String Function(int players)? note;
 
   final String id;
   final String name;
@@ -94,7 +103,8 @@ class GameInfo {
   int minutesFor(int players, int? picked) {
     final base = minutes(players);
     final c = choice;
-    if (c == null || picked == null) return base;
+    // Only point targets scale the length (on / off choices don't).
+    if (c == null || picked == null || !c.showValues) return base;
     return max(1, (base * picked / c.values[c.initial]).round());
   }
 
@@ -139,7 +149,20 @@ class GameInfo {
 
 /// One choice made in the preview before a game starts.
 class GameChoice {
-  const GameChoice({required this.label, required this.values, required this.names, this.initial = 0});
+  const GameChoice({
+    required this.label,
+    required this.values,
+    required this.names,
+    this.initial = 0,
+    this.info,
+    this.showValues = true,
+  });
+
+  /// Explained behind an (i) next to the choice.
+  final String? info;
+
+  /// Show the number with each name ("Quick 150"); off for on / off choices.
+  final bool showValues;
 
   /// "Play to".
   final String label;
@@ -258,6 +281,35 @@ final games = <GameInfo>[
     opponentsFor: (players) => players == 4 ? 2 : 1,
     open: (setup, stake, target) =>
         SpadesScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, target: target ?? 250),
+  ),
+  GameInfo(
+    id: 'blitz',
+    name: 'Blitz',
+    blurb: 'Knock down every castle but yours',
+    minPlayers: 2,
+    maxPlayers: 6,
+    color: Toon.red,
+    art: (_) => const _FannedCards(['9d', 'As']),
+    board: (_) => const BlitzPreview(),
+    rules: const [
+      'Everyone has a castle: a row of cards, face down except the top. Those are your lives. You also hold 4 cards.',
+      'On your turn draw one, then: strike a face-up castle card with the same value, scout (throw a card away to '
+          'turn one face up), fortify your own castle, or play a pair to draw two and go again.',
+      'Aces are wild values. Five cards of one colour: BLITZ, knocking down every face-up card in a castle.',
+      'Last castle standing wins. 2–4 players use one deck; 5–6 use two, shuffled together.',
+    ],
+    minutes: (players) => 4 + players * 2,
+    atHome: blitzAtHome,
+    note: (players) => Blitz.decksFor(players) == 1 ? '1 deck' : '2 decks shuffled together',
+    choice: const GameChoice(
+      label: 'Wars',
+      values: [0, 1],
+      names: ['Off', 'On'],
+      info: blitzWarsInfo,
+      showValues: false,
+    ),
+    open: (setup, stake, wars) =>
+        BlitzScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, wars: wars == 1),
   ),
 ];
 

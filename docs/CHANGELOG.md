@@ -257,6 +257,23 @@ Ships as app version **0.4.1**.
   day after the last move, and parties (with their codes) 30 days after
   the last change. Server only.
 
+### 13. Blitz (a house game by a friend of Luca's)
+
+- [x] **13.1 Blitz vs bots** (requested 2026-10-18): castles of 7 (face
+  down, top face up), hands of 4; draw, then strike / scout / fortify /
+  pair (once a turn, then go again) / BLITZ (five of a colour knocks down
+  every face-up card in a castle, then another whole turn). Aces wild
+  values (and hit face-down cards), own colour for a Blitz. Wars as an
+  on / off choice with an (i): the smallest castle keeps its card, ties
+  all lose, never your last card. 2–4 players one deck, 5–6 two (shown
+  in the preview and the game). Bots by difficulty (`tool/blitz/
+  simulate.dart`: Hard wins most, 30–60 turns a game, no stalls). Liberties
+  taken: you must act (Pass only when nothing is possible); a pair needs
+  two real values (Aces don't pair anything); a fortify puts the face-down
+  card on, then the face-up one on top; Aces don't fight in wars; a Blitz
+  spends your lowest five of the colour (keeping Aces and pairs); over 400
+  turns the biggest castle wins. Online next. → 0.8.0 · 2026-10-18
+
 ### 12. Fixes
 
 - [x] **12.1 Fix: Four in a Row bot never moved** (Normal / Hard, real

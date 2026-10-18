@@ -244,6 +244,15 @@ weights cut from the variable font.
   `ui/spades_controller.dart` (pacing, trick pause + sweep, commentary),
   `ui/spades_screen.dart` (`spadesGuide`). `GameInfo.choice` (play to
   150/250/500), `playerCounts` {2, 4}, `opponentsFor` (team stakes).
+- `lib/games/blitz/`: a house game (castles of cards). `engine/blitz.dart`
+  (moves: `Strike`, `Scout`, `Fortify`, `Pair`, `BlitzAttack`, `PassTurn`;
+  `moves(p)` lists what's legal; events; wars; `decksFor(players)`),
+  `engine/blitz_bot.dart` (scores moves; `tool/blitz/simulate.dart`),
+  `ui/blitz_controller.dart` (pick up a card, `moveAt` lights its targets),
+  `ui/blitz_screen.dart` (a strip per player: face + castle; two columns on
+  its side with 4+ players; your hand + Pair / BLITZ in the controls,
+  `blitzGuide`, `blitzWarsInfo`). `GameChoice` Wars (on / off, `info` (i),
+  `showValues: false`), `GameInfo.note` (decks chip).
 - `lib/core/help/home_guide.dart`: "Play at home" (preview button):
   `HomeGuide` (what you need, setup, gameplay, winning) per game in
   `lib/games/<game>/at_home.dart`, `GameInfo.atHome`. Written for someone

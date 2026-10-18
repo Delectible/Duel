@@ -71,6 +71,7 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
           icon: Icons.timer_outlined,
           text: 'About ${game.minutesFor(players, _choice)} min · $players players',
         ),
+        if (game.note != null) _Chip(icon: Icons.style_rounded, text: game.note!(players)),
         // Follow along with your own cards.
         ToonButton(
           key: const Key('play at home'),
@@ -312,9 +313,35 @@ class _ChoicePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Icon(Icons.flag_rounded, size: 20, color: Toon.fg),
+      Icon(choice.showValues ? Icons.flag_rounded : Icons.tune_rounded, size: 20, color: Toon.fg),
       const SizedBox(width: 6),
       Text(choice.label, style: Toon.text(16, weight: FontWeight.w700)),
+      if (choice.info != null)
+        IconButton(
+          key: const Key('choice info'),
+          tooltip: 'What is ${choice.label}?',
+          visualDensity: VisualDensity.compact,
+          icon: Icon(Icons.info_outline_rounded, size: 20, color: Toon.fg),
+          onPressed: () => showModalBottomSheet<void>(
+            context: context,
+            showDragHandle: true,
+            backgroundColor: Toon.paper,
+            builder: (context) => SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(choice.label, style: Toon.text(24, weight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    Text(choice.info!, style: Toon.text(16, weight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       const SizedBox(width: 10),
       for (final (i, v) in choice.values.indexed) ...[
         if (i > 0) const SizedBox(width: 6),
@@ -327,7 +354,7 @@ class _ChoicePicker extends StatelessWidget {
             onPressed: () => onChanged(v),
             child: FittedBox(
               child: Text(
-                '${choice.names[i]} $v',
+                choice.showValues ? '${choice.names[i]} $v' : choice.names[i],
                 maxLines: 1,
                 style: Toon.text(14, color: Toon.on(v == value ? Toon.yellow : Toon.card)),
               ),
