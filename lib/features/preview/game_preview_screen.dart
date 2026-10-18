@@ -293,7 +293,7 @@ class _Chip extends StatelessWidget {
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: Toon.ink),
+        Icon(icon, size: 18, color: Toon.fg),
         const SizedBox(width: 6),
         Text(text, style: Toon.text(14)),
       ],

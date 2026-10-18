@@ -307,6 +307,37 @@ Ships as app version **0.4.1**.
   each part box was keyed by the whole face, so changing one part popped
   all four; now each is keyed by its own part. → 0.8.3 · 2026-10-18
 
+### 14. Texas Hold'em, more fun with bots (requested 2026-10-18)
+
+- [x] **14.1 Chips**: stacks of round chips with depth, edge stripes
+  and a shine, coloured by value (yellow 1,000, purple 500, black 100,
+  green 25, red 5, white 1; `ui/chips.dart`); bets slide out from the
+  player each time they put more in; the pot is up to three stacks.
+- [x] **14.2 The deal**: cards spin out from the dealer one at a time,
+  round the table from the dealer's left, twice; yours flip over as they
+  land (`PokerController.dealGap`).
+- [x] **14.3 Bots take their time**: 2–10 s a move, mostly 2–4, longer
+  when there's a lot to call; a "…" bubble while they think; **Skip**
+  hurries them until it's your move or the next hand (offline only).
+- [x] **14.4 Table talk**: each bot look has a voice (rookie nervous, rock
+  terse, shark smug, maniac loud) and now and then says something after
+  an all-in, a big raise, folding to you, winning, losing, a lucky
+  win or being knocked out (`ui/table_talk.dart`).
+- [x] **14.5 All-in drama**: when it's all in the cards turn up with each
+  hand's chance to win (`duel_engine/poker/odds.dart`), an ALL IN!
+  banner, and the board deals slowly with the chances updating.
+- [x] **14.6 Big pots**: "BIG WIN!" / "HUGE POT!" slams in, chips rain,
+  and stacks count up to their new size.
+- [x] **14.7 Shuffle quips**: past 10 shuffles "Not random enough for
+  you?", past 20 "The cards are getting dizzy…", past 30 "They're
+  shuffled. Promise."
+- [x] **14.8 Fixes**: money under names was black on dark grey in dark
+  mode (now white like the name; checked every game, two icons fixed
+  too); the yellow outline on winning cards is a ring with rounded corners
+  that fits the card; folded cards slide off to the middle; the seats
+  keep their animations when the pot or a banner appears.
+  → 0.8.3 · 2026-10-18
+
 ### 12. Fixes
 
 - [x] **12.2 Fix: stuck on the splash screen** (reported 2026-10-18,

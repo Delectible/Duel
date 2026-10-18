@@ -10,6 +10,7 @@ import 'package:duel_engine/poker/poker_hand.dart';
 import '../../../core/avatars/faces.dart';
 import 'hand_chart.dart';
 import 'shuffle_deck.dart';
+import 'chips.dart';
 import 'poker_controller.dart';
 
 /// Where each seat sits, as fractions of the table area, clockwise from you
@@ -57,6 +58,7 @@ class TableView extends StatelessWidget {
         if (c.phase == TablePhase.shuffle) {
           children.add(
             _At(
+              key: const ValueKey('shuffle deck'),
               px(wide ? const Offset(0.5, 0.56) : center),
               child: ShuffleDeck(shuffles: c.shuffles, onShuffle: c.shuffleDeck, cardWidth: boardCard),
             ),
@@ -68,6 +70,7 @@ class TableView extends StatelessWidget {
           final winning = c.phase == TablePhase.payout ? c.winningCards() : const <PlayingCard>{};
           children.add(
             _At(
+              key: const ValueKey('board'),
               px(center),
               child: _Board(cards: h.board, hand: c.handNumber, winning: winning, width: boardCard),
             ),
@@ -76,29 +79,73 @@ class TableView extends StatelessWidget {
           if (pot > 0 && c.phase != TablePhase.payout) {
             children.add(
               _At(
+                key: const ValueKey('pot'),
                 potAt,
-                child: _ChipPile(amount: pot, label: 'Pot '),
+                child: ChipPile(amount: pot, label: 'Pot ', stacks: 3, perStack: 5),
               ),
             );
           }
+        }
+
+        // The deal: from the dealer, one card at a time round the table
+        // (starting on the dealer's left), twice.
+        _Deal? dealFor(int s) {
+          final i = c.handIndex(s);
+          if (h == null || i == null) return null;
+          final n = h.players.length;
+          final dealer = px(Offset.lerp(spots[c.game.handSeats[h.button]], center, 0.35)!);
+          final order = (i - h.button - 1) % n;
+          // Where this seat's (first) card lands, from the seat's centre.
+          final card = s == 0 ? const Offset(-2, -19) : const Offset(30, -17);
+          return _Deal(
+            from: dealer - (px(spots[s]) + card),
+            delays: [for (var k = 0; k < 2; k++) (k * n + order) * PokerController.dealGap],
+            hand: c.handNumber,
+          );
         }
 
         // Seats.
         for (var s = 0; s < seats; s++) {
           children.add(
             _At(
+              // Keyed: things before the seats (the pot, banners) come and
+              // go, and the seats must keep their animations' state.
+              key: ValueKey('seat $s'),
               px(spots[s]),
               child: s == 0
-                  ? _YourSeat(c: c)
+                  ? _YourSeat(c: c, deal: dealFor(0))
                   : _BotSeat(
                       c: c,
                       seat: s,
+                      deal: dealFor(s),
+                      // Folded cards slide off to the middle.
+                      muck: px(center) - (px(spots[s]) + const Offset(30, -17)),
                       // On its side the seats along the top show them beside
                       // (towards the middle), clear of the board.
                       cards: wide && spots[s].dy <= 0.2
                           ? (spots[s].dx > 0.5 ? _CardsAt.left : _CardsAt.right)
                           : (_cardsAbove(spots[s]) ? _CardsAt.above : _CardsAt.below),
                     ),
+            ),
+          );
+        }
+
+        // Table talk, on its own layer (never faded with a folded seat):
+        // beside the avatar along the top, above it down the sides,
+        // leaning inwards so it stays on screen.
+        for (final MapEntry(key: s, value: said) in c.talk.entries) {
+          final spot = spots[s];
+          final at = px(spot);
+          final top = spot.dy <= 0.2;
+          final lean = spot.dx < 0.35 ? 0.0 : (spot.dx > 0.65 ? -1.0 : -0.5);
+          children.add(
+            Positioned(
+              left: top ? at.dx + 36 : at.dx + (lean == 0 ? -40 : (lean < -0.9 ? 40 : 0)),
+              top: top ? at.dy - 46 : at.dy - 78,
+              child: FractionalTranslation(
+                translation: Offset(top ? 0 : lean, 0),
+                child: IgnorePointer(child: SpeechBubble(said.text, key: ValueKey('talk${said.id}'))),
+              ),
             ),
           );
         }
@@ -119,7 +166,17 @@ class TableView extends StatelessWidget {
                 ),
               );
             } else {
-              children.add(_At(from, child: _ChipPile(amount: p.bet)));
+              // Pushed out from the player's seat each time they put more in.
+              children.add(
+                _Fly(
+                  key: ValueKey('bet${c.handNumber}-${h.street}-$s-${p.bet}'),
+                  from: Offset.lerp(px(spots[s]), from, 0.15)!,
+                  to: from,
+                  amount: p.bet,
+                  duration: 380,
+                  fade: true,
+                ),
+              );
             }
           }
           // Pots flying to their winners.
@@ -135,6 +192,8 @@ class TableView extends StatelessWidget {
                     from: potAt,
                     to: px(Offset.lerp(spots[seat], center, 0.2)!),
                     amount: share,
+                    duration: 650,
+                    stacks: 2,
                   ),
                 );
               }
@@ -157,6 +216,45 @@ class TableView extends StatelessWidget {
               );
             }
           }
+        }
+
+        // All in: a banner under the board while it runs out.
+        if (c.odds.isNotEmpty && c.phase != TablePhase.payout) {
+          children.add(
+            Positioned(
+              key: const ValueKey('all in'),
+              left: 0,
+              right: 0,
+              // Under the board, where the result goes later.
+              top: px(center).dy + boardCard * 0.7 + 14,
+              child: const Center(child: _AllInBanner()),
+            ),
+          );
+        }
+
+        // A big pot: the splash and a shower of chips.
+        if (c.phase == TablePhase.payout && c.bigWin != null) {
+          children.add(
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ClipRect(child: _ChipShower(key: ValueKey('shower${c.handNumber}'))),
+              ),
+            ),
+          );
+          children.add(
+            Positioned(
+              left: 0,
+              right: 0,
+              top: px(center).dy - boardCard * 0.7 - 70,
+              child: Center(
+                child: _BigWin(
+                  key: ValueKey('big${c.handNumber}'),
+                  title: c.bigWin!,
+                  who: c.bigWinSeat == 0 ? null : c.personas[c.bigWinSeat!].name,
+                ),
+              ),
+            ),
+          );
         }
 
         // "Blinds up!" notice.
@@ -197,7 +295,7 @@ enum _CardsAt { above, below, left, right }
 
 /// Centres [child] on [at].
 class _At extends StatelessWidget {
-  const _At(this.at, {required this.child});
+  const _At(this.at, {super.key, required this.child});
 
   final Offset at;
   final Widget child;
@@ -212,19 +310,35 @@ class _At extends StatelessWidget {
 
 /// Chips sliding from [from] to [to] (into the pot, or to a winner).
 class _Fly extends StatelessWidget {
-  const _Fly({super.key, required this.from, required this.to, required this.amount});
+  const _Fly({
+    super.key,
+    required this.from,
+    required this.to,
+    required this.amount,
+    this.duration = 450,
+    this.fade = false,
+    this.stacks = 1,
+  });
 
   final Offset from;
   final Offset to;
   final int amount;
+  final int duration;
+
+  /// Fade in on the way (chips pushed out from under a seat).
+  final bool fade;
+  final int stacks;
 
   @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<Offset>(
-    tween: Tween(begin: from, end: to),
-    duration: const Duration(milliseconds: 450),
-    curve: Curves.easeInOutCubic,
-    builder: (context, at, child) => _At(at, child: child!),
-    child: _ChipPile(amount: amount),
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: Duration(milliseconds: duration),
+    curve: Curves.easeOutCubic,
+    builder: (context, t, child) => _At(
+      Offset.lerp(from, to, t)!,
+      child: Opacity(opacity: fade ? min(1, t * 2.5) : 1, child: child),
+    ),
+    child: ChipPile(amount: amount, stacks: stacks),
   );
 }
 
@@ -327,88 +441,71 @@ class _FlipIn extends StatelessWidget {
   }
 }
 
-/// Cards sliding in from the middle of the table when dealt.
-class _DealIn extends StatelessWidget {
-  const _DealIn({super.key, required this.child, required this.from, this.delay = 0});
+/// How a seat's two cards are dealt: from where (relative to the first
+/// card's spot) and when each goes out.
+class _Deal {
+  const _Deal({required this.from, required this.delays, required this.hand});
+
+  final Offset from;
+  final List<int> delays;
+  final int hand;
+}
+
+/// One card dealt: it waits its turn, spins across face down from the
+/// dealer and lands; [flip] turns it over once it's down (yours).
+class _DealCard extends StatelessWidget {
+  const _DealCard({
+    super.key,
+    required this.child,
+    required this.from,
+    required this.delay,
+    required this.width,
+    this.flip = false,
+  });
 
   final Widget child;
   final Offset from;
   final int delay;
+  final double width;
+  final bool flip;
+
+  static const _flight = 330, _turn = 240;
 
   @override
   Widget build(BuildContext context) {
-    final total = 380 + delay;
+    final total = delay + _flight + (flip ? _turn : 0);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: Duration(milliseconds: total),
-      curve: Interval(delay / total, 1, curve: Curves.easeOutCubic),
-      builder: (context, t, child) => Transform.translate(
-        offset: from * (1 - t),
-        child: Opacity(opacity: t, child: child),
-      ),
+      builder: (context, t, child) {
+        final ms = t * total;
+        if (ms < delay) return Opacity(opacity: 0, child: child);
+        final fly = Curves.easeOutCubic.transform(((ms - delay) / _flight).clamp(0.0, 1.0));
+        if (fly < 1 || flip && ms < delay + _flight + _turn / 2) {
+          // In the air (or the first half of turning over): its back.
+          final squash = flip && fly >= 1 ? 1 - ((ms - delay - _flight) / (_turn / 2)).clamp(0.0, 1.0) : 1.0;
+          return Transform.translate(
+            offset: from * (1 - fly),
+            child: Transform.rotate(
+              angle: (1 - fly) * 2.4,
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.diagonal3Values(max(squash, 0.001), 1, 1),
+                child: CardView(card: null, width: width, faceUp: false),
+              ),
+            ),
+          );
+        }
+        if (!flip || ms >= total) return child!;
+        // The second half of turning over: the face opens out.
+        final open = ((ms - delay - _flight - _turn / 2) / (_turn / 2)).clamp(0.0, 1.0);
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(max(open, 0.001), 1, 1),
+          child: child,
+        );
+      },
       child: child,
-    );
-  }
-}
-
-/// A little stack of chips with the amount.
-class _ChipPile extends StatelessWidget {
-  const _ChipPile({required this.amount, this.label = ''});
-
-  final int amount;
-  final String label;
-
-  static const _colors = [Toon.red, Toon.blue, Toon.inkLight, Toon.green];
-
-  @override
-  Widget build(BuildContext context) {
-    final count = amount >= 1000 ? 3 : (amount >= 100 ? 2 : 1);
-    final color = _colors[(amount.bitLength) % _colors.length];
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 20,
-          height: 14 + count * 4.0,
-          child: Stack(
-            children: [
-              for (var i = 0; i < count; i++)
-                Positioned(
-                  left: 0,
-                  bottom: i * 4.0,
-                  child: Container(
-                    width: 20,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: const BorderRadius.all(Radius.elliptical(10, 6)),
-                      border: Border.all(color: Toon.ink, width: 2),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 8,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 3),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: Toon.ink.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text('$label${chips(amount)}', style: Toon.text(13, color: Colors.white)),
-        ),
-      ],
     );
   }
 }
@@ -555,9 +652,15 @@ class _NamePlate extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(name, style: Toon.text(12), maxLines: 1, overflow: TextOverflow.ellipsis),
-        Text(
-          note ?? chips(stack),
-          style: Toon.text(13, weight: FontWeight.w700, color: note == null ? Toon.ink : Toon.muted),
+        // Stacks count up (and down) as chips arrive and go.
+        TweenAnimationBuilder<double>(
+          tween: Tween(end: stack.toDouble()),
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeOutCubic,
+          builder: (context, v, _) => Text(
+            note ?? chips(v.round()),
+            style: Toon.text(13, weight: FontWeight.w700, color: note == null ? Toon.fg : Toon.muted),
+          ),
         ),
       ],
     ),
@@ -572,11 +675,15 @@ String _ordinal(int n) => switch (n) {
 };
 
 class _BotSeat extends StatelessWidget {
-  const _BotSeat({required this.c, required this.seat, required this.cards});
+  const _BotSeat({required this.c, required this.seat, required this.cards, required this.muck, this.deal});
 
   final PokerController c;
   final int seat;
   final _CardsAt cards;
+  final _Deal? deal;
+
+  /// From the seat's cards to the middle of the table.
+  final Offset muck;
 
   @override
   Widget build(BuildContext context) {
@@ -609,6 +716,7 @@ class _BotSeat extends StatelessWidget {
             // below, clear of the board.
             if (showCards)
               Positioned(
+                key: const ValueKey('cards'),
                 top: faceUp
                     ? switch (cards) {
                         _CardsAt.above => -40,
@@ -623,11 +731,37 @@ class _BotSeat extends StatelessWidget {
                         _ => 10,
                       }
                     : 60,
-                child: _DealIn(
-                  key: ValueKey('deal${c.handNumber}-$seat'),
-                  from: const Offset(0, 30),
-                  delay: seat * 60,
-                  child: _HoleCards(cards: p.hole, faceUp: faceUp, width: faceUp ? 34 : 22, winning: winning),
+                child: _HoleCards(
+                  cards: p.hole,
+                  faceUp: faceUp,
+                  width: faceUp ? 34 : 22,
+                  winning: winning,
+                  deal: deal,
+                  seat: seat,
+                  chance: c.odds[seat],
+                ),
+              ),
+            // Just folded: the cards slide into the middle and vanish.
+            if (folded && p!.hole.length == 2)
+              Positioned(
+                key: const ValueKey('muck'),
+                top: 26,
+                left: 60,
+                child: IgnorePointer(
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey('muck${c.handNumber}-$seat'),
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 520),
+                    curve: Curves.easeInCubic,
+                    builder: (context, t, child) => Opacity(
+                      opacity: (1 - t).clamp(0.0, 1.0),
+                      child: Transform.translate(
+                        offset: muck * t,
+                        child: Transform.rotate(angle: t * 1.6, child: child),
+                      ),
+                    ),
+                    child: _HoleCards(cards: p.hole, faceUp: false, width: 22, winning: const {}, seat: seat),
+                  ),
                 ),
               ),
             Positioned(
@@ -638,7 +772,9 @@ class _BotSeat extends StatelessWidget {
                 note: out ? 'Out · ${_ordinal(table.place ?? 0)}' : null,
               ),
             ),
-            if (p?.lastAction != null && c.phase != TablePhase.payout)
+            if (c.actingSeat == seat)
+              const Positioned(top: -8, child: _ThinkingDots())
+            else if (p?.lastAction != null && c.phase != TablePhase.payout)
               Positioned(top: -6, child: _ActionBubble(p!.lastAction!)),
             if (p != null && c.hand!.players[c.hand!.button] == p)
               const Positioned(top: 10, left: 2, child: _DealerButton()),
@@ -650,44 +786,104 @@ class _BotSeat extends StatelessWidget {
 }
 
 class _HoleCards extends StatelessWidget {
-  const _HoleCards({required this.cards, required this.faceUp, required this.width, required this.winning});
+  const _HoleCards({
+    required this.cards,
+    required this.faceUp,
+    required this.width,
+    required this.winning,
+    required this.seat,
+    this.deal,
+    this.chance,
+  });
 
   final List<PlayingCard> cards;
   final bool faceUp;
   final double width;
   final Set<PlayingCard> winning;
+  final int seat;
+  final _Deal? deal;
+
+  /// All in: this hand's chance to win, shown on the cards.
+  final double? chance;
 
   @override
   Widget build(BuildContext context) => SizedBox(
     width: width * (faceUp ? 2.05 : 1.45),
     height: width * 1.4 + 4,
     child: Stack(
+      clipBehavior: Clip.none,
       children: [
         for (var k = 0; k < 2; k++)
           Positioned(
             left: k * width * (faceUp ? 1.05 : 0.45),
             top: faceUp ? 0 : k * 3.0,
-            child: Transform.rotate(
-              angle: faceUp ? 0 : (k == 0 ? -0.12 : 0.1),
-              child: CardView(
-                card: cards[k],
-                width: width,
-                faceUp: faceUp,
-                glow: winning.contains(cards[k]),
-                dim: winning.isNotEmpty && !winning.contains(cards[k]),
+            child: _dealt(
+              k,
+              Transform.rotate(
+                angle: faceUp ? 0 : (k == 0 ? -0.12 : 0.1),
+                child: CardView(
+                  card: cards[k],
+                  width: width,
+                  faceUp: faceUp,
+                  glow: winning.contains(cards[k]),
+                  dim: winning.isNotEmpty && !winning.contains(cards[k]),
+                ),
               ),
             ),
           ),
+        if (faceUp && chance != null)
+          Positioned(left: 0, right: 0, bottom: -14, child: Center(child: _ChanceBadge(chance!))),
       ],
     ),
   );
 }
 
+/// A hand's chance to win while all in: green when ahead, red when behind.
+class _ChanceBadge extends StatelessWidget {
+  const _ChanceBadge(this.chance);
+
+  final double chance;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (chance * 100).round();
+    final color = chance >= 0.5 ? Toon.green : (chance >= 0.25 ? Toon.yellow : Toon.red);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: chance),
+      duration: const Duration(milliseconds: 500),
+      builder: (context, v, _) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+        decoration: Toon.box(color, radius: 9, shadow: 2),
+        child: Text(
+          '${(v * 100).round().clamp(0, 100)}%',
+          key: ValueKey('chance $pct'),
+          style: Toon.text(13, weight: FontWeight.w800, color: Toon.on(color)),
+        ),
+      ),
+    );
+  }
+}
+
+extension on _HoleCards {
+  Widget _dealt(int k, Widget card) {
+    final d = deal;
+    if (d == null) return card;
+    return _DealCard(
+      key: ValueKey('deal${d.hand}-$seat-$k'),
+      from: d.from - Offset(k * width * 0.45, 0),
+      delay: d.delays[k],
+      width: width,
+      child: card,
+    );
+  }
+}
+
 /// You, at the bottom: avatar, stack, and your two cards big.
 class _YourSeat extends StatelessWidget {
-  const _YourSeat({required this.c});
+  const _YourSeat({required this.c, this.deal});
 
   final PokerController c;
+  final _Deal? deal;
 
   @override
   Widget build(BuildContext context) {
@@ -722,33 +918,46 @@ class _YourSeat extends StatelessWidget {
             Positioned(left: 4, top: -8, child: _ActionBubble(p!.lastAction!)),
           if (p != null && p.hole.length == 2)
             Positioned(
+              // Keyed so the deal plays once, whatever comes and goes beside.
+              key: const ValueKey('your cards'),
               left: 84,
               top: 4,
               child: Opacity(
                 opacity: folded ? 0.45 : 1,
-                child: _DealIn(
-                  key: ValueKey('deal${c.handNumber}-0'),
-                  from: const Offset(0, -60),
-                  child: Row(
-                    children: [
-                      for (var k = 0; k < 2; k++)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Transform.rotate(
-                            angle: k == 0 ? -0.05 : 0.05,
-                            child: CardView(
+                child: Row(
+                  children: [
+                    for (var k = 0; k < 2; k++)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Transform.rotate(
+                          angle: k == 0 ? -0.05 : 0.05,
+                          child: () {
+                            final card = CardView(
                               card: p.hole[k],
                               width: 64,
                               glow: winning.contains(p.hole[k]),
                               dim: winning.isNotEmpty && !winning.contains(p.hole[k]),
-                            ),
-                          ),
+                            );
+                            final d = deal;
+                            if (d == null) return card;
+                            return _DealCard(
+                              key: ValueKey('deal${d.hand}-0-$k'),
+                              from: d.from - Offset(k * 70.0, 0),
+                              delay: d.delays[k],
+                              width: 64,
+                              flip: true,
+                              child: card,
+                            );
+                          }(),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ),
+          // All in: your chance to win, over your cards.
+          if (c.odds[0] case final chance? when !folded)
+            Positioned(left: 84, width: 134, top: -16, child: Center(child: _ChanceBadge(chance))),
           // Your hand's name: tap for the cheat sheet, your hand outlined.
           if (name != null)
             Positioned(
@@ -790,4 +999,179 @@ class _YourSeat extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "…" in a bubble, the dots rising in turn: this player is thinking.
+class _ThinkingDots extends StatefulWidget {
+  const _ThinkingDots();
+
+  @override
+  State<_ThinkingDots> createState() => _ThinkingDotsState();
+}
+
+class _ThinkingDotsState extends State<_ThinkingDots> with SingleTickerProviderStateMixin {
+  late final _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat();
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    decoration: Toon.box(Toon.cardFace, radius: 10, shadow: 2),
+    child: AnimatedBuilder(
+      animation: _a,
+      builder: (context, _) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < 3; i++)
+            Transform.translate(
+              offset: Offset(0, -3 * max(0, sin((_a.value - i * 0.18) * 2 * pi))),
+              child: Container(
+                width: 6,
+                height: 6,
+                margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                decoration: const BoxDecoration(color: Toon.inkLight, shape: BoxShape.circle),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// ALL IN! over the board while the cards run out, throbbing.
+class _AllInBanner extends StatefulWidget {
+  const _AllInBanner();
+
+  @override
+  State<_AllInBanner> createState() => _AllInBannerState();
+}
+
+class _AllInBannerState extends State<_AllInBanner> with SingleTickerProviderStateMixin {
+  late final _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))
+    ..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Pop(
+    child: ScaleTransition(
+      scale: Tween(begin: 0.95, end: 1.06).animate(CurvedAnimation(parent: _a, curve: Curves.easeInOut)),
+      child: ToonBox(
+        color: Toon.red,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 4),
+            Text(
+              'ALL IN!',
+              style: Toon.text(18, weight: FontWeight.w800, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// The big-pot splash: slams in, wobbles, says who.
+class _BigWin extends StatelessWidget {
+  const _BigWin({super.key, required this.title, this.who});
+
+  final String title;
+  final String? who;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: const Duration(milliseconds: 900),
+    builder: (context, t, child) {
+      final slam = Curves.elasticOut.transform(t.clamp(0.0, 1.0));
+      return Transform.rotate(
+        angle: sin(t * pi * 4) * 0.06 * (1 - t),
+        child: Transform.scale(scale: 0.3 + 0.7 * slam, child: child),
+      );
+    },
+    child: ToonBox(
+      color: Toon.yellow,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: Toon.text(26, weight: FontWeight.w800, color: Toon.inkLight),
+          ),
+          if (who != null) Text('for $who', style: Toon.text(14, color: Toon.inkLight)),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Chips raining down over the table, tumbling as they fall.
+class _ChipShower extends StatelessWidget {
+  const _ChipShower({super.key});
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: const Duration(milliseconds: 2600),
+    builder: (context, t, _) => CustomPaint(painter: _ShowerPainter(t)),
+  );
+}
+
+class _ShowerPainter extends CustomPainter {
+  _ShowerPainter(this.t);
+
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rng = Random(5);
+    final ink = Paint()
+      ..color = Toon.inkLight
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    for (var i = 0; i < 36; i++) {
+      final x = rng.nextDouble() * size.width;
+      final start = rng.nextDouble() * 0.45;
+      final speed = 0.8 + rng.nextDouble() * 0.6;
+      final spin = (rng.nextDouble() - 0.5) * 10;
+      final color = chipValues[rng.nextInt(5)].$2;
+      final k = ((t - start) / (1 - start)).clamp(0.0, 1.0);
+      if (k <= 0 || k >= 1) continue;
+      final y = -20 + k * speed * (size.height + 40);
+      final c = Offset(x + sin(k * 6 + i) * 12, y);
+      // A chip flipping as it falls: its face squashes and opens.
+      final w = 18.0, h = 18.0 * (0.25 + 0.75 * cos(k * spin).abs());
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(k * spin * 0.3);
+      final face = Rect.fromCenter(center: Offset.zero, width: w, height: h);
+      canvas.drawOval(face, Paint()..color = color.withValues(alpha: 1 - k * 0.3));
+      canvas.drawOval(
+        face.deflate(4).inflate(0),
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.6)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2,
+      );
+      canvas.drawOval(face, ink);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ShowerPainter old) => old.t != t;
 }

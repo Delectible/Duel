@@ -8,10 +8,12 @@ import 'package:duel_engine/difficulty.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/poker/bot.dart';
 import 'package:duel_engine/poker/hand_eval.dart';
+import 'package:duel_engine/poker/odds.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/sit_and_go.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/online/party.dart';
+import 'table_talk.dart';
 
 part 'online_poker.dart';
 
@@ -96,6 +98,9 @@ class PokerController extends ChangeNotifier {
   /// one player can't hold up the table.
   final Duration? resultTimeout;
 
+  /// Time between cards going out in the deal (milliseconds).
+  static const dealGap = 90;
+
   /// Multiplies every delay (0 in tests).
   final double pace;
   final Random _rng;
@@ -133,6 +138,19 @@ class PokerController extends ChangeNotifier {
 
   Timer? _timer;
   var _disposed = false;
+
+  /// What bots are saying right now: seat -> (words, an id per line so
+  /// each pops in once).
+  final Map<int, ({String text, int id})> talk = {};
+  var _talkId = 0;
+  final _talkTimers = <int, Timer>{};
+
+  /// All in with cards face up: each contender's chance to win, by seat.
+  Map<int, double> odds = const {};
+
+  /// A pot big enough to celebrate: the headline ("BIG WIN!") and who won.
+  String? bigWin;
+  int? bigWinSeat;
 
   PokerHand? get hand => game.hand;
 
@@ -199,14 +217,101 @@ class PokerController extends ChangeNotifier {
   /// [seat] is to act: a bot thinks and moves; you get the buttons.
   void _actFor(int seat, PokerHand h) {
     final bot = _bots[seat];
-    if (bot == null) return; // your move
-    // Bots take their time while you're in the hand; once you've folded
-    // they hurry up.
-    final think = youAreIn ? 650 + _rng.nextInt(800) : 300 + _rng.nextInt(200);
-    _after(think, () {
+    if (bot == null) {
+      hurrying = false; // your move: the bots wait for you again
+      return;
+    }
+    _botMove = () {
+      _botMove = null;
+      final youBet = _youAreAggressor(h);
       h.apply(bot.decide(h));
+      _talkAbout(seat, h, youBet: youBet);
       _afterMove();
+    };
+    _after(hurrying ? 250 + _rng.nextInt(200) : _thinkTime(h), _botMove!);
+  }
+
+  /// A bot's thinking time: 2 to 10 seconds, mostly 2 to 4, and longer
+  /// when there's a lot to call (the tank before a big decision).
+  int _thinkTime(PokerHand h) {
+    final me = h.players[h.toAct!];
+    final toCall = h.legalMoves().callAmount;
+    final big = toCall > 0 && toCall >= me.stack * 0.3;
+    final u = _rng.nextDouble();
+    return 2000 + (8000 * pow(u, big ? 1.6 : 3)).round();
+  }
+
+  /// You made the last bet or raise this street.
+  bool _youAreAggressor(PokerHand h) {
+    final me = handPlayer(0);
+    final label = me?.lastAction?.label;
+    return me != null &&
+        h.currentBet > 0 &&
+        me.bet == h.currentBet &&
+        (label == ActionLabel.bet || label == ActionLabel.raise || label == ActionLabel.allIn);
+  }
+
+  /// A bot's move might get a word in.
+  void _talkAbout(int seat, PokerHand h, {required bool youBet}) {
+    final p = handPlayer(seat);
+    final label = p?.lastAction?.label;
+    if (p == null || label == null) return;
+    switch (label) {
+      case ActionLabel.allIn:
+        _say(seat, Talk.allIn, chance: 0.6);
+      case ActionLabel.bet || ActionLabel.raise when p.bet >= h.bigBlind * 6:
+        _say(seat, Talk.bigRaise, chance: 0.3);
+      case ActionLabel.fold when youBet:
+        _say(seat, Talk.fold, chance: 0.35);
+      default:
+    }
+  }
+
+  /// [seat] (a bot) says something in its own voice, now and then, and
+  /// never more than two at once.
+  void _say(int seat, Talk what, {double chance = 1}) {
+    final bot = _bots[seat];
+    if (bot == null || _rng.nextDouble() > chance) return;
+    if (talk.length >= 2 && !talk.containsKey(seat)) return;
+    talk[seat] = (text: talkLine(bot.style, what, _rng), id: ++_talkId);
+    _talkTimers[seat]?.cancel();
+    _talkTimers[seat] = Timer(Duration(milliseconds: (3200 * pace).round()), () {
+      if (_disposed) return;
+      talk.remove(seat);
+      _notify();
     });
+    _notify();
+  }
+
+  /// Everyone still in shows their cards: their chances to win.
+  void _updateOdds(PokerHand h) {
+    final inHand = [
+      for (var i = 0; i < h.players.length; i++)
+        if (!h.players[i].folded) i,
+    ];
+    if (inHand.length < 2 || inHand.any((i) => !revealed.contains(game.handSeats[i]))) return;
+    final chances = winChances(
+      [for (final i in inHand) h.players[i].hole],
+      h.board,
+      rng: _rng,
+      simulations: 600,
+    );
+    odds = {for (final (k, i) in inHand.indexed) game.handSeats[i]: chances[k]};
+  }
+
+  /// The skip button: bots play quickly until it's your move again (or the
+  /// next hand).
+  bool hurrying = false;
+  VoidCallback? _botMove;
+
+  /// A bot is thinking and can be hurried along.
+  bool get canHurry => phase == TablePhase.acting && _botMove != null && !hurrying;
+
+  void hurry() {
+    if (!canHurry) return;
+    hurrying = true;
+    _after(150, _botMove!);
+    _notify();
   }
 
   /// Seconds left for whoever is acting (online), or null.
@@ -248,6 +353,10 @@ class PokerController extends ChangeNotifier {
   void _deal() {
     if (!_canDeal()) return _park(_deal);
     _parked = null;
+    hurrying = false;
+    odds = const {};
+    bigWin = null;
+    bigWinSeat = null;
     _dealt(game.startHand(deck: _nextDeck()));
     handNumber++;
     justBusted = const [];
@@ -256,7 +365,8 @@ class PokerController extends ChangeNotifier {
     _shownLevel = game.level;
     phase = TablePhase.dealing;
     _notify();
-    _after(900, _step);
+    // Wait for the cards to go round (two each) before anyone acts.
+    _after(500 + hand!.players.length * 2 * dealGap + 350, _step);
   }
 
   void _step() {
@@ -274,6 +384,7 @@ class PokerController extends ChangeNotifier {
         for (var i = 0; i < h.players.length; i++) {
           if (!h.players[i].folded) revealed.add(game.handSeats[i]);
         }
+        _updateOdds(h);
       }
       phase = TablePhase.collecting;
       _notify();
@@ -284,8 +395,10 @@ class PokerController extends ChangeNotifier {
           return;
         }
         phase = TablePhase.dealing;
+        // All in: each card turned slowly, the chances updating.
+        if (h.isAllInRunout) _updateOdds(h);
         _notify();
-        _after(h.isAllInRunout ? 1100 : 550, _step);
+        _after(h.isAllInRunout ? 2300 : 550, _step);
       });
       return;
     }
@@ -315,11 +428,14 @@ class PokerController extends ChangeNotifier {
   }
 
   void _payout() {
-    final r = hand!.result!;
+    final h = hand!;
+    final r = h.result!;
     for (final i in r.shown.keys) {
       revealed.add(game.handSeats[i]);
     }
     phase = TablePhase.payout;
+    _celebrate(h, r);
+    odds = const {};
     if (!r.showdown) {
       // Everyone else folded: nothing to read, move on.
       _notify();
@@ -344,6 +460,44 @@ class PokerController extends ChangeNotifier {
     _notify();
   }
 
+  /// A big pot gets a splash, and the bots have their say.
+  void _celebrate(PokerHand h, HandResult r) {
+    final total = r.pots.fold(0, (s, p) => s + p.amount);
+    final inPlay = game.players.fold(0, (s, p) => s + p.stack) + h.pot;
+    final big = total >= max(h.bigBlind * 20, inPlay * 0.3);
+    final main = r.pots.first;
+    final winners = [for (final w in main.winners) game.handSeats[w]];
+    if (big && winners.length == 1) {
+      bigWinSeat = winners.single;
+      bigWin = bigWinSeat == 0 ? 'BIG WIN!' : 'HUGE POT!';
+    }
+    if (!r.showdown) {
+      for (final w in winners) {
+        _say(w, Talk.winSmall, chance: 0.15);
+      }
+      return;
+    }
+    for (final w in winners) {
+      final chance = odds[w];
+      if (chance != null && chance < 0.4) {
+        _say(w, Talk.lucky, chance: 0.9);
+      } else {
+        _say(w, big ? Talk.winBig : Talk.winSmall, chance: big ? 0.7 : 0.3);
+      }
+    }
+    final losers = [
+      for (final i in r.shown.keys)
+        if (!main.winners.contains(i) && game.handSeats[i] != 0) game.handSeats[i],
+    ];
+    if (big && losers.isNotEmpty) {
+      if (winners.contains(0)) {
+        _say(losers[_rng.nextInt(losers.length)], Talk.niceHand, chance: 0.75);
+      } else {
+        _say(losers.first, Talk.lose, chance: 0.5);
+      }
+    }
+  }
+
   /// You've read the result: on to the next hand.
   void nextHand() {
     if (!waitingForYou) return;
@@ -358,6 +512,9 @@ class PokerController extends ChangeNotifier {
 
   void _endHand() {
     justBusted = game.finishHand();
+    for (final seat in justBusted) {
+      _say(seat, Talk.bust, chance: 0.8);
+    }
     _handEnded();
     if (game.isOver || game.players[0].stack == 0) {
       phase = TablePhase.finished;
@@ -428,6 +585,9 @@ class PokerController extends ChangeNotifier {
     _disposed = true;
     _timer?.cancel();
     _countdown?.cancel();
+    for (final t in _talkTimers.values) {
+      t.cancel();
+    }
     super.dispose();
   }
 }

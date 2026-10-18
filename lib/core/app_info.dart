@@ -8,13 +8,23 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Blitz: Aces are wild again wherever they are: an Ace in a castle can be struck by any card, and an Ace '
-      'from your hand still hits anything, even face down. Castle cards now slide, flip, drop in and fly off '
-      'instead of popping, and a war\'s losses only show once the fight is over. New pictures for every game. '
-      'In the face builder, changing one part no longer flickers the other three.';
+      "Texas Hold'em comes alive: cards dealt from the dealer, 3D chips sliding out, bots that take their time "
+      '(Skip hurries them) and talk at the table, live odds when someone is all in, and a splash for big pots. '
+      'Blitz: castle cards slide and flip, wars play out before their losses show, and Aces are wild in castles '
+      'again. New game pictures, and money under names is readable in dark mode.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
+    (
+      '0.8',
+      [
+        'Blitz: a house game vs bots, with wars',
+        "Hold'em: table talk, all-in odds, big-win splashes",
+        'Chips with depth; cards dealt from the dealer',
+        'New game pictures',
+      ],
+    ),
+    ('0.7', ["Hold'em online, with bots in the party"]),
     (
       '0.6',
       [

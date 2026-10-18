@@ -129,7 +129,9 @@ class _ActionBarState extends State<ActionBar> {
       text = '';
     } else if (seat != null) {
       final left = c.turnSecondsLeft;
-      text = '${c.personas[seat].name} is thinking…${left == null ? '' : ' ${left}s'}';
+      text = c.hurrying
+          ? 'Hurrying the bots along…'
+          : '${c.personas[seat].name} is thinking…${left == null ? '' : ' ${left}s'}';
     } else if (c.handPlayer(0)?.folded ?? false) {
       text = 'You folded. Next hand soon…';
     } else {
@@ -137,8 +139,38 @@ class _ActionBarState extends State<ActionBar> {
     }
     return SizedBox(
       height: 60,
-      child: Center(
-        child: Text(text, style: Toon.text(17, color: Toon.muted)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              style: Toon.text(17, color: Toon.muted),
+            ),
+          ),
+          // Bots take their time; this hurries them along.
+          if (c.canHurry) ...[
+            const SizedBox(width: 10),
+            ToonButton(
+              key: const Key('hurry'),
+              color: Toon.yellow,
+              radius: 14,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              tooltip: 'Hurry the bots up',
+              onPressed: c.hurry,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.fast_forward_rounded, size: 20),
+                  const SizedBox(width: 4),
+                  Text('Skip', style: Toon.text(15, weight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

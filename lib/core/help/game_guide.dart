@@ -149,7 +149,7 @@ class _Stage extends StatelessWidget {
             height: 34,
             alignment: Alignment.center,
             decoration: Toon.box(here ? Toon.yellow : Toon.paper, radius: 17, shadow: 0),
-            child: Icon(stage.icon, size: 19, color: Toon.ink),
+            child: Icon(stage.icon, size: 19, color: here ? Toon.inkLight : Toon.fg),
           ),
           const SizedBox(width: 10),
           Expanded(

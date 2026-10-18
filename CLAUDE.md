@@ -225,7 +225,10 @@ weights cut from the variable font.
   `dart run tool/poker/simulate.dart [n] [easy|normal|hard]` plays bot-only
   Sit & Gos for tuning.
 - `lib/games/poker/ui/`: `PokerController` (paces the table: deals, bots
-  think, collect, payout; `pace` 0.05 in tests), `table_view.dart` (seats
+  think 2–10 s (`hurry()` = Skip), collect, payout; `pace` 0.05 in tests;
+  `talk` (bots' lines, `table_talk.dart`), `odds` when all in
+  (`duel_engine/poker/odds.dart`), `bigWin`), `chips.dart` (`ChipPile`:
+  3D chips by value), `table_view.dart` (seats
   around the felt, clockwise from you at the bottom; chips fly to the pot
   and winners), `action_bar.dart`, `hand_chart.dart` (the hands cheat sheet, opened from your hand's
   name; `handRanks`), `shuffle_deck.dart` (your deal: the controller's

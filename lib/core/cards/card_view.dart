@@ -179,21 +179,47 @@ class CardView extends StatelessWidget {
         ),
       );
     }
+    // The glow: a yellow ring just outside the card, its corners following
+    // the card's.
+    final gap = (w * 0.07).clamp(2.0, 4.0);
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 250),
       opacity: dim ? 0.45 : 1,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+      child: SizedBox(
         width: w,
         height: h,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(r),
-          boxShadow: [
-            if (glow) const BoxShadow(color: Toon.yellow, spreadRadius: 3),
-            BoxShadow(color: Toon.ink.withValues(alpha: 0.35), offset: Offset(0, w * 0.05)),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(r),
+                  boxShadow: [BoxShadow(color: Toon.ink.withValues(alpha: 0.35), offset: Offset(0, w * 0.05))],
+                ),
+                child: face,
+              ),
+            ),
+            Positioned(
+              left: -gap,
+              top: -gap,
+              right: -gap,
+              bottom: -gap,
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 250),
+                  opacity: glow ? 1 : 0,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(r + gap),
+                      border: Border.all(color: Toon.yellow, width: gap),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
-        child: face,
       ),
     );
   }

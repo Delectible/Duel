@@ -62,11 +62,20 @@ class _ShuffleDeckState extends State<ShuffleDeck> with SingleTickerProviderStat
           style: Toon.text(22, weight: FontWeight.w700, color: Colors.white),
         ),
         const SizedBox(height: 2),
-        Text(
-          widget.shuffles == 0
-              ? 'Tap or swipe the deck to shuffle'
-              : 'Shuffled ×${widget.shuffles}. Again, or deal',
-          style: Toon.text(15, weight: FontWeight.w500, color: Colors.white),
+        // Gets cheeky if you keep going.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 260),
+          child: Text(
+            switch (widget.shuffles) {
+              0 => 'Tap or swipe the deck to shuffle',
+              < 10 => 'Shuffled ×${widget.shuffles}. Again, or deal',
+              < 20 => 'Shuffled ×${widget.shuffles}. Not random enough for you?',
+              < 30 => 'Shuffled ×${widget.shuffles}. The cards are getting dizzy…',
+              _ => 'Shuffled ×${widget.shuffles}. They\'re shuffled. Promise.',
+            },
+            textAlign: TextAlign.center,
+            style: Toon.text(15, weight: FontWeight.w500, color: Colors.white),
+          ),
         ),
         const SizedBox(height: 14),
         Semantics(
