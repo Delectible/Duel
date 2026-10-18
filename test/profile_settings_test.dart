@@ -63,6 +63,24 @@ void main() {
     });
   }
 
+  testWidgets('changing one part only swaps that box', (tester) async {
+    usePhone(tester, phones.values.first);
+    final a = Account();
+    await tester.pumpWidget(_wrap(const ProfileScreen(), a));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('face next')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('face next')));
+    await tester.pump(const Duration(milliseconds: 60)); // mid-swap
+    int faces(String box) =>
+        find.descendant(of: find.byKey(Key('$box box')), matching: find.byType(Face)).evaluate().length;
+    expect(faces('face'), 2, reason: 'the old and new eyes swap over');
+    for (final other in ['color', 'shape']) {
+      expect(faces(other), 1, reason: '$other stays put');
+    }
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('every part combination paints', (tester) async {
     usePhone(tester, phones['pixel9pro']!);
     final all = [

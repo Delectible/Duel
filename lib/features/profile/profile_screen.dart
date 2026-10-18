@@ -217,7 +217,19 @@ class _PartBox extends StatelessWidget {
                             key: const ValueKey('none'),
                             child: Text('No hat', style: Toon.text(14, color: Toon.muted)),
                           )
-                        : Face.part(shown, part, key: ValueKey(shown), size: 64),
+                        : Face.part(
+                            shown,
+                            part,
+                            // Keyed by this part alone: changing another
+                            // part redraws it in place, without the pop.
+                            key: ValueKey<Object>(switch (part) {
+                              FacePart.color => shown.color,
+                              FacePart.shape => shown.shape,
+                              FacePart.face => shown.face,
+                              FacePart.hat => shown.hat,
+                            }),
+                            size: 64,
+                          ),
                   ),
                 ),
               ),

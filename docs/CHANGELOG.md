@@ -303,6 +303,9 @@ Ships as app version **0.4.1**.
   suits whirling round it, Go Fish a fish that's caught a card, Four in a
   Row a disc dropping into the board, Spades a garden spade whose blade is
   a spade. The picture now grows to fill its tile. → 0.8.3 · 2026-10-18
+- [x] **13.8 Face builder: only the changed box swaps** (2026-10-18):
+  each part box was keyed by the whole face, so changing one part popped
+  all four; now each is keyed by its own part. → 0.8.3 · 2026-10-18
 
 ### 12. Fixes
 
