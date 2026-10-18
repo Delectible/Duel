@@ -9,7 +9,8 @@ class AppInfo {
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
       'Blitz: Aces are wild again wherever they are: an Ace in a castle can be struck by any card, and an Ace '
-      'from your hand still hits anything, even face down.';
+      'from your hand still hits anything, even face down. Castle cards now slide, flip, drop in and fly off '
+      'instead of popping, and a war\'s losses only show once the fight is over.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

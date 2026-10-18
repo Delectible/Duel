@@ -75,6 +75,13 @@ class BlitzController extends ChangeNotifier {
   /// How long one war's scene lasts (each war in [lastWars] plays in turn).
   Duration get warTime => Duration(milliseconds: (2600 * pace).round());
 
+  /// [p]'s castle as the table should show it: while a war is fought, as it
+  /// stood before the war (its result shows once the scene is over).
+  List<CastleCard> castle(int p) {
+    final before = fighting ? lastWars.first.before : const <List<CastleCard>>[];
+    return before.isNotEmpty ? before[p] : game.castles[p];
+  }
+
   int get _warPause => fighting ? 2600 * lastWars.length : 0;
 
   Timer? _timer;

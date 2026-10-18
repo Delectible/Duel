@@ -144,6 +144,10 @@ void main() {
       expect(war.rank, 9);
       expect(war.losers, [1]);
       expect(g.castles[1].any((x) => x.card == c('9h')), isFalse);
+      // The castles as they stood before the fight, for the table to show
+      // until the war scene is over.
+      expect(war.before[1].any((x) => x.card == c('9h') && x.faceUp), isTrue);
+      expect(war.before[0].map((x) => x.card), g.castles[0].map((x) => x.card));
     });
 
     test('a tie for smallest: they all lose theirs; never the last card', () {

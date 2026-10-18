@@ -781,7 +781,10 @@ class _FleetingState extends State<_Fleeting> {
 
 /// A castle: its cards side by side (overlapping when there are many),
 /// the top card last. With a card picked up, what it can do lights up.
-class _Castle extends StatelessWidget {
+///
+/// Nothing pops: a card that goes lifts off and fades while the row slides
+/// together, a new card drops in, and a card turning over flips.
+class _Castle extends StatefulWidget {
   const _Castle({required this.c, required this.player, required this.cardWidth});
 
   final BlitzController c;
@@ -789,64 +792,193 @@ class _Castle extends StatelessWidget {
   final double cardWidth;
 
   @override
+  State<_Castle> createState() => _CastleState();
+}
+
+/// One card on show: [left] is set by the layout (and kept while leaving).
+class _Slot {
+  _Slot(this.key, this.card, {this.fresh = false});
+
+  final String key;
+  CastleCard card;
+
+  /// Arrived mid-game (drops in) rather than dealt (pops in).
+  final bool fresh;
+  bool leaving = false;
+  double left = 0;
+}
+
+class _CastleState extends State<_Castle> {
+  static const _slide = Duration(milliseconds: 320);
+  static const _leave = Duration(milliseconds: 420);
+
+  var _slots = <_Slot>[];
+  int? _round;
+
+  /// Matches the shown cards to the castle: by card (the second of two
+  /// equal cards, with two decks, by order), keeping leaving ones in place.
+  void _sync() {
+    final castle = widget.c.castle(widget.player);
+    final seen = <String, int>{};
+    final keys = [
+      for (final cc in castle) '${cc.card} ${seen['${cc.card}'] = (seen['${cc.card}'] ?? 0) + 1}',
+    ];
+    if (_round != widget.c.round) {
+      // A new game: dealt in with a pop, nothing to animate away.
+      _round = widget.c.round;
+      _slots = [for (final (i, cc) in castle.indexed) _Slot(keys[i], cc)];
+      return;
+    }
+    final old = {for (final s in _slots) s.key: s};
+    final next = <_Slot>[];
+    for (final (i, cc) in castle.indexed) {
+      final s = old.remove(keys[i]);
+      if (s == null || s.leaving) {
+        next.add(_Slot(keys[i], cc, fresh: true));
+      } else {
+        next.add(s..card = cc);
+      }
+    }
+    // The ones gone: stay where they were (drawn first, under the rest).
+    final going = [for (final s in old.values) s..leaving = true];
+    _slots = [...going, ...next];
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final castle = c.game.castles[player];
+    _sync();
+    final player = widget.player;
     return LayoutBuilder(
       builder: (context, box) {
-        final n = castle.length;
-        final w = cardWidth;
+        final staying = _slots.where((s) => !s.leaving).toList();
+        final n = staying.length;
+        final w = widget.cardWidth;
+        final h = w * 1.4;
         final step = n <= 1 ? 0.0 : min(w + 4, (box.maxWidth - w) / (n - 1));
-        final seen = <String, int>{};
+        final top = (box.maxHeight - h) / 2;
+        for (final (i, s) in staying.indexed) {
+          s.left = i * step;
+        }
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            for (final (i, cc) in castle.indexed)
-              () {
-                final id = '${cc.card}${cc.faceUp}';
-                final k = seen[id] = (seen[id] ?? 0) + 1;
-                // Keyed by the card (not its spot) so cards sliding along
-                // don't pop in again; a card turning over does.
-                return Positioned(
-                  key: ValueKey('slot $player $id $k'),
-                  left: i * step,
-                  top: (box.maxHeight - w * 1.4) / 2,
-                  child: () {
-                    final move = c.moveAt(player, i);
-                    final ring = switch (move) {
-                      Strike() => Toon.red,
-                      Scout() => Toon.blue,
-                      Fortify() => Toon.green,
-                      _ => null,
-                    };
-                    return GestureDetector(
-                      key: Key('castle $player $id $k'),
-                      onTap: move == null
-                          ? null
-                          : () {
-                              HapticFeedback.lightImpact();
-                              c.tapCastle(player, i);
-                            },
-                      child: Pop(
-                        key: ValueKey(c.round),
-                        child: Container(
-                          decoration: ring == null
-                              ? null
-                              : BoxDecoration(
-                                  borderRadius: BorderRadius.circular(w * 0.18),
-                                  boxShadow: [BoxShadow(color: ring, blurRadius: 0, spreadRadius: 3)],
-                                ),
-                          child: CardView(card: cc.card, width: w, faceUp: cc.faceUp),
+            for (final s in _slots)
+              if (s.leaving)
+                Positioned(
+                  key: ValueKey('slot $player ${s.key}'),
+                  left: s.left,
+                  top: top,
+                  child: IgnorePointer(
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: 1),
+                      duration: _leave,
+                      curve: Curves.easeIn,
+                      onEnd: () {
+                        if (mounted) setState(() => _slots.remove(s));
+                      },
+                      builder: (context, t, child) => Opacity(
+                        opacity: 1 - t,
+                        child: Transform.translate(
+                          offset: Offset(0, -h * 0.6 * t),
+                          child: Transform.rotate(
+                            angle: 0.35 * t,
+                            child: Transform.scale(scale: 1 - 0.3 * t, child: child),
+                          ),
                         ),
                       ),
-                    );
-                  }(),
-                );
-              }(),
+                      child: CardView(card: s.card.card, width: w, faceUp: s.card.faceUp),
+                    ),
+                  ),
+                )
+              else
+                AnimatedPositioned(
+                  key: ValueKey('slot $player ${s.key}'),
+                  duration: _slide,
+                  curve: Curves.easeOutCubic,
+                  left: s.left,
+                  top: top,
+                  child: _card(s, staying.indexOf(s), w, h),
+                ),
           ],
         );
       },
     );
   }
+
+  Widget _card(_Slot s, int i, double w, double h) {
+    final c = widget.c;
+    final player = widget.player;
+    final move = c.moveAt(player, i);
+    final ring = switch (move) {
+      Strike() => Toon.red,
+      Scout() => Toon.blue,
+      Fortify() => Toon.green,
+      _ => null,
+    };
+    Widget card = Container(
+      decoration: ring == null
+          ? null
+          : BoxDecoration(
+              borderRadius: BorderRadius.circular(w * 0.18),
+              boxShadow: [BoxShadow(color: ring, blurRadius: 0, spreadRadius: 3)],
+            ),
+      child: _Flip(card: s.card, width: w),
+    );
+    if (s.fresh) {
+      // Dropped in from above.
+      card = TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: _slide,
+        curve: Curves.easeOutBack,
+        builder: (context, t, child) => Opacity(
+          opacity: t.clamp(0.0, 1.0),
+          child: Transform.translate(offset: Offset(0, -h * 0.5 * (1 - t)), child: child),
+        ),
+        child: card,
+      );
+    } else {
+      card = Pop(key: ValueKey(c.round), child: card);
+    }
+    return GestureDetector(
+      key: Key('castle $player ${s.key} ${s.card.faceUp}'),
+      onTap: move == null
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              c.tapCastle(player, i);
+            },
+      child: card,
+    );
+  }
+}
+
+/// A castle card that flips over (squeezes to an edge and back) when it
+/// turns face up.
+class _Flip extends StatelessWidget {
+  const _Flip({required this.card, required this.width});
+
+  final CastleCard card;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+    duration: const Duration(milliseconds: 360),
+    // The old face shrinks to an edge in the first half (its animation
+    // runs backwards); the new one opens out in the second.
+    transitionBuilder: (child, a) => AnimatedBuilder(
+      animation: a,
+      child: child,
+      builder: (context, child) {
+        final v = ((a.value - 0.5) * 2).clamp(0.0, 1.0);
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(max(v, 0.001), 1, 1),
+          child: Opacity(opacity: v > 0 ? 1 : 0, child: child),
+        );
+      },
+    ),
+    child: CardView(key: ValueKey(card.faceUp), card: card.card, width: width, faceUp: card.faceUp),
+  );
 }
 
 /// The deck (with how many are left) and the discard pile.

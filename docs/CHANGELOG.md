@@ -292,6 +292,11 @@ Ships as app version **0.4.1**.
   misremembered rule; back to the original: any card strikes (or
   fortifies onto) an Ace, and an Ace from your hand matches anything.
   → 0.8.3 · 2026-10-18
+- [x] **13.6 Castle cards move, not pop** (2026-10-18): a card that goes
+  lifts off and fades while the row slides together; a new card drops in;
+  a card turning over flips. A war's result waits for its scene: the
+  table shows the castles as they stood before the fight (`War.before`,
+  `BlitzController.castle`) until it's over. → 0.8.3 · 2026-10-18
 
 ### 12. Fixes
 

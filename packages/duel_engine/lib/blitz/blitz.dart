@@ -176,10 +176,14 @@ class Flipped extends BlitzEvent {
 
 /// Wars: players showing the same value; [losers] each lost theirs.
 class War extends BlitzEvent {
-  const War(this.rank, this.fighters, this.losers) : super(-1);
+  const War(this.rank, this.fighters, this.losers, {this.before = const []}) : super(-1);
   final int rank;
   final List<int> fighters;
   final List<int> losers;
+
+  /// Every castle just before this war (copies), so a table can show the
+  /// fight before its result.
+  final List<List<CastleCard>> before;
 }
 
 class Passed extends BlitzEvent {
@@ -490,6 +494,9 @@ class Blitz {
           if ((keepers.length > 1 || !keepers.contains(p)) && castles[p].length > 1) p,
       ];
       if (losers.isEmpty) continue;
+      final before = [
+        for (final c in castles) [for (final cc in c) CastleCard(cc.card, faceUp: cc.faceUp)],
+      ];
       for (final p in losers) {
         final c = castles[p];
         // Lose this value's face-up cards, but never the last card.
@@ -497,7 +504,7 @@ class Blitz {
           if (c[i].faceUp && c[i].card.rank == rank) discard.add(c.removeAt(i).card);
         }
       }
-      events.add(War(rank, fighters, losers));
+      events.add(War(rank, fighters, losers, before: before));
       return true;
     }
     return false;
