@@ -203,7 +203,11 @@ class _GameTile extends StatelessWidget {
                           color: Toon.paper.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Center(child: game.art(context)),
+                        // The picture grows with the tile.
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: FittedBox(child: game.art(context)),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),

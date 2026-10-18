@@ -3,8 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../core/account/stake.dart';
-import '../core/cards/card_view.dart';
-import 'package:duel_engine/cards.dart';
 import '../core/online/party.dart';
 import '../core/session/play_setup.dart';
 import '../core/theme/toon.dart';
@@ -23,6 +21,7 @@ import 'poker/at_home.dart';
 import 'poker/ui/poker_screen.dart';
 import 'spades/at_home.dart';
 import 'previews.dart';
+import 'tile_art.dart';
 import 'spades/ui/spades_screen.dart';
 
 /// A game on the picker. Adding a game: its folder under lib/games/, plus
@@ -181,7 +180,7 @@ final games = <GameInfo>[
     minPlayers: 2,
     maxPlayers: 6,
     color: Toon.green,
-    art: (_) => const _FannedCards(['As', 'Ah']),
+    art: (_) => const HoldemArt(),
     board: (_) => const HoldemPreview(),
     rules: const [
       'Everyone gets two cards of their own. Five shared cards come out in the middle: three (the flop), '
@@ -205,7 +204,7 @@ final games = <GameInfo>[
     minPlayers: 2,
     maxPlayers: 4,
     color: Toon.orange,
-    art: (_) => const _FannedCards(['8h', '8c']),
+    art: (_) => const EightsArt(),
     board: (_) => const CrazyEightsPreview(),
     rules: const [
       'Play a card that matches the top of the pile by suit or by number.',
@@ -223,7 +222,7 @@ final games = <GameInfo>[
     minPlayers: 2,
     maxPlayers: 6,
     color: Toon.blue,
-    art: (_) => const _FannedCards(['7d', '7s']),
+    art: (_) => const FishArt(),
     board: (_) => const GoFishPreview(),
     rules: const [
       'On your turn, ask a player for a rank you already hold: "Got any Kings?"',
@@ -241,7 +240,7 @@ final games = <GameInfo>[
     minPlayers: 2,
     maxPlayers: 2,
     color: Toon.purple,
-    art: (_) => const _Discs(),
+    art: (_) => const RowArt(),
     board: (_) => const FourInARowPreview(),
     rules: const [
       'Take turns dropping a disc into a column. It falls to the lowest free space.',
@@ -259,7 +258,7 @@ final games = <GameInfo>[
     minPlayers: 2,
     maxPlayers: 4,
     color: Toon.teal,
-    art: (_) => const _FannedCards(['As', 'Ks']),
+    art: (_) => const SpadesArt(),
     board: (_) => const SpadesPreview(),
     rules: const [
       'Four players: you and a partner (sitting opposite) against two. Two players: each for yourself, and you '
@@ -289,7 +288,7 @@ final games = <GameInfo>[
     minPlayers: 2,
     maxPlayers: 6,
     color: Toon.red,
-    art: (_) => const _FannedCards(['9d', 'As']),
+    art: (_) => const BlitzArt(),
     board: (_) => const BlitzPreview(),
     rules: const [
       'Everyone has a castle: a row of cards, face down except the top. Those are your lives. You also hold 4 cards.',
@@ -312,68 +311,3 @@ final games = <GameInfo>[
         BlitzScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, wars: wars == 1),
   ),
 ];
-
-class _FannedCards extends StatelessWidget {
-  const _FannedCards(this.cards);
-
-  final List<String> cards;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 76,
-    height: 64,
-    child: Stack(
-      alignment: Alignment.center,
-      children: [
-        for (var i = 0; i < cards.length; i++)
-          Transform.translate(
-            offset: Offset((i - 0.5) * 18, 0),
-            child: Transform.rotate(
-              angle: (i - 0.5) * 0.35,
-              child: CardView(card: PlayingCard.parse(cards[i]), width: 40),
-            ),
-          ),
-      ],
-    ),
-  );
-}
-
-class _Discs extends StatelessWidget {
-  const _Discs();
-
-  @override
-  Widget build(BuildContext context) {
-    const pattern = [
-      [0, 0, 0, 0],
-      [0, 2, 0, 0],
-      [1, 2, 1, 0],
-      [2, 1, 1, 1],
-    ];
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: Toon.box(Toon.blue, radius: 8, shadow: 2),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final row in pattern)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final cell in row)
-                  Container(
-                    width: 12,
-                    height: 12,
-                    margin: const EdgeInsets.all(1.5),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: [Toon.cardFace, Toon.red, Toon.yellow][cell],
-                      border: Border.all(color: Toon.ink, width: 1.5),
-                    ),
-                  ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}

@@ -209,7 +209,8 @@ weights cut from the variable font.
 - `lib/core/cards/` (+ `duel_engine/cards.dart`): `PlayingCard` / `Deck` and `CardView` (suits are drawn
   paths; Fredoka has no suit glyphs). Shared by every card game.
 - `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player
-  range, tile art, sample `board` (`previews.dart`), `rules`, `minutes`
+  range, tile art (`tile_art.dart`: a small painted scene per game, about
+  84 x 64, scaled to the tile), sample `board` (`previews.dart`), `rules`, `minutes`
   per player count, `open`; null `open` = "Soon"; `blocked(setup)` says
   why Play! is off). Adding a game: its folder in `lib/games/` plus one
   entry here.

@@ -297,6 +297,12 @@ Ships as app version **0.4.1**.
   a card turning over flips. A war's result waits for its scene: the
   table shows the castles as they stood before the fight (`War.before`,
   `BlitzController.castle`) until it's over. → 0.8.3 · 2026-10-18
+- [x] **13.7 New game pictures** (2026-10-18): the home tiles get little
+  scenes (`lib/games/tile_art.dart`): Blitz a fighter plane firing cards,
+  Hold'em pocket Aces with a chip stack, Crazy Eights an 8 with the four
+  suits whirling round it, Go Fish a fish that's caught a card, Four in a
+  Row a disc dropping into the board, Spades a garden spade whose blade is
+  a spade. The picture now grows to fill its tile. → 0.8.3 · 2026-10-18
 
 ### 12. Fixes
 
