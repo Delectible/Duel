@@ -76,13 +76,18 @@ void main() {
         await tester.pumpWidget(app(bots, seed: bots, wars: bots == 3));
         await tester.pump(const Duration(milliseconds: 30));
         await shot(tester, 'blitz_${bots}bots_deal_$phone');
-        var picked = false, lit = false;
+        var picked = false, lit = false, spoke = false;
         await playGame(
           tester,
           onStep: (i) async {
             if (!picked && liveCastle().evaluate().isNotEmpty) {
               picked = true;
               await shot(tester, 'blitz_${bots}bots_pick_$phone');
+            }
+            if (!spoke && find.byType(SpeechBubble).evaluate().isNotEmpty) {
+              spoke = true;
+              await tester.pump(const Duration(milliseconds: 300)); // popped in
+              await shot(tester, 'blitz_${bots}bots_bubble_$phone');
             }
             if (!lit && has(const Key('cancel blitz'))) {
               lit = true;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:duel_engine/blitz/blitz.dart';
@@ -320,8 +321,9 @@ class _Strip extends StatelessWidget {
     final target = c.blitzable(player);
     final face = min(height * 0.5, 40.0);
     final card = ((height - 8) / 1.4).clamp(22.0, me ? 62.0 : 52.0);
+    final whoWidth = max(face + 16, 58.0);
     final Widget who = SizedBox(
-      width: max(face + 16, 58),
+      width: whoWidth,
       // Shrinks to fit the shortest strips (six at a table, on its side).
       child: FittedBox(
         fit: BoxFit.scaleDown,
@@ -405,15 +407,24 @@ class _Strip extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Positioned.fill(child: row),
+              // Over the player's face (never their castle), gone after a moment.
               if (bubble != null)
                 Positioned(
-                  left: max(face + 6, 46),
+                  left: 0,
                   top: 0,
+                  width: whoWidth,
                   child: IgnorePointer(
-                    child: SpeechBubble(
+                    child: _Fleeting(
                       key: ValueKey('bubble ${c.actionId} $player'),
-                      bubble,
-                      color: bubble.startsWith('-') ? Toon.red : (bubble == 'BLITZ!' ? Toon.yellow : null),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: SpeechBubble(
+                          bubble,
+                          color: bubble.startsWith('-')
+                              ? Toon.red
+                              : (bubble == 'BLITZ!' ? Toon.yellow : null),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -423,6 +434,40 @@ class _Strip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Shows [child], then fades it out after a few seconds.
+class _Fleeting extends StatefulWidget {
+  const _Fleeting({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Fleeting> createState() => _FleetingState();
+}
+
+class _FleetingState extends State<_Fleeting> {
+  var _shown = true;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(milliseconds: 2500), () => setState(() => _shown = false));
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedOpacity(
+    opacity: _shown ? 1 : 0,
+    duration: const Duration(milliseconds: 400),
+    child: widget.child,
+  );
 }
 
 /// A castle: its cards side by side (overlapping when there are many),

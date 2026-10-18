@@ -277,6 +277,9 @@ Ships as app version **0.4.1**.
   castle is just an Ace, so only another Ace can strike (or fortify) it;
   an Ace from your hand still matches anything, face down too. Guides
   updated. → 0.8.2 · 2026-10-18
+- [x] **13.3 Bubbles don't hide cards** (2026-10-18): Blitz's speech
+  bubbles ("Strike!", "-1"…) sit over the player's face instead of their
+  castle, and fade out after 2.5 s. → 0.8.2 · 2026-10-18
 
 ### 12. Fixes
 

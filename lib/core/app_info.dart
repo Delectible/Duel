@@ -8,7 +8,8 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Blitz: Aces are only wild from your hand. An Ace sitting in a castle can only be struck by another Ace.';
+      'Blitz: Aces are only wild from your hand. An Ace sitting in a castle can only be struck by another Ace. '
+      'Speech bubbles no longer cover anyone\'s cards, and fade after a moment.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
