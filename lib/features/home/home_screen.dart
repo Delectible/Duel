@@ -276,7 +276,8 @@ class _MatchWatcherState extends State<_MatchWatcher> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final party = PartyScope.read(context);
+    // Depends on the scope: online can come up after home is showing.
+    final party = PartyScope.of(context);
     if (party == _party) return;
     _party?.removeListener(_check);
     _party = party?..addListener(_check);

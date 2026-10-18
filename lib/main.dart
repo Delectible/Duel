@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,21 +17,27 @@ import 'features/home/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Online is off until the Firebase project is set up (docs/ONLINE.md).
-  await Online.start();
   final prefs = await SharedPreferences.getInstance();
   final account = Account(store: PrefsStore(prefs));
-  final party = Online.ready ? PartyService(FirebaseBackend(FirebaseConfig.referee), account: account) : null;
-  runApp(DuelApp(account: account, party: party));
+  final setup = PlaySetup();
+  // The app shows straight away; online joins in when Firebase has started
+  // (never waited for: a slow or stuck start mustn't hold up the app).
+  runApp(DuelApp(account: account, setup: setup));
+  unawaited(_goOnline(account, setup));
+}
+
+Future<void> _goOnline(Account account, PlaySetup setup) async {
+  await Online.start();
+  if (Online.ready) setup.party = PartyService(FirebaseBackend(FirebaseConfig.referee), account: account);
 }
 
 class DuelApp extends StatefulWidget {
-  DuelApp({super.key, PlaySetup? setup, Account? account, this.party})
+  DuelApp({super.key, PlaySetup? setup, Account? account, PartyService? party})
     : setup = setup ?? PlaySetup(party: party),
       account = account ?? Account();
 
-  /// Online: your party (null when this build can't go online).
-  final PartyService? party;
+  /// Online: your party (null until Firebase has started, or offline).
+  PartyService? get party => setup.party;
 
   /// The connection bar's state, shared by every screen.
   final PlaySetup setup;
@@ -47,11 +55,23 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.account.addListener(_applyTheme);
+    widget.setup.addListener(_partyChanged);
+    _party = widget.party;
     Toon.dark = _wantDark();
+  }
+
+  /// The party the app was last built with.
+  PartyService? _party;
+
+  /// Online came up after the app opened: offer it everywhere.
+  void _partyChanged() {
+    if (widget.party == _party) return;
+    setState(() => _party = widget.party);
   }
 
   @override
   void dispose() {
+    widget.setup.removeListener(_partyChanged);
     widget.account.removeListener(_applyTheme);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -80,7 +100,7 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
     return AccountScope(
       account: widget.account,
       child: PartyScope(
-        party: widget.party,
+        party: _party,
         child: PlaySetupScope(
           setup: widget.setup,
           child: MaterialApp(

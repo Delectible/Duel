@@ -26,7 +26,8 @@ abstract final class Online {
     final options = _options;
     if (options == null || kIsWeb) return;
     try {
-      await Firebase.initializeApp(options: options);
+      // Never hang on it: after a while the app just stays offline.
+      await Firebase.initializeApp(options: options).timeout(const Duration(seconds: 15));
       _ready = true;
     } on Object catch (e) {
       debugPrint('Online off: Firebase did not start ($e)');

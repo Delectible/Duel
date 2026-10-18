@@ -20,14 +20,22 @@ enum PickRule {
 
 /// The connection bar's state: shared by every screen.
 class PlaySetup extends ChangeNotifier {
-  PlaySetup({this.party}) {
-    party?.addListener(notifyListeners);
+  PlaySetup({PartyService? party}) {
+    this.party = party;
   }
 
   static const maxBots = 5;
 
-  /// Your online party (null when this build can't go online).
-  final PartyService? party;
+  /// Your online party (null until online has started, or offline).
+  PartyService? get party => _party;
+  PartyService? _party;
+
+  set party(PartyService? p) {
+    if (p == _party) return;
+    _party?.removeListener(notifyListeners);
+    _party = p?..addListener(notifyListeners);
+    notifyListeners();
+  }
 
   PlayMode _mode = PlayMode.bots;
   Difficulty _difficulty = Difficulty.normal;

@@ -276,6 +276,12 @@ Ships as app version **0.4.1**.
 
 ### 12. Fixes
 
+- [x] **12.2 Fix: stuck on the splash screen** (reported 2026-10-18,
+  0.8.0): the app waited for Firebase to start before showing anything,
+  so a slow or stuck start held it on the splash. Now the app shows at
+  once; Firebase starts in the background (15 s limit) and Friend mode
+  switches on when it's up (`PlaySetup.party` is settable, `DuelApp`
+  follows it). → 0.8.1 · 2026-10-18
 - [x] **12.1 Fix: Four in a Row bot never moved** (Normal / Hard, real
   speed): its background look-ahead sent a closure that dragged the
   controller (and its timer) into the isolate, which can't be sent, so the
