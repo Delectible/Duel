@@ -131,6 +131,16 @@ weights cut from the variable font.
   every phone. `blocked()` greys games without `openOnline` ("Online
   soon") and, for guests, says the host picks. Each phone puts in and
   settles the match's `stake` locally (server wallet: later).
+- Leaving and coming back (`features/party/lobby.dart`, all from the
+  server's match: `left`, `standIns`, `paused`): one person left among
+  bots → the game ends (`reason: ended`, stakes back for those in); a
+  one-on-one with no bots → the other wins; 2+ still in → `paused` until
+  the host (or the next person playing, made host) picks bot / end
+  (`PausedCard`; any phone brings in the bot after 30 s). Leavers see Game
+  In Progress (preview) / Rejoin (`NowPlaying` on the party screen); the
+  stake they lost comes back (`Account.leftGame` / `takeBack`). One live
+  game per party; the host can end it (`endMatch`). The watcher only opens
+  a game for `party.inGame`.
 - Online Four in a Row: `RowScreen.online` with `OnlineRowController`
   (implements `RowTable`, like the bot's `RowController`): you're always
   red (seats remapped), your drop shows at once, turn ring counted from
