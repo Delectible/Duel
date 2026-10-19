@@ -345,6 +345,16 @@ Ships as app version **0.4.1**.
 
 ### 12. Fixes
 
+- [x] **12.3 Fix: online Hold'em "Something went wrong"** (reported
+  2026-10-19): Firestore can't store a list directly inside a list, and
+  Hold'em keeps its moves as `[kind, amount]` pairs in per-hand lists, so
+  the referee's first write of a Hold'em game failed (Four in a Row, the
+  only game tested on the emulator, has none). `FirestoreStore` now stores
+  an inner list as `{_list: [...]}` and unwraps it on reading; the app
+  unwraps it too (`unnestLists`). The emulator test now plays a whole
+  Hold'em game with two people and two bots, and a fuzz test plays 40
+  random ones on the referee. → 0.8.4 · 2026-10-19
+
 - [x] **12.2 Fix: stuck on the splash screen** (reported 2026-10-18,
   0.8.0). Cause (found on an emulator, `android-smoke.yml`): CI's
   `flutter create .` re-resolves packages and ignored `pubspec.lock`, so

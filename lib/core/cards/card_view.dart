@@ -195,7 +195,9 @@ class CardView extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(r),
-                  boxShadow: [BoxShadow(color: Toon.ink.withValues(alpha: 0.35), offset: Offset(0, w * 0.05))],
+                  boxShadow: [
+                    BoxShadow(color: Toon.ink.withValues(alpha: 0.35), offset: Offset(0, w * 0.05)),
+                  ],
                 ),
                 child: face,
               ),

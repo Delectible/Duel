@@ -3,15 +3,12 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.8.3';
+  static const version = '0.8.4';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Texas Hold'em comes alive: cards dealt from the dealer, 3D chips sliding out, bots that take their time "
-      '(Skip hurries them) and talk at the table, live odds when someone is all in, and a splash for big pots. '
-      'Blitz: castle cards slide and flip, wars play out first, Aces are wild in castles again, and you never hold '
-      'more than 5 cards. New game pictures, and money under names is readable in dark mode.';
+      "Fix: online Texas Hold'em said \"Something went wrong\" as soon as a game started. It now plays.";
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

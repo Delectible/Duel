@@ -91,15 +91,27 @@ class FirestoreStore implements Store {
     if (v.arrayValue != null) {
       return [for (final x in v.arrayValue!.values ?? const <fs.Value>[]) fromValue(x)];
     }
-    if (v.mapValue != null) return fromFields(v.mapValue!.fields);
+    if (v.mapValue != null) {
+      final fields = v.mapValue!.fields;
+      // A list that was inside a list (see [toValue]).
+      if (fields != null && fields.length == 1 && fields[nestedList]?.arrayValue != null) {
+        return fromValue(fields[nestedList]!);
+      }
+      return fromFields(fields);
+    }
     return null;
   }
+
+  /// Firestore can't hold a list directly inside a list, so an inner list
+  /// is stored as a one-field map `{_list: [...]}` and unwrapped on the way
+  /// back (the app unwraps it too: `unnestLists`).
+  static const nestedList = '_list';
 
   static Map<String, fs.Value> toFields(Map<Object?, Object?> doc) => {
     for (final e in doc.entries) '${e.key}': toValue(e.value),
   };
 
-  static fs.Value toValue(Object? v) => switch (v) {
+  static fs.Value toValue(Object? v, {bool inList = false}) => switch (v) {
     null => fs.Value(nullValue: 'NULL_VALUE'),
     final bool b => fs.Value(booleanValue: b),
     final int i => fs.Value(integerValue: '$i'),
@@ -107,7 +119,10 @@ class FirestoreStore implements Store {
     final String s => fs.Value(stringValue: s),
     // A real timestamp, so Firestore's auto-delete (TTL) can use it.
     final DateTime t => fs.Value(timestampValue: t.toUtc().toIso8601String()),
-    final List<Object?> l => fs.Value(arrayValue: fs.ArrayValue(values: [for (final x in l) toValue(x)])),
+    final List<Object?> l when inList => fs.Value(mapValue: fs.MapValue(fields: {nestedList: toValue(l)})),
+    final List<Object?> l => fs.Value(
+      arrayValue: fs.ArrayValue(values: [for (final x in l) toValue(x, inList: true)]),
+    ),
     final Map<Object?, Object?> m => fs.Value(mapValue: fs.MapValue(fields: toFields(m))),
     _ => throw ArgumentError('Not storable: ${v.runtimeType}'),
   };

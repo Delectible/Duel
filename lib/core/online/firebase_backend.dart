@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
+import 'nested_lists.dart';
 import 'party.dart';
 
 /// [OnlineBackend] on Firebase: anonymous sign-in, Firestore for the live
@@ -24,8 +25,13 @@ class FirebaseBackend implements OnlineBackend {
   }
 
   @override
-  Stream<Doc?> watch(String path) =>
-      FirebaseFirestore.instance.doc(path).snapshots().map((s) => s.exists ? s.data() : null);
+  Stream<Doc?> watch(String path) => FirebaseFirestore.instance
+      .doc(path)
+      .snapshots()
+      .map(
+        // Lists inside lists come stored as {_list: [...]}.
+        (s) => s.exists ? unnestLists(s.data()) as Doc : null,
+      );
 
   @override
   Future<Doc> call(String path, [Doc body = const {}]) async {

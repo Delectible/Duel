@@ -36,6 +36,45 @@ void main() {
     expect(m['status'], 'over');
     expect((await store.get('matches/$id'))!['result'], isNotNull);
   }, skip: skip);
+
+  test("Hold'em on Firestore: two friends, two bots, every kind of move", () async {
+    final store = FirestoreStore(_Owner(), projectId: 'demo-duel', emulatorHost: host);
+    var now = DateTime.now().toUtc();
+    final ref = Referee(store, rng: Random(5), clock: () => now);
+    final rng = Random(11);
+    const luca = Player(uid: 'luca', name: 'Luca'), sam = Player(uid: 'sam', name: 'Sam');
+    final party = await ref.createParty(luca);
+    await ref.joinParty(sam, party['code']! as String);
+    await ref.setBots(luca, party['id']! as String, [
+      {'name': 'Pip', 'look': 'cap', 'difficulty': 'easy'},
+      {'name': 'Finn', 'look': 'fin', 'difficulty': 'hard'},
+    ]);
+    var m = await ref.startMatch(luca, party['id']! as String, 'holdem', stake: 10);
+    final id = m['id']! as String;
+    for (var i = 0; i < 400 && m['status'] == 'live'; i++) {
+      final p = (m['seats']! as List)[m['turn']! as int] == 'luca' ? luca : sam;
+      final move = switch (rng.nextInt(8)) {
+        0 => {'kind': 'fold'},
+        1 || 2 => {'kind': 'check'},
+        3 || 4 || 5 => {'kind': 'call'},
+        _ => {'kind': 'raise', 'amount': rng.nextInt(600) + 1},
+      };
+      try {
+        m = await ref.move(p, id, m['version']! as int, move);
+      } on RefereeError {
+        m = await ref
+            .move(p, id, m['version']! as int, {'kind': 'check'})
+            .catchError((Object _) => ref.move(p, id, m['version']! as int, {'kind': 'call'}));
+      }
+      now = now.add(const Duration(seconds: 2));
+    }
+    expect(m['status'], 'over');
+    // Both ask for a rematch: a new table starts.
+    await ref.rematch(luca, id);
+    final over = await ref.rematch(sam, id);
+    expect(over['next'], isA<String>());
+    expect((await store.get('matches/${over['next']}'))!['status'], 'live');
+  }, skip: skip);
 }
 
 /// The emulator's full-access token.
