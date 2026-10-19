@@ -141,13 +141,16 @@ void main() {
       expect(table.hand?.players[table.handIndex(0) ?? 0].hole.first, isNot(const Object()));
       expect(tester.takeException(), isNull);
 
-      // Luca leaves: the others play on, Luca's back home in the party.
+      // Luca leaves: Sam is the only person left with the bots, so the game
+      // ends (Sam's stake back); Luca's back home in the party.
       await tester.tap(find.byTooltip('Leave table'));
       await wait();
       await tester.tap(find.byKey(const Key('leave')));
       await wait(800);
       expect(find.byType(TableView), findsNothing);
-      expect(sam.match!['gone'], contains(party.seat));
+      expect(sam.match!['status'], 'over');
+      expect(sam.match!['result'], containsPair('reason', 'ended'));
+      expect((sam.match!['result'] as Map)['left'], [party.seat]);
       await tester.pumpWidget(const SizedBox());
     }, timeout: const Timeout(Duration(minutes: 3)));
   }

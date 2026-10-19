@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/avatars/faces.dart';
 import '../../core/online/party.dart';
+import 'lobby.dart';
 import '../../core/table/table_bits.dart';
 import '../../core/theme/split_page.dart';
 import '../../core/theme/toon.dart';
@@ -162,6 +163,7 @@ class _PartyScreenState extends State<PartyScreen> {
     final code = party.code ?? '';
     final alone = party.size < 2;
     return [
+      NowPlaying(party: party),
       ToonBox(
         color: Toon.yellow,
         child: Column(

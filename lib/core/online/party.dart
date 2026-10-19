@@ -139,6 +139,28 @@ class PartyService extends ChangeNotifier {
   /// The game the party is on, while it's being played.
   bool get playing => match != null && match!['status'] == 'live';
 
+  /// Seats whose person left the game (a bot may be sitting in).
+  List<int> get leftSeats => [...((match?['left'] as List?) ?? const []).cast<int>()];
+
+  /// You're seated in the live game and playing (not left).
+  bool get inGame => playing && seat >= 0 && !leftSeats.contains(seat);
+
+  /// You left the live game: you can come back ([rejoin]).
+  bool get leftGame => playing && seat >= 0 && leftSeats.contains(seat);
+
+  /// The game waits while the host decides about someone who left:
+  /// {seats, decider (uid), at, until (server ms)}.
+  Map<Object?, Object?>? get paused => playing ? match!['paused'] as Map? : null;
+
+  /// It's your call (bot or end) while [paused].
+  bool get deciding => paused?['decider'] == uid;
+
+  /// A bot is playing [seat] (server seat) for someone who left.
+  bool standIn(int seat) => ((match?['standIns'] as Map?) ?? const {}).containsKey('$seat');
+
+  /// The name at server [seat] of the current match.
+  String nameAt(int seat) => '${((match?['names'] as List?) ?? const [])[seat] ?? 'Player'}';
+
   Doc get _me => {'name': account.name == 'You' ? 'Player' : account.name, 'avatar': account.avatar.toJson()};
 
   // --- Party -----------------------------------------------------------------
@@ -156,11 +178,11 @@ class PartyService extends ChangeNotifier {
     _follow(await backend.call('/v1/parties/join', {..._me, 'code': c}));
   });
 
-  /// Leaves the party (a live game you're in is given up first).
+  /// Leaves the party (and the game, if you're in one: the server sees to
+  /// that).
   Future<String?> leave() => _run(() async {
     final id = partyId;
     if (id == null) return;
-    if (playing && _seat(match!) >= 0) await backend.call('/v1/matches/${match!['id']}/forfeit');
     await backend.call('/v1/parties/$id/leave');
     _clear();
   });
@@ -278,8 +300,28 @@ class PartyService extends ChangeNotifier {
 
   Future<String?> move(Doc move) => _matchCall('move', {'version': match?['version'], 'move': move});
   Future<String?> claimTimeout() => _matchCall('timeout');
-  Future<String?> forfeit() => _matchCall('forfeit');
   Future<String?> rematch() => _matchCall('rematch');
+
+  /// Leaves the game. [stake] went with it (it comes back if you [rejoin]).
+  Future<String?> forfeit({int stake = 0}) {
+    final m = match;
+    if (m != null && stake > 0) account.leftGame(m['id']! as String, '${m['game']}', stake);
+    return _matchCall('forfeit');
+  }
+
+  /// Back into the game you left: your seat as it stands.
+  Future<String?> rejoin() async {
+    final id = match?['id'] as String?;
+    final error = await _matchCall('rejoin');
+    if (error == null && id != null) account.takeBack(id);
+    return error;
+  }
+
+  /// While [paused] (you're [deciding], or the time is up): `bot` or `end`.
+  Future<String?> decide(String choice) => _matchCall('decide', {'choice': choice});
+
+  /// Host: ends the live game for everyone (stakes back for those still in).
+  Future<String?> endGame() => _matchCall('end');
 
   Future<String?> _matchCall(String what, [Doc body = const {}]) => _run(() async {
     final m = match;

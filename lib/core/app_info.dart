@@ -3,12 +3,15 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.8.4';
+  static const version = '0.8.5';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Fix: online Texas Hold'em said \"Something went wrong\" as soon as a game started. It now plays.";
+      'Playing with friends: if someone leaves, the game pauses and the host brings in a bot for them or ends '
+      'it (a bot sits in after 30 seconds). Whoever left can tap Game In Progress to take their seat back, '
+      'stake and all. If only one person is left, the game ends and stakes are returned. One game at a time, '
+      'and the host can end a stuck one from the party screen.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -19,6 +22,7 @@ class AppInfo {
         "Hold'em: table talk, all-in odds, big-win splashes",
         'Chips with depth; cards dealt from the dealer',
         'New game pictures',
+        'Leave and rejoin: the host brings in a bot or ends it',
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),

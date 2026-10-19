@@ -343,6 +343,32 @@ Ships as app version **0.4.1**.
   keep their animations when the pot or a banner appears.
   → 0.8.3 · 2026-10-18
 
+### 15. Party games: leaving and coming back (requested 2026-10-19)
+
+- [x] **15.1 Leaving ends or pauses, never limps on**: with only one
+  person left (among bots) the game ends: whoever left loses their stake,
+  the rest get theirs back. A one-on-one with no bots: the one who stays
+  wins. Two or more still in: the game pauses (nobody can move) and the
+  host chooses **Bring in a bot** (it plays the seat from where it is) or
+  **End the game**; after 30 s any phone brings in the bot. If the host
+  left, the next person still playing becomes host and decides.
+- [x] **15.2 Game In Progress**: whoever left sees it on that game's Play
+  button (and Rejoin on the party screen): they take their seat back as it
+  stands (from the bot, or straight back during the pause), and the stake
+  they lost by leaving comes back (`Account.leftGame` / `takeBack`). The
+  game no longer pulls a leaver back in by itself.
+- [x] **15.3 One game at a time**: no new game while one is live (the
+  others say "In progress"); the host can end it for everyone from the
+  party screen (**End game**, stakes back); one untouched for 10 minutes
+  is ended when a new one starts. Leaving the party leaves its game too.
+  A rematch is for those who stayed.
+- [x] **15.4 Every phone sees the same**: it's all on the server's match
+  (`left`, `standIns`, `paused`), the phones only show it. Referee:
+  `decide`, `rejoin`, `endMatch` (+ routes); tests: `server/test/
+  lobby_test.dart` (incl. random leaving / rejoining / deciding), the
+  Firestore emulator, and `test/online/lobby_flow_test.dart` (three
+  phones). → 0.8.5 · 2026-10-19
+
 ### 12. Fixes
 
 - [x] **12.3 Fix: online Hold'em "Something went wrong"** (reported

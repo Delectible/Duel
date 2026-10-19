@@ -11,6 +11,7 @@ import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/online/party.dart';
+import '../../../features/party/lobby.dart';
 import 'poker_guide.dart';
 import 'poker_controller.dart';
 import 'table_view.dart';
@@ -86,10 +87,50 @@ class _PokerScreenState extends State<PokerScreen> {
     _c = _newTable();
   }
 
-  /// Online: a rematch has started (or the table needs rebuilding).
+  /// Who's sitting where online (people who left, bots sitting in): the
+  /// table is rebuilt when it changes, so names and bots stay right.
+  String? _seating;
+
+  String _seatingOf(Doc m) => '${m['left']}|${((m['standIns'] as Map?) ?? const {}).keys.toList()}';
+
+  /// Online: a rematch has started, the seating changed, or the game ended
+  /// early (people left / the host ended it).
   void _follow() {
-    final id = widget.party?.match?['id'];
-    if (id != null && id != _matchId && mounted) _rebuild();
+    final m = widget.party?.match;
+    final id = m?['id'];
+    if (m == null || !mounted) return;
+    if (id != _matchId) {
+      _rebuild();
+      return;
+    }
+    final seating = _seatingOf(m);
+    if (_seating != null && seating != _seating && m['status'] == 'live') {
+      _seating = seating;
+      _rebuild();
+      return;
+    }
+    _seating = seating;
+    _settleEarly();
+  }
+
+  /// The game stopped before its end: why (null if it didn't).
+  String? get _endedEarly {
+    final m = widget.party?.match;
+    if (m == null || m['id'] != _matchId || m['status'] != 'over') return null;
+    final r = (m['result'] as Map?) ?? const {};
+    final reason = r['reason'];
+    return reason == 'won' || reason == 'draw' ? null : reason as String?;
+  }
+
+  /// Settles the stake when the game stops early: stakes back when it was
+  /// ended; a win when you're the one left in a one-on-one.
+  void _settleEarly() {
+    final why = _endedEarly;
+    if (why == null || _ticket.settled || _c.phase == TablePhase.finished) return;
+    final party = widget.party!;
+    final winner = (party.match!['result'] as Map)['winner'];
+    _ticket.settle(why == 'ended' ? Outcome.tie : (winner == party.seat ? Outcome.win : Outcome.loss));
+    setState(() {});
   }
 
   void _rebuild() {
@@ -188,10 +229,11 @@ class _PokerScreenState extends State<PokerScreen> {
   Future<void> _leave() async {
     final party = widget.party;
     if (party != null) {
-      // Still in with chips: leaving folds you out for the rest.
-      if (party.playing && _c.phase != TablePhase.finished) {
-        if (!await confirmLeave(context, _ticket, online: 'The others play on without you.')) return;
-        await party.forfeit();
+      // Still in: what happens depends on who's left (see leaveNote). The
+      // stake goes, and comes back if you rejoin.
+      if (party.inGame && _c.phase != TablePhase.finished) {
+        if (!await confirmLeave(context, _ticket, online: leaveNote(party))) return;
+        await party.forfeit(stake: _ticket.stake);
       }
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
       return;
@@ -220,6 +262,11 @@ class _PokerScreenState extends State<PokerScreen> {
                   table: TableView(c: _c),
                   controls: ActionBar(c: _c),
                 ),
+                // Someone left: the host decides (bot or end).
+                if (widget.party?.paused != null && _endedEarly == null)
+                  Positioned.fill(child: PausedCard(party: widget.party!)),
+                if (_endedEarly != null && _c.phase != TablePhase.finished)
+                  Positioned.fill(child: _endedCard()),
                 if (_c.phase == TablePhase.finished)
                   Positioned.fill(
                     child: _GameOver(
@@ -241,6 +288,33 @@ class _PokerScreenState extends State<PokerScreen> {
 }
 
 extension on _PokerScreenState {
+  /// The game stopped early: why, and what happened to the stake.
+  Widget _endedCard() {
+    final party = widget.party!;
+    final r = (party.match!['result'] as Map?) ?? const {};
+    final left = ((r['left'] as List?) ?? const []).cast<int>();
+    final names = [for (final s in left) party.nameAt(s)];
+    final who = names.isEmpty ? 'The host' : names.join(' and ');
+    final won = r['winner'] == party.seat;
+    final why = _endedEarly;
+    return GameOverCard(
+      face: _account.persona,
+      title: why == 'ended' ? 'Game ended' : (won ? 'You win!' : 'Game over'),
+      subtitle: why == 'ended'
+          ? '${names.isEmpty ? 'The host ended it.' : '$who left.'}'
+                '${_ticket.stake > 0 ? ' Your stake is back.' : ''}'
+          : won
+          ? '$who left the game.'
+          : 'You ran out of time.',
+      ticket: _ticket,
+      won: won,
+      onAgain: _rematch(),
+      againLabel: _againLabel(),
+      leaveLabel: 'Back to party',
+      onLeave: _leave,
+    );
+  }
+
   /// Online: Rematch once the whole table is done (everyone asks).
   VoidCallback? _rematch() {
     final party = widget.party!;

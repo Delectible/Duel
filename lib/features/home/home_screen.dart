@@ -296,7 +296,9 @@ class _MatchWatcherState extends State<_MatchWatcher> {
 
   void _check() {
     final party = _party;
-    if (party == null || !party.playing || party.onScreen || party.seat < 0) return;
+    // Open the game for everyone playing it (not for someone who left it:
+    // they come back through Game In Progress).
+    if (party == null || !party.inGame || party.onScreen) return;
     final game = games.where((g) => g.id == party.match!['game']).firstOrNull;
     final open = game?.openOnline;
     if (open == null) return;

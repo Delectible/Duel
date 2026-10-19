@@ -35,10 +35,16 @@ class OnlinePokerController extends PokerController {
     final n = seats.length;
     final names = (m['names']! as List).cast<Object?>();
     final bots = (m['bots'] as List?) ?? List.filled(n, null);
+    final standIns = (m['standIns'] as Map?) ?? const {};
     Persona at(int server) {
       if (server == me) return you;
       final bot = bots[server];
       if (bot is Map) return PartyBot.fromJson(bot).persona;
+      // Someone who left, played by a bot until they're back.
+      final standIn = standIns['$server'];
+      if (standIn is Map) {
+        return Persona.bot('${names[server] ?? 'Player'} (bot)', PartyBot.fromJson(standIn).look);
+      }
       final member = party.members.where((x) => x.uid == seats[server]).firstOrNull;
       return Persona(
         name: '${names[server] ?? 'Player'}',
@@ -101,8 +107,12 @@ class OnlinePokerController extends PokerController {
   bool _isBot(int seat) {
     final bots = (_match?['bots'] as List?) ?? const [];
     final s = _server(seat);
-    return s < bots.length && bots[s] != null;
+    return s < bots.length && bots[s] != null || party.standIn(s);
   }
+
+  /// Nobody moves while the host decides about someone who left.
+  @override
+  bool get yourTurn => super.yourTurn && party.paused == null;
 
   /// The server has finished the current hand (dealt the next or ended).
   bool get _handClosed => _hands.length > _handIdx + 1 || matchOver;
@@ -317,7 +327,7 @@ class OnlinePokerController extends PokerController {
   @override
   int? get turnSecondsLeft {
     final m = _match;
-    if (m == null || m['status'] != 'live' || m['turn'] == null) return null;
+    if (m == null || m['status'] != 'live' || m['turn'] == null || m['paused'] != null) return null;
     // The server allows extra while phones show the bots' moves; the
     // clock shows a person's 45 seconds.
     return (_msLeft / 1000).ceil().clamp(0, 45);

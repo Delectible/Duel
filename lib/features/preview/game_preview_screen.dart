@@ -5,6 +5,7 @@ import '../../core/account/stake.dart';
 import '../../core/help/home_guide.dart';
 import 'package:duel_engine/difficulty.dart';
 import '../../core/online/party.dart';
+import '../party/lobby.dart';
 import '../../core/session/play_setup.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
@@ -41,6 +42,9 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
     // With your party: Play! starts it online for everyone (host only).
     final party = PartyScope.of(context);
     final online = setup.mode == PlayMode.friends && party != null;
+    // This game is being played by the party right now: Play! becomes the
+    // way back in (or says it's on).
+    final here = online && party.playing && party.match!['game'] == game.id;
     // Time for this table if it fits, else for the nearest that does.
     var players = setup.players.clamp(game.minPlayers, game.maxPlayers);
     final counts = game.playerCounts;
@@ -176,41 +180,65 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
               const SizedBox(width: 10),
               Expanded(
                 flex: 2,
-                child: ToonButton(
-                  key: const Key('play'),
-                  color: Toon.green,
-                  // Play! is the only thing that counts: it starts the game
-                  // here, and will be your vote / pick in a party.
-                  onPressed: blocked != null || (online && party.busy)
-                      ? null
-                      : online
-                      ? () async {
-                          // Starts on every phone; each takes the stake.
-                          final error = await party.start(game.id, stake: _stake);
-                          if (!context.mounted) return;
-                          if (error != null) {
-                            ScaffoldMessenger.of(context)
-                              ..hideCurrentSnackBar()
-                              ..showSnackBar(SnackBar(content: Text(error)));
-                          } else {
-                            Navigator.of(context).pop();
-                          }
-                        }
-                      : () {
-                          // The stake is taken now; the game settles it.
-                          final ticket = StakeTicket(
-                            account: account,
-                            gameId: game.id,
-                            stake: account.placeStake(_stake),
-                            opponents: game.opponents(setup.players),
-                            difficulty: setup.difficulty,
-                          );
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute<void>(builder: (_) => game.open!(setup, ticket, _choice)),
-                          );
-                        },
-                  child: Text('Play!', style: Toon.text(20, weight: FontWeight.w700)),
-                ),
+                child: here
+                    ? ToonButton(
+                        key: Key(party.leftGame ? 'rejoin' : 'in progress'),
+                        color: Toon.green,
+                        onPressed: party.busy
+                            ? null
+                            : party.leftGame
+                            ? () async {
+                                // Home opens the game once you're back.
+                                if (await rejoin(context, party) && context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              }
+                            : party.inGame
+                            ? () => openGame(context, party)
+                            : null,
+                        child: FittedBox(
+                          child: Text(
+                            party.inGame ? 'Back to the game' : 'Game In Progress',
+                            maxLines: 1,
+                            style: Toon.text(18, weight: FontWeight.w700),
+                          ),
+                        ),
+                      )
+                    : ToonButton(
+                        key: const Key('play'),
+                        color: Toon.green,
+                        // Play! is the only thing that counts: it starts the game
+                        // here, and will be your vote / pick in a party.
+                        onPressed: blocked != null || (online && party.busy)
+                            ? null
+                            : online
+                            ? () async {
+                                // Starts on every phone; each takes the stake.
+                                final error = await party.start(game.id, stake: _stake);
+                                if (!context.mounted) return;
+                                if (error != null) {
+                                  ScaffoldMessenger.of(context)
+                                    ..hideCurrentSnackBar()
+                                    ..showSnackBar(SnackBar(content: Text(error)));
+                                } else {
+                                  Navigator.of(context).pop();
+                                }
+                              }
+                            : () {
+                                // The stake is taken now; the game settles it.
+                                final ticket = StakeTicket(
+                                  account: account,
+                                  gameId: game.id,
+                                  stake: account.placeStake(_stake),
+                                  opponents: game.opponents(setup.players),
+                                  difficulty: setup.difficulty,
+                                );
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute<void>(builder: (_) => game.open!(setup, ticket, _choice)),
+                                );
+                              },
+                        child: Text('Play!', style: Toon.text(20, weight: FontWeight.w700)),
+                      ),
               ),
             ],
           ),

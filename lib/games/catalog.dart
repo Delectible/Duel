@@ -134,6 +134,24 @@ class GameInfo {
         return ('Online soon', '$name with friends is coming soon. Switch to Bots to play it now.');
       }
       if (party == null) return ('Offline', 'Playing with friends needs the internet.');
+      // One game at a time (the preview shows this game's own way back in).
+      if (party.playing) {
+        final playing = games.where((g) => g.id == party.match!['game']).firstOrNull?.name ?? 'A game';
+        if (party.match!['game'] == id) {
+          return (
+            'In progress',
+            party.leftGame
+                ? 'You left this game. Your seat is waiting: tap Game In Progress to take it back.'
+                : party.inGame
+                ? 'You’re playing this one.'
+                : 'This game started before you joined. You’ll be in the next one.',
+          );
+        }
+        return (
+          'In progress',
+          '$playing is being played. Finish it first${party.isHost ? ', or end it from the party screen' : ''}.',
+        );
+      }
       if (!party.isHost) return ('Host picks', '${party.hostName} picks the game. It starts here by itself.');
     }
     return null;

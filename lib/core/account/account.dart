@@ -110,6 +110,34 @@ class Account extends ChangeNotifier {
 
   /// The online party you're in, so reopening the app takes you back.
   String? get partyId => _partyId;
+
+  /// Online games you left (match id -> the stake that went with it), so
+  /// coming back ([takeBack]) returns it: leaving and rejoining costs
+  /// nothing; leaving for good loses the stake.
+  final Map<String, ({String game, int stake})> _leftGames = {};
+
+  /// You left online match [matchId] of [game], losing [stake].
+  void leftGame(String matchId, String game, int stake) {
+    _leftGames.remove(matchId);
+    _leftGames[matchId] = (game: game, stake: stake);
+    // Only the latest few matter.
+    while (_leftGames.length > 8) {
+      _leftGames.remove(_leftGames.keys.first);
+    }
+    _save();
+  }
+
+  /// You're back in [matchId]: the loss you took for leaving is undone.
+  void takeBack(String matchId) {
+    final left = _leftGames.remove(matchId);
+    if (left == null) return;
+    final st = stats(left.game);
+    if (st.played > 0) st.played--;
+    if (st.lost > 0) st.lost--;
+    st.net += left.stake;
+    _change(() => _balance += left.stake);
+  }
+
   set partyId(String? v) {
     if (v != _partyId) _change(() => _partyId = v);
   }
@@ -199,6 +227,12 @@ class Account extends ChangeNotifier {
       _currency = CurrencyChoice.values.asNameMap()[j['currency']] ?? CurrencyChoice.pips;
       _theme = ThemeChoice.values.asNameMap()[j['theme']] ?? ThemeChoice.system;
       _partyId = j['party'] as String?;
+      final left = j['left'] as Map<String, dynamic>? ?? {};
+      left.forEach((k, v) {
+        if (v is Map && v['g'] is String && v['s'] is int) {
+          _leftGames[k] = (game: v['g'] as String, stake: v['s'] as int);
+        }
+      });
       final stats = j['stats'] as Map<String, dynamic>? ?? {};
       stats.forEach((k, v) => _stats[k] = GameStats.fromJson(v as Map<String, dynamic>));
     } on Object {
@@ -215,6 +249,9 @@ class Account extends ChangeNotifier {
       'theme': _theme.name,
       'stats': {for (final e in _stats.entries) e.key: e.value.toJson()},
       'party': ?_partyId,
+      'left': {
+        for (final e in _leftGames.entries) e.key: {'g': e.value.game, 's': e.value.stake},
+      },
     }),
   );
 }
