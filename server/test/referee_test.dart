@@ -117,13 +117,31 @@ void main() {
     expect((m['seats']! as List)[(m['result']! as Map)['winner']! as int], other.uid);
   });
 
-  test('forfeit, then a rematch when both ask (the other side starts)', () async {
+  /// Plays [m] to a win (the first player stacks column 0).
+  Future<Map<String, Object?>> playOut(Map<String, Object?> m) async {
+    for (final col in [0, 3, 0, 3, 0, 3, 0]) {
+      if (m['status'] != 'live') break;
+      m = await ref.move(whoseTurn(m), m['id']! as String, m['version']! as int, {'column': col});
+    }
+    return m;
+  }
+
+  test('forfeit: one on one, the other wins; no rematch with someone who left', () async {
     var m = await startGame();
     final id = m['id']! as String;
-    final first = ((m['state']! as Map)['first'])! as int;
     m = await ref.forfeit(sam, id);
     expect(m['status'], 'over');
     expect((m['seats']! as List)[(m['result']! as Map)['winner']! as int], 'luca');
+    expect((m['result']! as Map)['reason'], 'forfeit');
+    await expectLater(ref.rematch(luca, id), throwsA(isA<RefereeError>()));
+  });
+
+  test('a rematch when both ask (the other side starts)', () async {
+    var m = await startGame();
+    final id = m['id']! as String;
+    final first = ((m['state']! as Map)['first'])! as int;
+    m = await playOut(m);
+    expect(m['status'], 'over');
     m = await ref.rematch(luca, id);
     expect(m['next'], isNull);
     m = await ref.rematch(sam, id);
@@ -137,7 +155,7 @@ void main() {
     await ref.joinParty(sam, party['code']! as String);
     var m = await ref.startMatch(luca, party['id']! as String, 'connect4', stake: 5000);
     expect(m['stake'], Referee.maxStake);
-    m = await ref.forfeit(sam, m['id']! as String);
+    m = await playOut(m);
     await ref.rematch(luca, m['id']! as String);
     m = await ref.rematch(sam, m['id']! as String);
     expect((await store.get('matches/${m['next']}'))!['stake'], Referee.maxStake);

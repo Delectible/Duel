@@ -164,6 +164,12 @@ class PokerGame extends OnlineGame {
   };
 
   @override
+  Doc rejoin(Doc state, int seat) => {
+    ...state,
+    'gone': [...(state['gone']! as List).cast<int>()]..remove(seat),
+  };
+
+  @override
   Doc public(Doc state) {
     final t = replay(state);
     final hands = (state['hands']! as List).cast<List<Object?>>();

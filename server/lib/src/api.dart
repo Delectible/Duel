@@ -87,7 +87,13 @@ Handler api(Referee referee, TokenVerifier verifier) {
       (Request q, String id) => call(q, (p, _) => referee.claimTimeout(p, id)),
     )
     ..post('/v1/matches/<id>/forfeit', (Request q, String id) => call(q, (p, _) => referee.forfeit(p, id)))
-    ..post('/v1/matches/<id>/rematch', (Request q, String id) => call(q, (p, _) => referee.rematch(p, id)));
+    ..post('/v1/matches/<id>/rematch', (Request q, String id) => call(q, (p, _) => referee.rematch(p, id)))
+    ..post('/v1/matches/<id>/rejoin', (Request q, String id) => call(q, (p, _) => referee.rejoin(p, id)))
+    ..post('/v1/matches/<id>/end', (Request q, String id) => call(q, (p, _) => referee.endMatch(p, id)))
+    ..post(
+      '/v1/matches/<id>/decide',
+      (Request q, String id) => call(q, (p, b) => referee.decide(p, id, '${b['choice'] ?? ''}')),
+    );
 
   return const Pipeline().addMiddleware(_errors).addHandler(r.call);
 }

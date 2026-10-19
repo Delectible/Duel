@@ -62,6 +62,9 @@ abstract class OnlineGame {
   /// on (two players: the other wins).
   Doc? leave(Doc state, int seat) => null;
 
+  /// [seat] is back (after [leave]).
+  Doc rejoin(Doc state, int seat) => state;
+
   /// How long phones take to show what happened from [before] to [after]
   /// (bots' moves, a new deal): added to the next player's clock.
   Duration show(Doc before, Doc after) => Duration.zero;

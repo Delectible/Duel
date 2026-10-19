@@ -34,7 +34,10 @@ class Player {
 ///   version (bumps on every change), turn, state, deadline and turnAt
 ///   (server ms: phones count down deadline - turnAt from when they hear
 ///   of the turn, so their own clocks don't matter), result,
-///   rematch votes and the next match's id.
+///   rematch votes and the next match's id. People who leave mid-game are
+///   in `left`; a bot playing a left seat is in `standIns` (by seat); while
+///   the host decides what happens to a seat, `paused` is {seats, decider,
+///   at, until} and nobody moves.
 class Referee {
   Referee(this.store, {Random? rng, DateTime Function()? clock, this.turnTime = const Duration(seconds: 45)})
     : _rng = rng ?? Random.secure(),
@@ -111,6 +114,25 @@ class Referee {
   Future<void> leaveParty(Player p, String id) => store.transaction((tx) async {
     final party = await tx.get('parties/$id');
     if (party == null) return;
+    // In the party's game: leaving the party leaves the game too.
+    final matchId = party['matchId'] as String?;
+    final match = matchId == null ? null : await tx.get('matches/$matchId');
+    if (match != null && match['status'] == 'live') {
+      final seat = (match['seats']! as List).indexOf(p.uid);
+      if (seat >= 0 && !_left(match).contains(seat)) {
+        final game = onlineGames[match['game']]!;
+        _leave(
+          tx,
+          match,
+          game,
+          await _state(tx, matchId!),
+          seat,
+          reason: 'forfeit',
+          party: party,
+          leaving: p.uid,
+        );
+      }
+    }
     final members = (party['members']! as List).cast<String>()..remove(p.uid);
     if (members.isEmpty) {
       tx.delete('parties/$id');
@@ -163,36 +185,48 @@ class Referee {
 
   /// Starts [gameId] for everyone in the party and its bots (host only).
   /// [stake] is what every player puts in; each phone takes and settles it.
-  Future<Doc> startMatch(Player p, String partyId, String gameId, {int stake = 0}) =>
-      store.transaction((tx) async {
-        final party = await tx.get('parties/$partyId');
-        if (party == null) throw const RefereeError(404, 'No such party');
-        if (party['host'] != p.uid) throw const RefereeError(403, 'Only the host can start a game');
-        final game = onlineGames[gameId];
-        if (game == null) throw RefereeError(400, "$gameId can't be played online yet");
-        final members = (party['members']! as List).cast<String>();
-        final bots = ((party['bots'] as List?) ?? const []).cast<Map<Object?, Object?>>();
-        final count = members.length + bots.length;
-        if (count < game.minPlayers || count > game.maxPlayers) {
-          throw RefereeError(409, '${game.id} is for ${game.minPlayers}–${game.maxPlayers} players');
-        }
-        final names = <Object?, Object?>{...party['names']! as Map, for (final b in bots) b['id']: b['name']};
-        final seats = [...members, for (final b in bots) b['id']! as String]..shuffle(_rng);
-        final botSeats = {for (final b in bots) b['id']: b.cast<String, Object?>()};
-        final match = await _newMatch(
-          tx,
-          game,
-          partyId,
-          seats,
-          names,
-          [for (final s in seats) botSeats[s]],
-          first: _rng.nextInt(seats.length),
-          stake: stake.clamp(0, maxStake),
-        );
-        party['matchId'] = match['id'];
-        _put(tx, 'parties/$partyId', party);
-        return match;
-      });
+  Future<Doc> startMatch(Player p, String partyId, String gameId, {int stake = 0}) => store.transaction((
+    tx,
+  ) async {
+    final party = await tx.get('parties/$partyId');
+    if (party == null) throw const RefereeError(404, 'No such party');
+    if (party['host'] != p.uid) throw const RefereeError(403, 'Only the host can start a game');
+    // One game at a time: a live one has to finish or be ended first
+    // (one nobody has touched for a long while is ended here).
+    final currentId = party['matchId'] as String?;
+    final current = currentId == null ? null : await tx.get('matches/$currentId');
+    if (current != null && current['status'] == 'live') {
+      if (!_abandoned(current)) {
+        throw const RefereeError(409, 'A game is still going. Finish it, or end it from the party screen.');
+      }
+      _end(current);
+      _put(tx, 'matches/$currentId', current);
+    }
+    final game = onlineGames[gameId];
+    if (game == null) throw RefereeError(400, "$gameId can't be played online yet");
+    final members = (party['members']! as List).cast<String>();
+    final bots = ((party['bots'] as List?) ?? const []).cast<Map<Object?, Object?>>();
+    final count = members.length + bots.length;
+    if (count < game.minPlayers || count > game.maxPlayers) {
+      throw RefereeError(409, '${game.id} is for ${game.minPlayers}–${game.maxPlayers} players');
+    }
+    final names = <Object?, Object?>{...party['names']! as Map, for (final b in bots) b['id']: b['name']};
+    final seats = [...members, for (final b in bots) b['id']! as String]..shuffle(_rng);
+    final botSeats = {for (final b in bots) b['id']: b.cast<String, Object?>()};
+    final match = await _newMatch(
+      tx,
+      game,
+      partyId,
+      seats,
+      names,
+      [for (final s in seats) botSeats[s]],
+      first: _rng.nextInt(seats.length),
+      stake: stake.clamp(0, maxStake),
+    );
+    party['matchId'] = match['id'];
+    _put(tx, 'parties/$partyId', party);
+    return match;
+  });
 
   Future<Doc> _newMatch(
     Tx tx,
@@ -217,6 +251,9 @@ class Referee {
       'names': [for (final s in seats) names[s] ?? 'Player'],
       'bots': bots,
       'gone': <int>[],
+      'left': <int>[],
+      'standIns': <String, Object?>{},
+      'paused': null,
       'first': first,
       'status': 'live',
       'stake': stake,
@@ -240,6 +277,7 @@ class Referee {
   Future<Doc> move(Player p, String id, int version, Doc move) => store.transaction((tx) async {
     final match = await _match(tx, id);
     if (match['status'] != 'live') throw const RefereeError(409, 'The game is over');
+    if (match['paused'] != null) throw const RefereeError(409, 'Paused: waiting for the host');
     if (match['version'] != version) throw const RefereeError(409, 'Out of date: the game moved on');
     final seat = _seat(match, p);
     final game = onlineGames[match['game']]!;
@@ -262,7 +300,11 @@ class Referee {
     final match = await _match(tx, id);
     _seat(match, p);
     if (match['status'] != 'live') throw const RefereeError(409, 'The game is over');
-    if (_now < (match['deadline']! as int)) throw const RefereeError(409, 'There is still time');
+    final deadline = match['deadline'] as int?;
+    if (match['paused'] != null || deadline == null) {
+      throw const RefereeError(409, 'Paused: waiting for the host');
+    }
+    if (_now < deadline) throw const RefereeError(409, 'There is still time');
     final game = onlineGames[match['game']]!;
     final seat = match['turn']! as int;
     final before = await _state(tx, id);
@@ -270,43 +312,170 @@ class Referee {
     timeouts[seat]++;
     match['timeouts'] = timeouts;
     if (timeouts[seat] >= maxTimeouts) {
-      _leave(tx, match, game, before, seat, reason: 'timeout');
+      final party = await tx.get('parties/${match['party']}');
+      _leave(tx, match, game, before, seat, reason: 'timeout', party: party);
     } else {
       _commit(tx, match, game, before, game.play(before, seat, game.autoMove(before, seat, _rng)));
     }
     return match;
   });
 
-  /// Gives up / leaves mid-game: with two players the other wins; with more
-  /// the game goes on and the server plays (folds) for you.
+  /// Leaves mid-game (on purpose). See [_leave] for what happens next.
   Future<Doc> forfeit(Player p, String id) => store.transaction((tx) async {
     final match = await _match(tx, id);
     final seat = _seat(match, p);
-    if (match['status'] != 'live') return match;
+    if (match['status'] != 'live' || _left(match).contains(seat)) return match;
     final game = onlineGames[match['game']]!;
-    _leave(tx, match, game, await _state(tx, id), seat, reason: 'forfeit');
+    final party = await tx.get('parties/${match['party']}');
+    _leave(tx, match, game, await _state(tx, id), seat, reason: 'forfeit', party: party);
     return match;
   });
 
-  void _leave(Tx tx, Doc match, OnlineGame game, Doc before, int seat, {required String reason}) {
-    final gone = {...(match['gone']! as List).cast<int>(), seat}.toList()..sort();
+  /// How long the host has to choose (bot or end) before a bot sits in.
+  static const decideTime = Duration(seconds: 30);
+
+  /// [seat] has left (or timed out for good):
+  /// - a one-on-one with no bots: the other person wins;
+  /// - one person (or nobody) left among bots: the game ends, and the
+  ///   people still in get their stakes back ([_end]);
+  /// - two or more people still in: the game pauses for the host to bring
+  ///   in a bot for them or end the game ([decide]); the leaver can come
+  ///   back ([rejoin]) until then, or later in place of the bot.
+  void _leave(
+    Tx tx,
+    Doc match,
+    OnlineGame game,
+    Doc before,
+    int seat, {
+    required String reason,
+    Doc? party,
+    String? leaving,
+  }) {
+    final left = ({..._left(match), seat}.toList()..sort());
+    match['left'] = left;
+    final seats = (match['seats']! as List).cast<String>();
     final bots = match['bots']! as List;
     final people = [
-      for (var i = 0; i < bots.length; i++)
-        if (bots[i] == null && !gone.contains(i)) i,
+      for (var i = 0; i < seats.length; i++)
+        if (bots[i] == null && !left.contains(i)) i,
     ];
+    final anyBots = bots.any((b) => b != null) || _standIns(match).isNotEmpty;
     final after = game.leave(before, seat);
-    if (after == null || people.isEmpty) {
-      // Nobody left to play with: whoever's next (a person if possible) wins.
-      final winner = people.isNotEmpty ? people.first : _nextSeat(match, seat);
-      match['gone'] = gone;
-      _finish(match, Result(winner: winner), reason: reason);
+    if (people.length == 1 && !anyBots && seats.length == 2) {
+      _finish(match, Result(winner: people.single), reason: reason);
       _put(tx, 'matches/${match['id']}', match);
       return;
     }
-    match['gone'] = gone;
-    _commit(tx, match, game, before, after);
+    if (people.length <= 1 || after == null) {
+      _end(match);
+      _put(tx, 'matches/${match['id']}', match);
+      return;
+    }
+    // Pause for the host. If the host is the one who left, the next person
+    // still playing takes over as host.
+    final paused = (match['paused'] as Map?)?.cast<String, Object?>();
+    final waiting = {...((paused?['seats'] as List?) ?? const []).cast<int>(), seat}.toList()..sort();
+    final playing = {for (final i in people) seats[i]};
+    var decider = party?['host'] as String?;
+    if (decider == null || !playing.contains(decider)) {
+      final members = ((party?['members'] as List?) ?? const []).cast<String>().where((m) => m != leaving);
+      decider = members.where(playing.contains).firstOrNull ?? seats[people.first];
+      if (party != null && party['host'] != decider && (party['members']! as List).contains(decider)) {
+        party['host'] = decider;
+        _put(tx, 'parties/${party['id']}', party);
+      }
+    }
+    match['paused'] = {
+      'seats': waiting,
+      'decider': decider,
+      'at': _now,
+      'until': _now + decideTime.inMilliseconds,
+    };
+    match['turn'] = null;
+    match['deadline'] = null;
+    match['state'] = game.public(after);
+    match['version'] = (match['version']! as int) + 1;
+    _put(tx, 'secrets/${match['id']}', {'state': after});
+    _put(tx, 'matches/${match['id']}', match);
   }
+
+  /// The host's call on the seats waiting in [Doc] `paused`: `bot` (a bot
+  /// plays them from where they are) or `end` (the game stops; stakes back
+  /// for the people still in). Once the time is up anyone may ask for the
+  /// bot, so a game never waits on a phone in a pocket.
+  Future<Doc> decide(Player p, String id, String choice) => store.transaction((tx) async {
+    final match = await _match(tx, id);
+    _seat(match, p);
+    final paused = (match['paused'] as Map?)?.cast<String, Object?>();
+    if (match['status'] != 'live' || paused == null) return match; // already decided
+    final isDecider = paused['decider'] == p.uid;
+    if (choice == 'end') {
+      if (!isDecider) throw const RefereeError(403, 'The host decides');
+      _end(match);
+      _put(tx, 'matches/$id', match);
+      return match;
+    }
+    if (choice != 'bot') throw const RefereeError(400, 'Choose bot or end');
+    if (!isDecider && _now < (paused['until']! as int)) throw const RefereeError(409, 'Waiting for the host');
+    final names = match['names']! as List;
+    final standIns = _standIns(match);
+    for (final seat in (paused['seats']! as List).cast<int>()) {
+      standIns['$seat'] = {
+        'name': names[seat],
+        'look': const ['cap', 'shades', 'fin', 'spiky'][_rng.nextInt(4)],
+        'difficulty': 'normal',
+      };
+    }
+    match['standIns'] = standIns;
+    match['paused'] = null;
+    final game = onlineGames[match['game']]!;
+    final state = await _state(tx, id);
+    _commit(tx, match, game, state, state);
+    return match;
+  });
+
+  /// Back in after leaving: your seat as it stands (taken back from the
+  /// bot, or straight back while the host is still deciding).
+  Future<Doc> rejoin(Player p, String id) => store.transaction((tx) async {
+    final match = await _match(tx, id);
+    final seat = _seat(match, p);
+    if (match['status'] != 'live') throw const RefereeError(409, 'That game is over');
+    final left = _left(match);
+    if (!left.contains(seat)) return match; // still in
+    match['left'] = left..remove(seat);
+    match['standIns'] = _standIns(match)..remove('$seat');
+    (match['timeouts']! as List)[seat] = 0;
+    final game = onlineGames[match['game']]!;
+    final state = game.rejoin(await _state(tx, id), seat);
+    final paused = (match['paused'] as Map?)?.cast<String, Object?>();
+    if (paused != null) {
+      final waiting = (paused['seats']! as List).cast<int>()..remove(seat);
+      if (waiting.isNotEmpty) {
+        // Others still to decide on: stay paused.
+        match['paused'] = {...paused, 'seats': waiting};
+        match['state'] = game.public(state);
+        match['version'] = (match['version']! as int) + 1;
+        _put(tx, 'secrets/$id', {'state': state});
+        _put(tx, 'matches/$id', match);
+        return match;
+      }
+      match['paused'] = null;
+    }
+    _commit(tx, match, game, state, state);
+    return match;
+  });
+
+  /// Host: ends the party's live game for everyone (stakes back for those
+  /// still in). For a game that's stuck, or that the party wants to stop.
+  Future<Doc> endMatch(Player p, String id) => store.transaction((tx) async {
+    final match = await _match(tx, id);
+    final party = await tx.get('parties/${match['party']}');
+    if (party?['host'] != p.uid) throw const RefereeError(403, 'Only the host can end the game');
+    if (match['status'] != 'live') return match;
+    _end(match);
+    _put(tx, 'matches/$id', match);
+    return match;
+  });
 
   /// Asks for a rematch; when everyone still here has, a new match starts
   /// (the next seat goes first, same bots) and `next` points at it.
@@ -318,16 +487,27 @@ class Referee {
     final votes = (match['rematch']! as List).cast<String>();
     if (!votes.contains(p.uid)) votes.add(p.uid);
     match['rematch'] = votes;
-    final seats = (match['seats']! as List).cast<String>();
-    final bots = (match['bots'] as List? ?? List.filled(seats.length, null)).cast<Map<Object?, Object?>?>();
+    // Whoever left isn't in the rematch (nor the bots that sat in for them).
+    final left = _left(match);
+    final allSeats = (match['seats']! as List).cast<String>();
+    final allBots = (match['bots'] as List? ?? List.filled(allSeats.length, null))
+        .cast<Map<Object?, Object?>?>();
+    final keep = [
+      for (var i = 0; i < allSeats.length; i++)
+        if (!left.contains(i)) i,
+    ];
+    final seats = [for (final i in keep) allSeats[i]];
+    final bots = [for (final i in keep) allBots[i]];
     final people = [
       for (final (i, s) in seats.indexed)
         if (bots[i] == null) s,
     ];
+    if (!people.contains(p.uid)) throw const RefereeError(409, 'You left that game');
+    final game = onlineGames[match['game']]!;
+    if (seats.length < game.minPlayers) throw RefereeError(409, 'Not enough players left for a rematch');
     if (people.every(votes.contains)) {
-      final game = onlineGames[match['game']]!;
       final first = ((match['first'] as int? ?? 0) + 1) % seats.length;
-      final names = {for (final (i, s) in seats.indexed) s: (match['names']! as List)[i]};
+      final names = {for (final i in keep) allSeats[i]: (match['names']! as List)[i]};
       final next = await _newMatch(
         tx,
         game,
@@ -390,7 +570,27 @@ class Referee {
     return (s['state']! as Map).cast<String, Object?>();
   }
 
-  static int _nextSeat(Doc match, int seat) => (seat + 1) % (match['seats']! as List).length;
+  static List<int> _left(Doc match) => [...((match['left'] as List?) ?? const []).cast<int>()];
+
+  static Map<String, Object?> _standIns(Doc match) => {
+    ...((match['standIns'] as Map?) ?? const {}).cast<String, Object?>(),
+  };
+
+  /// Live, but nobody has touched it for a long while (everyone closed the
+  /// app): a new game may replace it.
+  bool _abandoned(Doc match) {
+    final paused = match['paused'] as Map?;
+    final last = paused != null ? paused['until'] as int? : match['deadline'] as int?;
+    return last != null && _now > last + const Duration(minutes: 10).inMilliseconds;
+  }
+
+  /// Ends a game nobody won: people left or the host stopped it. The
+  /// people still in get their stakes back; whoever left lost theirs.
+  void _end(Doc match) {
+    match['paused'] = null;
+    _finish(match, const Result(), reason: 'ended');
+    (match['result']! as Map)['left'] = _left(match);
+  }
 
   /// Plays bots (and players who left) until a person is to move, then
   /// writes it all: the secret state, the public match, each person's own
@@ -398,10 +598,11 @@ class Referee {
   void _commit(Tx tx, Doc match, OnlineGame game, Doc before, Doc state) {
     final bots = match['bots']! as List;
     final gone = (match['gone']! as List).cast<int>();
+    final standIns = _standIns(match);
     for (var guard = 0; guard < 5000 && game.result(state) == null; guard++) {
       final turn = game.turn(state);
       if (turn == null) break;
-      final bot = bots[turn];
+      final bot = bots[turn] ?? standIns['$turn'];
       if (bot != null) {
         state = game.play(state, turn, game.botMove(state, turn, (bot as Map).cast<String, Object?>(), _rng));
       } else if (gone.contains(turn)) {

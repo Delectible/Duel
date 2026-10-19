@@ -75,6 +75,27 @@ void main() {
     expect(over['next'], isA<String>());
     expect((await store.get('matches/${over['next']}'))!['status'], 'live');
   }, skip: skip);
+
+  test('leaving, a bot sitting in and coming back, on Firestore', () async {
+    final store = FirestoreStore(_Owner(), projectId: 'demo-duel', emulatorHost: host);
+    final ref = Referee(store, rng: Random(7));
+    const luca = Player(uid: 'luca', name: 'Luca'),
+        sam = Player(uid: 'sam', name: 'Sam'),
+        kit = Player(uid: 'kit', name: 'Kit');
+    final party = await ref.createParty(luca);
+    await ref.joinParty(sam, party['code']! as String);
+    await ref.joinParty(kit, party['code']! as String);
+    final id = (await ref.startMatch(luca, party['id']! as String, 'holdem'))['id']! as String;
+    var m = await ref.forfeit(sam, id);
+    expect((m['paused']! as Map)['decider'], 'luca');
+    m = await ref.decide(luca, id, 'bot');
+    expect((m['standIns']! as Map).length, 1);
+    m = await ref.rejoin(sam, id);
+    expect(m['standIns'], isEmpty);
+    expect((await store.get('matches/$id'))!['left'], isEmpty);
+    m = await ref.endMatch(luca, id);
+    expect((await store.get('matches/$id'))!['result'], containsPair('reason', 'ended'));
+  }, skip: skip);
 }
 
 /// The emulator's full-access token.

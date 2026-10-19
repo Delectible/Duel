@@ -112,16 +112,14 @@ void main() {
     expect(shown, isNotEmpty, reason: 'all-ins get shown down');
   });
 
-  test('a friend leaves: the game goes on, the server folds for them', () async {
+  test('a friend leaves: with only one person left among bots, the game ends (stakes back)', () async {
     var m = await table();
     final id = m['id']! as String;
     m = await ref.forfeit(sam, id);
-    expect(m['status'], 'live');
-    expect(m['gone'], [(m['seats']! as List).indexOf('sam')]);
-    expect((m['seats']! as List)[m['turn']! as int], 'luca', reason: 'only Luca is asked now');
-    // Luca leaves too: nobody left, the game ends.
-    m = await ref.forfeit(luca, id);
     expect(m['status'], 'over');
+    expect(m['result'], containsPair('reason', 'ended'));
+    expect((m['result']! as Map)['left'], [(m['seats']! as List).indexOf('sam')]);
+    expect((m['result']! as Map)['winner'], isNull);
   });
 
   test('both people bust: the bots are ranked by their chances, a full lineup', () async {
