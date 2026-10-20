@@ -8,10 +8,10 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Hold'em plays like a real table. Bots read ranges, bluff, trap, tilt, give off timing tells and study "
-      'how you play. Nine hidden personalities with random names and faces. Tap a player for your read on '
-      'them, check the last hands, see pot odds and outs, and get a game summary with a line about '
-      "everyone's game.";
+      "Hold'em plays like a real table: bots read ranges, bluff, trap, tilt, give off timing tells and study "
+      'you. Nine hidden personalities. Tap a player for your read on them, see the last hands, pot odds and '
+      "outs, and a game summary. New faces: redrawn, with lots more eyes, noses, mouths, hair, hats and "
+      'extras, all open, plus Surprise me. Bots wear them too.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -25,6 +25,7 @@ class AppInfo {
         'Leave and rejoin: the host brings in a bot or ends it',
         "Hold'em: bots that read you; 9 hidden personalities",
         'Read cards, hand history, pot odds, game summary',
+        'New faces: 7 parts, 100+ options, Surprise me',
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),

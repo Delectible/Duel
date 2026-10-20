@@ -1081,7 +1081,17 @@ class _Controls extends StatelessWidget {
             child: Center(
               child: buttons.isEmpty
                   ? Text(c.yourTurn ? 'Pick up a card' : '', style: Toon.text(14, color: Toon.muted))
-                  : Wrap(spacing: 8, runSpacing: 6, alignment: WrapAlignment.center, children: buttons),
+                  // One line, shrunk to fit: a second line would sit
+                  // on top of your hand.
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final (i, b) in buttons.indexed) ...[if (i > 0) const SizedBox(width: 8), b],
+                        ],
+                      ),
+                    ),
             ),
           ),
           _Hand(c: c),

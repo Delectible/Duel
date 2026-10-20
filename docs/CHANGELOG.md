@@ -401,8 +401,37 @@ Ships as app version **0.4.1**.
   hands played, then the whole lineup in finishing order, each with a line
   picked from their most stand-out stat ("Caught bluffing 3 times, never
   blushed.") and what each bot really was. → 0.8.6 · 2026-10-20
+- [ ] **16.9 Online bots on the new brain** (later, Luca 2026-10-20): the
+  referee's bots still play the old way; it replays every hand already, so
+  it can keep the same `TableReads`, deal hidden random styles and send
+  each move's thinking time for the tells.
+
+### 17. Faces, redrawn (requested 2026-10-20)
+
+- [x] **17.1 More parts, all open**: skin (16 tones), head (6 shapes),
+  eyes (14), nose (7), mouth (14), hair & hats (28: afro, bob, bun,
+  mohawk, beanie, cowboy, top hat, wizard, party hat, chef, viking, halo,
+  horns, bunny and cat ears, pirate, headphones…) and extras (15:
+  glasses, shades, monocle, eyepatch, beard, goatee, mustache, scar,
+  earrings…). Unlocks can come later; everything is open for now.
+- [x] **17.2 Polished look**: same thick outlines, now with ears, soft
+  shading and highlights; each face is fitted so tall hats and wide hair
+  stay in the circle (`core/avatars/face_art.dart`).
+- [x] **17.3 Face builder**: a tab per part and a grid of every option
+  drawn on your own face (close-ups for eyes, nose and mouth), plus
+  **Surprise me**.
+- [x] **17.4 Bots wear them too**: random faces offline; online bots get a
+  face from their name, the same on every phone. Faces saved by older
+  versions come back as the nearest new ones, and older apps still see a
+  sensible face. → 0.8.6 · 2026-10-20
 
 ### 12. Fixes
+
+- [x] **12.4 Fix: Blitz buttons hidden behind your hand** (found
+  2026-10-20 by a test): on a small phone on its side, with Pair and
+  BLITZ both on offer, the second button wrapped onto a new line under
+  your cards and couldn't be tapped. They now stay on one line, shrunk to
+  fit. → 0.8.6 · 2026-10-20
 
 - [x] **12.3 Fix: online Hold'em "Something went wrong"** (reported
   2026-10-19): Firestore can't store a list directly inside a list, and

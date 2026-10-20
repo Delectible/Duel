@@ -187,11 +187,15 @@ weights cut from the variable font.
   `PrefsStore`), `stake.dart` (`StakeTicket`: the stake is taken at Play!
   and settled once per game; `StakeBadge`, `StakeResult`, `confirmLeave`
   forfeits). Win = stake back + stake x opponents x difficulty rate.
-- `lib/core/avatars/faces.dart`: `Avatar` (colour, head shape, face, hat;
-  the first `Avatar.choices` of each are pickable, the rest are bots' /
-  later unlocks), `Persona` (`Persona.bots`: random names from
-  `botNames`, random faces), `Face` (painted from the parts; `Face.part`
-  draws one part alone for the profile's 2x2 builder). Offline poker
+- `lib/core/avatars/faces.dart`: `Avatar` (skin, head, eyes, nose,
+  mouth, hat (hair and hats), extra; all open for now; `withPart` /
+  `partValue` by `FacePart`; `Avatar.random`, `Avatar.forName` (online
+  bots: same face on every phone); `toJson` keeps the old `face` key for
+  older apps, `fromJson` maps it back), `Persona` (`Persona.bots`: random
+  names from `botNames`, random faces), `Face` (`Face.part`: one part or
+  a close-up, for the profile's tabbed builder). Drawn by `FacePainter`
+  in `face_art.dart` (part file: outlines, shading, ears; `_fit` keeps
+  tall / wide hats in the box; `_rise` / `_halfWidth` per hat). Offline poker
   deals each bot a random hidden `BotStyle`; online, the referee maps
   party bots' `Look`s to styles.
 - `lib/core/table/table_bits.dart`: what every game table shares:

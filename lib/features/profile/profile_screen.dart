@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
@@ -103,154 +105,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-/// Build your face: one box per part (colour, shape, face, hat), each
-/// showing just that part with arrows to step through the four choices
-/// (more unlock later).
-class _AvatarPicker extends StatelessWidget {
+/// Build your face: a tab per part, every option drawn on your own face
+/// (tap to wear it), and Surprise me.
+class _AvatarPicker extends StatefulWidget {
   const _AvatarPicker({required this.account});
 
   final Account account;
 
   @override
-  Widget build(BuildContext context) {
-    final a = account.avatar;
-    const n = Avatar.choices;
-    final boxes = [
-      _PartBox(
-        part: FacePart.color,
-        label: 'Colour',
-        options: [for (final c in AvatarColor.values.take(n)) a.copyWith(color: c)],
-        index: AvatarColor.values.indexOf(a.color),
-        onPick: (v) => account.avatar = v,
-      ),
-      _PartBox(
-        part: FacePart.shape,
-        label: 'Shape',
-        options: [for (final s in HeadShape.values.take(n)) a.copyWith(shape: s)],
-        index: HeadShape.values.indexOf(a.shape),
-        onPick: (v) => account.avatar = v,
-      ),
-      _PartBox(
-        part: FacePart.face,
-        label: 'Face',
-        options: [for (final f in Expression.values.take(n)) a.copyWith(face: f)],
-        index: Expression.values.indexOf(a.face),
-        onPick: (v) => account.avatar = v,
-      ),
-      _PartBox(
-        part: FacePart.hat,
-        label: 'Hat',
-        options: [for (final h in Hat.values.take(n)) a.copyWith(hat: h)],
-        index: Hat.values.indexOf(a.hat),
-        onPick: (v) => account.avatar = v,
-      ),
-    ];
-    return Column(
-      children: [
-        for (final row in [boxes.sublist(0, 2), boxes.sublist(2)])
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                Expanded(child: row[0]),
-                const SizedBox(width: 10),
-                Expanded(child: row[1]),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
+  State<_AvatarPicker> createState() => _AvatarPickerState();
 }
 
-/// One part: its name, the part on its own, and ‹ › to change it.
-class _PartBox extends StatelessWidget {
-  const _PartBox({
-    required this.part,
-    required this.label,
-    required this.options,
-    required this.index,
-    required this.onPick,
-  });
+class _AvatarPickerState extends State<_AvatarPicker> {
+  var _part = FacePart.color;
 
-  final FacePart part;
-  final String label;
-  final List<Avatar> options;
-
-  /// Which option is on (may be past the pickable ones: a bot's part).
-  final int index;
-  final ValueChanged<Avatar> onPick;
+  static const _tabs = <(FacePart, String, IconData, List<Enum>)>[
+    (FacePart.color, 'Skin', Icons.palette_rounded, AvatarColor.values),
+    (FacePart.shape, 'Head', Icons.circle_outlined, HeadShape.values),
+    (FacePart.eyes, 'Eyes', Icons.visibility_rounded, Eyes.values),
+    (FacePart.nose, 'Nose', Icons.water_drop_rounded, Nose.values),
+    (FacePart.mouth, 'Mouth', Icons.mood_rounded, Mouth.values),
+    (FacePart.hat, 'Hair & hats', Icons.checkroom_rounded, Hat.values),
+    (FacePart.extra, 'Extras', Icons.auto_awesome_rounded, Extra.values),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final n = options.length;
-    final at = index.clamp(0, n - 1);
-    final shown = index < n ? options[index] : options[0];
-    Widget arrow(IconData icon, int step) => ToonButton(
-      key: Key('${part.name} ${step < 0 ? 'prev' : 'next'}'),
-      color: Toon.card,
-      padding: const EdgeInsets.all(4),
-      tooltip: step < 0 ? 'Previous $label' : 'Next $label',
-      onPressed: () => onPick(options[(at + step) % n]),
-      child: Icon(icon, size: 22),
-    );
-    final none = part == FacePart.hat && shown.hat == Hat.none;
-    return ToonBox(
-      key: Key('${part.name} box'),
-      padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
-      shadow: 3,
-      child: Column(
-        children: [
-          Text(label, style: Toon.text(15)),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              arrow(Icons.chevron_left_rounded, -1),
-              Expanded(
-                child: SizedBox(
-                  height: 64,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    transitionBuilder: (child, t) => ScaleTransition(scale: t, child: child),
-                    child: none
-                        ? Center(
-                            key: const ValueKey('none'),
-                            child: Text('No hat', style: Toon.text(14, color: Toon.muted)),
-                          )
-                        : Face.part(
-                            shown,
-                            part,
-                            // Keyed by this part alone: changing another
-                            // part redraws it in place, without the pop.
-                            key: ValueKey<Object>(switch (part) {
-                              FacePart.color => shown.color,
-                              FacePart.shape => shown.shape,
-                              FacePart.face => shown.face,
-                              FacePart.hat => shown.hat,
-                            }),
-                            size: 64,
-                          ),
-                  ),
+    final account = widget.account;
+    final a = account.avatar;
+    final (_, _, _, values) = _tabs.firstWhere((t) => t.$1 == _part);
+    // Close-ups for the small parts; the whole face for the rest.
+    final closeUp = const {FacePart.eyes, FacePart.nose, FacePart.mouth}.contains(_part);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text('Your face', style: Toon.text(20, weight: FontWeight.w700)),
+            ),
+            ToonButton(
+              key: const Key('surprise me'),
+              color: Toon.yellow,
+              radius: 12,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              onPressed: () => account.avatar = Avatar.random(Random()),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.casino_rounded, size: 20),
+                  const SizedBox(width: 6),
+                  Text('Surprise me', style: Toon.text(15)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (part, label, icon, _) in _tabs)
+              ToonButton(
+                key: Key('tab ${part.name}'),
+                color: part == _part ? Toon.yellow : Toon.card,
+                radius: 12,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                onPressed: () => setState(() => _part = part),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 18, color: Toon.on(part == _part ? Toon.yellow : Toon.card)),
+                    const SizedBox(width: 5),
+                    Text(
+                      label,
+                      style: Toon.text(14, color: Toon.on(part == _part ? Toon.yellow : Toon.card)),
+                    ),
+                  ],
                 ),
               ),
-              arrow(Icons.chevron_right_rounded, 1),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (var i = 0; i < n; i++)
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: i == index ? Toon.fg : Toon.grey),
-                ),
-            ],
-          ),
-        ],
-      ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, box) {
+            final cols = max(4, (box.maxWidth / 84).floor());
+            final size = (box.maxWidth - 8 * (cols - 1)) / cols;
+            return Wrap(
+              key: Key('grid ${_part.name}'),
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final v in values)
+                  () {
+                    final option = a.withPart(_part, v);
+                    final on = a.partValue(_part) == v;
+                    return GestureDetector(
+                      key: Key('pick ${_part.name} ${v.name}'),
+                      onTap: () => account.avatar = option,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: size,
+                        height: size,
+                        padding: const EdgeInsets.all(4),
+                        decoration: Toon.box(on ? Toon.yellow : Toon.card, radius: 14, shadow: on ? 0 : 3),
+                        child: Semantics(
+                          label: v.name,
+                          selected: on,
+                          child: Stack(
+                            children: [
+                              if (closeUp)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Face.part(option, _part, size: size - 8),
+                                )
+                              else
+                                Face.of(option, size: size - 8),
+                              if (v.name == 'none')
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                                    decoration: Toon.box(Toon.paper, radius: 6, shadow: 0),
+                                    child: Text('None', style: Toon.text(10)),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }(),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }

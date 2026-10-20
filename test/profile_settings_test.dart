@@ -28,30 +28,43 @@ void main() {
       await tester.enterText(find.byKey(const Key('name')), 'Luca');
       expect(a.name, 'Luca');
 
-      for (final part in ['color', 'shape', 'face', 'hat']) {
-        expect(find.byKey(Key('$part box')), findsOneWidget);
-      }
-      Future<void> tap(String key, int times) async {
+      Future<void> tap(String key) async {
         await tester.ensureVisible(find.byKey(Key(key)));
-        for (var i = 0; i < times; i++) {
-          await tester.tap(find.byKey(Key(key)));
-          await tester.pumpAndSettle();
-        }
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(Key(key)));
+        await tester.pumpAndSettle();
       }
 
-      await tap('color next', 2);
-      await tap('shape next', 1);
-      await tap('face prev', 1); // wraps round to the last
-      await tap('hat next', 2);
+      // Every part has a tab with every option.
+      for (final part in FacePart.values) {
+        await tap('tab ${part.name}');
+        expect(find.byKey(Key('grid ${part.name}')), findsOneWidget);
+      }
+      for (final (part, value) in [
+        ('color', 'lilac'),
+        ('shape', 'square'),
+        ('eyes', 'shiny'),
+        ('nose', 'round'),
+        ('mouth', 'grin'),
+        ('hat', 'wizard'),
+        ('extra', 'glasses'),
+      ]) {
+        await tap('tab $part');
+        await tap('pick $part $value');
+      }
       expect(
         a.avatar,
         const Avatar(
           color: AvatarColor.lilac,
           shape: HeadShape.square,
-          face: Expression.wild,
-          hat: Hat.crown,
+          eyes: Eyes.shiny,
+          nose: Nose.round,
+          mouth: Mouth.grin,
+          hat: Hat.wizard,
+          extra: Extra.glasses,
         ),
       );
+      await shot(tester, 'profile_picker_$phone');
       expect(a.persona.avatar, a.avatar);
       await tester.drag(find.byType(ListView).first, const Offset(0, 1000));
       await tester.pumpAndSettle();
@@ -63,39 +76,65 @@ void main() {
     });
   }
 
-  testWidgets('changing one part only swaps that box', (tester) async {
+  testWidgets('Surprise me changes the face', (tester) async {
     usePhone(tester, phones.values.first);
     final a = Account();
     await tester.pumpWidget(_wrap(const ProfileScreen(), a));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('face next')));
+    await tester.ensureVisible(find.byKey(const Key('surprise me')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('face next')));
-    await tester.pump(const Duration(milliseconds: 60)); // mid-swap
-    int faces(String box) =>
-        find.descendant(of: find.byKey(Key('$box box')), matching: find.byType(Face)).evaluate().length;
-    expect(faces('face'), 2, reason: 'the old and new eyes swap over');
-    for (final other in ['color', 'shape']) {
-      expect(faces(other), 1, reason: '$other stays put');
+    final before = a.avatar;
+    for (var i = 0; i < 3 && a.avatar == before; i++) {
+      await tester.tap(find.byKey(const Key('surprise me')));
+      await tester.pumpAndSettle();
     }
-    await tester.pumpAndSettle();
+    expect(a.avatar, isNot(before));
   });
 
-  testWidgets('every part combination paints', (tester) async {
-    usePhone(tester, phones['pixel9pro']!);
-    final all = [
-      for (final c in AvatarColor.values)
+  for (final dark in [false, true]) {
+    testWidgets('every option of every part paints${dark ? ' (dark)' : ''}', (tester) async {
+      usePhone(tester, phones['pixel9pro']!);
+      Toon.dark = dark;
+      addTearDown(() => Toon.dark = false);
+      const base = Avatar();
+      List<Enum> options(FacePart part) => switch (part) {
+        FacePart.color => AvatarColor.values,
+        FacePart.shape => HeadShape.values,
+        FacePart.eyes => Eyes.values,
+        FacePart.nose => Nose.values,
+        FacePart.mouth => Mouth.values,
+        FacePart.hat => Hat.values,
+        FacePart.extra => Extra.values,
+      };
+      final faces = [
+        for (final part in FacePart.values)
+          for (final v in options(part)) base.withPart(part, v),
+        // Hats and extras on every head shape.
         for (final s in HeadShape.values)
-          for (final f in Expression.values)
-            for (final h in Hat.values) Avatar(color: c, shape: s, face: f, hat: h),
-    ];
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: Wrap(children: [for (final a in all.take(400)) Face.of(a, size: 20)])),
-      ),
-    );
-    expect(tester.takeException(), isNull);
-  });
+          for (final h in Hat.values)
+            Avatar(shape: s, hat: h, extra: Extra.values[h.index % Extra.values.length]),
+      ];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            backgroundColor: Toon.paper,
+            body: SingleChildScrollView(
+              child: Wrap(
+                children: [
+                  for (final f in faces) ...[
+                    Face.of(f, size: 44),
+                    for (final part in FacePart.values) Face.part(f, part, size: 22),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      await shot(tester, 'faces_all${dark ? '_dark' : ''}');
+    });
+  }
 
   testWidgets('settings: theme and currency', (tester) async {
     usePhone(tester, phones['small']!);

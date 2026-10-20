@@ -65,22 +65,14 @@ void main() {
     final store = MemoryStore();
     final a = Account(store: store)
       ..name = 'Luca'
-      ..avatar = const Avatar(
-        color: AvatarColor.lilac,
-        shape: HeadShape.egg,
-        face: Expression.cool,
-        hat: Hat.crown,
-      )
+      ..avatar = _face
       ..currency = CurrencyChoice.eur
       ..theme = ThemeChoice.dark;
     a.placeStake(10);
     a.settle(gameId: 'gofish', stake: 10, outcome: Outcome.win, opponents: 2, difficulty: Difficulty.hard);
     final b = Account(store: store);
     expect(b.name, 'Luca');
-    expect(
-      b.avatar,
-      const Avatar(color: AvatarColor.lilac, shape: HeadShape.egg, face: Expression.cool, hat: Hat.crown),
-    );
+    expect(b.avatar, _face);
     expect(b.currency, CurrencyChoice.eur);
     expect(b.theme, ThemeChoice.dark);
     expect(b.balance, 130);
@@ -89,4 +81,35 @@ void main() {
     expect(CurrencyChoice.pips.format(1), '1 pip');
     expect(CurrencyChoice.pips.format(1240), '1,240 pips');
   });
+
+  test('faces saved by older versions come back', () {
+    final old = Avatar.fromJson({'color': 'lilac', 'shape': 'egg', 'face': 'cool', 'hat': 'crown'});
+    expect(
+      old,
+      const Avatar(
+        color: AvatarColor.lilac,
+        shape: HeadShape.egg,
+        mouth: Mouth.flat,
+        hat: Hat.crown,
+        extra: Extra.shades,
+      ),
+    );
+    expect(_face.toJson()['face'], 'smile', reason: 'older apps get the nearest old face');
+    expect(Avatar.fromJson(_face.toJson()), _face);
+  });
+
+  test('online bots get the same face from their name on every phone', () {
+    expect(Avatar.forName('Waffles'), Avatar.forName('Waffles'));
+    expect(Avatar.forName('Waffles'), isNot(Avatar.forName('Pickle')));
+  });
 }
+
+const _face = Avatar(
+  color: AvatarColor.lilac,
+  shape: HeadShape.egg,
+  eyes: Eyes.hearts,
+  nose: Nose.clown,
+  mouth: Mouth.laugh,
+  hat: Hat.viking,
+  extra: Extra.monocle,
+);
