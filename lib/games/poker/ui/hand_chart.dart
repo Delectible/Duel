@@ -4,6 +4,7 @@ import '../../../core/cards/card_view.dart';
 import 'package:duel_engine/cards.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/poker/hand_eval.dart';
+import '../../../core/theme/sheet.dart';
 
 /// One row of the cheat sheet.
 class HandRankInfo {
@@ -46,19 +47,9 @@ Future<void> showHandChart(
   List<PlayingCard> cards = const [],
   String? name,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    backgroundColor: Toon.paper,
-    builder: (context) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.85,
-      maxChildSize: 0.95,
-      minChildSize: 0.4,
-      builder: (context, scroll) =>
-          HandChart(scroll: scroll, category: category, royal: royal, cards: cards, name: name),
-    ),
+  return showToonSheet<void>(
+    context,
+    builder: (context) => HandChart(category: category, royal: royal, cards: cards, name: name),
   );
 }
 
@@ -150,6 +141,7 @@ class _HandChartState extends State<HandChart> {
       ),
     );
     final list = SingleChildScrollView(
+      key: const Key('hand ranks'),
       controller: widget.scroll,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
       child: Column(

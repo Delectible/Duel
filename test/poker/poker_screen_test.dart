@@ -207,6 +207,13 @@ void main() {
     expect(find.text('You'), findsWidgets);
     await shot(tester, 'poker_hand_chart');
     expect(tester.takeException(), isNull);
+    // A quick flick down on the list closes it in one go once the list is
+    // at its top (it used to stop part way, squashed).
+    await tester.fling(find.byKey(const Key('hand ranks')), const Offset(0, 600), 2000);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('Poker hands'), findsNothing);
   });
 
   testWidgets('bot games: the showdown result waits for Next hand', (tester) async {

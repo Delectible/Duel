@@ -10,7 +10,7 @@ class AppInfo {
   static const latest =
       "Online Hold'em bots now play like the offline ones: they read the table, bluff, trap, tilt and take "
       'their time, so their timing can give them away. Each has a hidden style, revealed at the end. Also '
-      'fixes a rare online game that could stall when a short stack went all in on the blinds.';
+      'fixes a rare online game that could stall, and pop-up sheets (like the hands chart) now close in one swipe.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/toon.dart';
+import '../theme/sheet.dart';
 
 /// One stage of a game, for the mid-game "How to play" sheet.
 class GuideStage {
@@ -42,18 +43,10 @@ Future<void> showGameGuide(
   required List<GuideStage> stages,
   String? current,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    backgroundColor: Toon.paper,
-    builder: (context) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.75,
-      maxChildSize: 0.95,
-      minChildSize: 0.4,
-      builder: (context, scroll) => GameGuide(title: title, stages: stages, current: current, scroll: scroll),
-    ),
+  return showToonSheet<void>(
+    context,
+    height: 0.8,
+    builder: (context) => GameGuide(title: title, stages: stages, current: current),
   );
 }
 

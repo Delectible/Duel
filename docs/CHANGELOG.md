@@ -431,6 +431,14 @@ Ships as app version **0.4.1**.
 
 ### 12. Fixes
 
+- [x] **12.6 Fix: sheets stuck half closed** (reported 2026-10-20): the
+  poker hands chart (and How to play, read cards, hand history) were
+  resizable sheets with a 40% minimum: a quick swipe down shrank them to
+  that and stopped, squashing the chart. Now they're a fixed height that
+  slides away whole (`core/theme/sheet.dart`, `showToonSheet`): drag or
+  flick the top, or pull the list down past its top, and it closes in one
+  go. → 0.8.7 · 2026-10-20
+
 - [x] **12.5 Fix: online Hold'em could stall** (found 2026-10-20 by the
   fuzz test): a hand can finish with no moves at all (a short stack all in
   on the blinds against one other player), and the referee only dealt the

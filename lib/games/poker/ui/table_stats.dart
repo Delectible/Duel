@@ -11,6 +11,7 @@ import '../../../core/cards/card_view.dart';
 import '../../../core/theme/toon.dart';
 import '../../../core/table/table_bits.dart';
 import 'poker_controller.dart';
+import '../../../core/theme/sheet.dart';
 
 /// The numbers a poker player keeps an eye on: the strip over the table
 /// (your place, your stack in big blinds, the average), read cards (tap a
@@ -196,29 +197,20 @@ List<String> readNotes(PlayerReads r) {
   return notes;
 }
 
-Future<void> showReadCard(BuildContext context, PokerController c, int seat) => showModalBottomSheet<void>(
-  context: context,
-  isScrollControlled: true,
-  showDragHandle: true,
-  backgroundColor: Toon.paper,
-  builder: (context) => DraggableScrollableSheet(
-    expand: false,
-    initialChildSize: 0.6,
-    maxChildSize: 0.92,
-    minChildSize: 0.3,
-    builder: (context, scroll) => ListenableBuilder(
-      listenable: c,
-      builder: (context, _) => _ReadCard(c: c, seat: seat, scroll: scroll),
-    ),
+Future<void> showReadCard(BuildContext context, PokerController c, int seat) => showToonSheet<void>(
+  context,
+  height: 0.7,
+  builder: (context) => ListenableBuilder(
+    listenable: c,
+    builder: (context, _) => _ReadCard(c: c, seat: seat),
   ),
 );
 
 class _ReadCard extends StatelessWidget {
-  const _ReadCard({required this.c, required this.seat, required this.scroll});
+  const _ReadCard({required this.c, required this.seat});
 
   final PokerController c;
   final int seat;
-  final ScrollController scroll;
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +240,6 @@ class _ReadCard extends StatelessWidget {
     );
     return ListView(
       key: Key('read card $seat'),
-      controller: scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
         Row(
@@ -320,30 +311,20 @@ class _ReadCard extends StatelessWidget {
 
 // --- Hand history --------------------------------------------------------------
 
-Future<void> showHandHistory(BuildContext context, PokerController c) => showModalBottomSheet<void>(
-  context: context,
-  isScrollControlled: true,
-  showDragHandle: true,
-  backgroundColor: Toon.paper,
-  builder: (context) => DraggableScrollableSheet(
-    expand: false,
-    initialChildSize: 0.75,
-    maxChildSize: 0.95,
-    minChildSize: 0.3,
-    builder: (context, scroll) {
-      final hands = c.reads.history.reversed.toList();
-      return ListView(
-        key: const Key('hand history'),
-        controller: scroll,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        children: [
-          Text('Last hands', style: Toon.text(24, weight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          for (final h in hands) _HandEntry(c: c, hand: h),
-        ],
-      );
-    },
-  ),
+Future<void> showHandHistory(BuildContext context, PokerController c) => showToonSheet<void>(
+  context,
+  builder: (context) {
+    final hands = c.reads.history.reversed.toList();
+    return ListView(
+      key: const Key('hand history'),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      children: [
+        Text('Last hands', style: Toon.text(24, weight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        for (final h in hands) _HandEntry(c: c, hand: h),
+      ],
+    );
+  },
 );
 
 String _who(PokerController c, int seat) => seat == 0 ? 'You' : c.personas[seat].name;
