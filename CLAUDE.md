@@ -158,7 +158,10 @@ weights cut from the variable font.
   forfeit, rematch) over a `Store` (`MemoryStore` in tests,
   `FirestoreStore` on Firestore REST), `api.dart` (shelf routes, Firebase
   ID token check), `games.dart` (`OnlineGame` per game: Four in a Row,
-  `poker_game.dart` Hold'em; full state in `secrets/{id}`, public in the
+  `poker_game.dart` Hold'em: `replay` rebuilds the hand and `TableReads`;
+  hidden `styles` per seat (public once over); bot moves logged as
+  `[kind, amount, tempo%]`, phones wait `onlineThinkMs`, `show` adds it to
+  the next clock; full state in `secrets/{id}`, public in the
   match, `private` per player in `matches/{id}/hands/{uid}`). Players only
   read Firestore; only the referee writes.
   Every write goes through `_put`, which stamps `expireAt` (games a day

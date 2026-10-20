@@ -157,8 +157,8 @@ void main() {
 
   testWidgets('both people bust: the bots are placed, a full lineup on the card', (tester) async {
     usePhone(tester, phones['small']!);
-    // The same deal as the referee's test (seed 6): the people go out first.
-    final srv = FakeServer(seed: 6);
+    // The same deal as the referee's test (seed 4): the people go out first.
+    final srv = FakeServer(seed: 4);
     final account = Account()..name = 'Luca';
     final party = PartyService(srv.player('luca'), account: account);
     final sam = PartyService(srv.player('sam'), account: Account()..name = 'Sam');

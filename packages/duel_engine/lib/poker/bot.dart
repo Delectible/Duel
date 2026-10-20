@@ -290,6 +290,11 @@ enum BotStyle {
   final Tell tell;
 }
 
+/// Online, a bot's thinking time from its [Decision.tempo]: 1 to 4
+/// seconds (shorter than against bots alone: people are waiting). The
+/// referee allows for it in the next person's clock.
+int onlineThinkMs(double tempo) => 1000 + (3000 * pow(tempo.clamp(0.0, 1.0), 1.8)).round();
+
 /// A bot's move, and how long it seems to think about it: [tempo] 0 snap,
 /// 1 tank (the table turns it into seconds; it may give the hand away).
 class Decision {

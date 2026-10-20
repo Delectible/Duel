@@ -198,6 +198,14 @@ class OnlinePokerController extends PokerController {
     return _toMove(MoveKind.values[m[0]! as int], m[1]! as int);
   }
 
+  /// The next logged move's thinking time (bots, 0..1), if the server
+  /// sent one.
+  double? get _loggedTempo {
+    final moves = _moves;
+    if (_cursor >= moves.length || moves[_cursor].length < 3) return null;
+    return (moves[_cursor][2]! as int) / 100;
+  }
+
   static Move _toMove(MoveKind kind, int amount) => switch (kind) {
     MoveKind.fold => const Move.fold(),
     MoveKind.check => const Move.check(),
@@ -213,10 +221,17 @@ class OnlinePokerController extends PokerController {
       if (seat != 0) _park(_step);
       return;
     }
+    // Bots take their time (and give their tells) while you're in the
+    // hand; once you've folded the table moves along.
+    final tempo = _loggedTempo;
     final think = seat == 0
         ? 0
         : _isBot(seat)
-        ? (youAreIn ? 600 + _rng.nextInt(600) : 250 + _rng.nextInt(200))
+        ? (!youAreIn
+              ? 250 + _rng.nextInt(200)
+              : tempo != null
+              ? onlineThinkMs(tempo)
+              : 600 + _rng.nextInt(600))
         : 250;
     _after(think, () {
       _cursor++;
@@ -315,6 +330,13 @@ class OnlinePokerController extends PokerController {
 
   /// It ended with only bots left: they were ranked by their chances.
   bool get simulated => _state['simulated'] == true;
+
+  /// Once it's over, the server says how each bot played.
+  @override
+  List<BotStyle?> get styles {
+    final known = (_state['styles'] as Map?) ?? const {};
+    return [for (var l = 0; l < serverSeats; l++) BotStyle.values.asNameMap()[known['${_server(l)}']]];
+  }
 
   // --- The turn clock --------------------------------------------------------
 

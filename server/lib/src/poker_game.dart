@@ -4,6 +4,7 @@ import 'package:duel_engine/cards.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/poker/bot.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
+import 'package:duel_engine/poker/reads.dart';
 import 'package:duel_engine/poker/sit_and_go.dart';
 
 import 'games.dart';
@@ -27,8 +28,9 @@ class PokerGame extends OnlineGame {
   @override
   int get maxPlayers => 6;
 
-  /// Bot looks play their own way (as against bots in the app).
-  static const _styles = {
+  /// Matches started before hidden styles: each bot look played its own
+  /// way.
+  static const _lookStyles = {
     'cap': BotStyle.rookie,
     'shades': BotStyle.rock,
     'fin': BotStyle.shark,
@@ -36,17 +38,26 @@ class PokerGame extends OnlineGame {
   };
 
   @override
-  Doc start(int players, Random rng, {required int first, required Set<int> humans}) => {
-    'seed': rng.nextInt(1 << 31),
-    'n': players,
-    'button': first,
-    'humans': (humans.toList()..sort()),
-    'gone': <int>[],
-    'hands': [<List<int>>[]],
-  };
+  Doc start(int players, Random rng, {required int first, required Set<int> humans}) {
+    final seed = rng.nextInt(1 << 31);
+    // Every seat gets a hidden way of playing (no two alike), used when a
+    // bot sits there, or stands in for someone who left. Revealed at the
+    // end.
+    final deck = [...BotStyle.values]..shuffle(rng);
+    return {
+      'seed': seed,
+      'n': players,
+      'button': first,
+      'humans': (humans.toList()..sort()),
+      'gone': <int>[],
+      'styles': [for (var i = 0; i < players; i++) deck[i % deck.length].name],
+      'hands': [<List<int>>[]],
+    };
+  }
 
   /// The tournament rebuilt from [state]; the last hand is the one being
-  /// played (or the final one).
+  /// played (or the final one). The table's memory ([TableReads]) is
+  /// rebuilt with it, for the bots to read.
   static PokerTable replay(Doc state) {
     final n = state['n']! as int;
     final rng = Random(state['seed']! as int);
@@ -59,17 +70,22 @@ class PokerGame extends OnlineGame {
     final hands = (state['hands']! as List).cast<List<Object?>>();
     final history = <Doc>[];
     final holes = <Map<int, List<PlayingCard>>>[];
+    final reads = TableReads(n);
     late PokerHand h;
-    for (final moves in hands) {
+    for (final (number, moves) in hands.indexed) {
       h = g.startHand();
+      reads.startHand(h, g.handSeats);
       holes.add({
         for (final (k, p) in h.players.indexed) g.handSeats[k]: [...p.hole],
       });
       for (final m in moves.cast<List<Object?>>()) {
         advance(h);
-        h.apply(toMove(MoveKind.values[m[0]! as int], m[1]! as int));
+        final move = toMove(MoveKind.values[m[0]! as int], m[1]! as int);
+        reads.observe(h, g.handSeats, move);
+        h.apply(move);
       }
       advance(h);
+      if (h.result != null) reads.endHand(h, g.handSeats, number: number + 1);
       history.add({
         'board': [for (final c in h.board) '$c'],
         // Turned up at a showdown (or an all-in runout).
@@ -80,7 +96,7 @@ class PokerGame extends OnlineGame {
       });
       if (h.result != null) g.finishHand();
     }
-    return PokerTable(g, h, state, history, holes);
+    return PokerTable(g, h, state, history, holes, reads);
   }
 
   static Move toMove(MoveKind kind, int amount) => switch (kind) {
@@ -127,11 +143,25 @@ class PokerGame extends OnlineGame {
     final hands = [
       for (final hand in (state['hands']! as List).cast<List<Object?>>()) [...hand.cast<List<Object?>>()],
     ];
-    hands.last.add([kind!.index, kind == MoveKind.raise ? amount : 0]);
+    // A bot's move keeps its thinking time (percent) for the phones.
+    final humans = (state['humans']! as List).cast<int>();
+    final gone = (state['gone']! as List).cast<int>();
+    final tempo = move['tempo'];
+    final bot = !humans.contains(seat) || gone.contains(seat);
+    hands.last.add([
+      kind!.index,
+      kind == MoveKind.raise ? amount : 0,
+      if (bot && tempo is int) tempo.clamp(0, 100),
+    ]);
     final next = {...state, 'hands': hands};
-    // Hand over and the tournament isn't: deal the next one.
-    final after = replay(next);
-    if (after.hand.result != null && !after.over) hands.add([]);
+    // Hand over and the tournament isn't: deal the next one. A hand can
+    // also finish with no moves at all (a short stack all in on the
+    // blinds), so keep dealing until someone has to act.
+    var after = replay(next);
+    while (after.hand.result != null && !after.over) {
+      hands.add([]);
+      after = replay(next);
+    }
     return next;
   }
 
@@ -150,11 +180,23 @@ class PokerGame extends OnlineGame {
 
   @override
   Doc botMove(Doc state, int seat, Doc bot, Random rng) {
-    final h = replay(state).hand;
+    final t = replay(state);
     final difficulty = Difficulty.values.asNameMap()[bot['difficulty']] ?? Difficulty.normal;
-    final style = _styles[bot['look']] ?? BotStyle.shark;
-    final m = PokerBot(style: style, difficulty: difficulty, rng: rng).decide(h);
-    return {'kind': m.kind.name, 'amount': m.amount};
+    final d = PokerBot(
+      style: styleAt(state, seat, bot),
+      difficulty: difficulty,
+      rng: rng,
+    ).think(t.hand, reads: t.reads, seats: t.seats);
+    return {'kind': d.move.kind.name, 'amount': d.move.amount, 'tempo': (d.tempo * 100).round()};
+  }
+
+  /// How the bot in [seat] plays: its hidden style (older matches: by look).
+  static BotStyle styleAt(Doc state, int seat, Doc bot) {
+    final styles = (state['styles'] as List?)?.cast<String>();
+    if (styles != null && seat < styles.length) {
+      return BotStyle.values.asNameMap()[styles[seat]] ?? BotStyle.shark;
+    }
+    return _lookStyles[bot['look']] ?? BotStyle.shark;
   }
 
   @override
@@ -179,6 +221,12 @@ class PokerGame extends OnlineGame {
       'gone': state['gone'],
       'places': {for (final e in t.places.entries) '${e.key}': e.value},
       'simulated': t.simulated,
+      // Once it's over, how each bot really played.
+      if (t.over && state['styles'] is List)
+        'styles': {
+          for (final (i, s) in (state['styles']! as List).indexed)
+            if (!t.humans.contains(i)) '$i': s,
+        },
       'hands': [
         for (final (i, moves) in hands.indexed) {'moves': moves, ...t.history[i]},
       ],
@@ -202,20 +250,23 @@ class PokerGame extends OnlineGame {
   Duration show(Doc before, Doc after) {
     final a = (before['hands']! as List).cast<List<Object?>>();
     final b = (after['hands']! as List).cast<List<Object?>>();
-    var moves = 0;
+    // Bots' moves as long as phones show them thinking, about a second
+    // for anyone else's, a few for each new deal and showdown.
+    var ms = (b.length - a.length) * 9000;
     for (var i = 0; i < b.length; i++) {
-      moves += b[i].length - (i < a.length ? a[i].length : 0);
+      final moves = b[i].cast<List<Object?>>();
+      for (final m in moves.skip(i < a.length ? a[i].length : 0)) {
+        ms += m.length > 2 ? onlineThinkMs((m[2]! as int) / 100) + 300 : 1100;
+      }
     }
-    // About a second a move, a few for each new deal and showdown.
-    final ms = moves * 1100 + (b.length - a.length) * 9000;
-    return Duration(milliseconds: min(ms, 40000));
+    return Duration(milliseconds: min(ms, 60000));
   }
 }
 
 /// A replayed tournament, with what was dealt (for [PokerGame.public] /
 /// [PokerGame.private]).
 class PokerTable {
-  PokerTable(this.game, this.hand, Doc state, this.history, this.holes)
+  PokerTable(this.game, this.hand, Doc state, this.history, this.holes, this.reads)
     : humans = (state['humans']! as List).cast<int>().toSet(),
       seats = [for (final p in hand.players) p.seat] {
     final gone = (state['gone']! as List).cast<int>().toSet();
@@ -277,6 +328,9 @@ class PokerTable {
 
   /// Hole cards per hand, by table seat.
   final List<Map<int, List<PlayingCard>>> holes;
+
+  /// What the table has seen everyone do (the bots read it).
+  final TableReads reads;
 
   /// Who won (first place).
   int get winner => places.entries.firstWhere((e) => e.value == 1).key;

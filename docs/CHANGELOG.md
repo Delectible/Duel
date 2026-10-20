@@ -401,10 +401,14 @@ Ships as app version **0.4.1**.
   hands played, then the whole lineup in finishing order, each with a line
   picked from their most stand-out stat ("Caught bluffing 3 times, never
   blushed.") and what each bot really was. → 0.8.6 · 2026-10-20
-- [ ] **16.9 Online bots on the new brain** (later, Luca 2026-10-20): the
-  referee's bots still play the old way; it replays every hand already, so
-  it can keep the same `TableReads`, deal hidden random styles and send
-  each move's thinking time for the tells.
+- [x] **16.9 Online bots on the new brain** (2026-10-20): the referee
+  rebuilds the table's memory (`TableReads`) as it replays each hand, so
+  party bots read everyone like offline. Every seat gets a hidden random
+  style at the start (no two alike; matches started earlier still play by
+  look), revealed in the summary once it's over. Each bot move carries
+  its thinking time (`[kind, amount, tempo%]`, only for bots); phones
+  show it (1–4 s, `onlineThinkMs`) while you're in the hand, and the next
+  person's clock allows for it. → 0.8.7 · 2026-10-20
 
 ### 17. Faces, redrawn (requested 2026-10-20)
 
@@ -426,6 +430,12 @@ Ships as app version **0.4.1**.
   sensible face. → 0.8.6 · 2026-10-20
 
 ### 12. Fixes
+
+- [x] **12.5 Fix: online Hold'em could stall** (found 2026-10-20 by the
+  fuzz test): a hand can finish with no moves at all (a short stack all in
+  on the blinds against one other player), and the referee only dealt the
+  next hand after a move, so nobody was to act. It now keeps dealing until
+  someone has to act. → 0.8.7 · 2026-10-20
 
 - [x] **12.4 Fix: Blitz buttons hidden behind your hand** (found
   2026-10-20 by a test): on a small phone on its side, with Pair and

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:duel_engine/poker/bot.dart';
 import 'package:duel_server/duel_server.dart';
 import 'package:test/test.dart';
 
@@ -112,6 +113,78 @@ void main() {
     expect(shown, isNotEmpty, reason: 'all-ins get shown down');
   });
 
+  test('bots play hidden styles and take their time; the styles show once it is over', () async {
+    var m = await table();
+    final id = m['id']! as String;
+    final styles = ((await store.get('secrets/$id'))!['state']! as Map)['styles']! as List;
+    expect(styles, hasLength(4));
+    expect(styles.toSet(), hasLength(4), reason: 'no two alike');
+    expect((m['state']! as Map).containsKey('styles'), isFalse, reason: 'hidden while playing');
+    final seats = (m['seats']! as List).cast<String>();
+    final botSeats = {
+      for (final (i, uid) in seats.indexed)
+        if (uid.startsWith('bot:')) i,
+    };
+    for (var i = 0; i < 400 && m['status'] == 'live'; i++) {
+      m = await ref
+          .move(who(m), id, m['version']! as int, {'kind': 'raise', 'amount': 100000, 'tempo': 99})
+          .catchError(
+            (Object _) => ref.move(who(m), id, m['version']! as int, {'kind': 'call', 'tempo': 99}),
+          );
+    }
+    expect(m['status'], 'over');
+    final state = (await store.get('secrets/$id'))!['state']! as Map;
+    // Replay who moved: bots' moves carry their thinking time, people's never.
+    final t = PokerGame.replay(state.cast<String, Object?>());
+    expect(t.reads.history, isNotEmpty);
+    final public = m['state']! as Map;
+    var botMoves = 0;
+    for (final h in (public['hands']! as List).cast<Map<Object?, Object?>>()) {
+      for (final move in (h['moves']! as List).cast<List<Object?>>()) {
+        if (move.length > 2) {
+          botMoves++;
+          expect(move[2], inInclusiveRange(0, 100));
+        }
+      }
+    }
+    expect(botMoves, greaterThan(0));
+    final shown = (public['styles']! as Map).cast<String, Object?>();
+    expect(shown.keys.map(int.parse).toSet(), botSeats, reason: 'only the bots are revealed');
+    for (final e in shown.entries) {
+      expect(e.value, styles[int.parse(e.key)]);
+    }
+  });
+
+  test('a person cannot fake a thinking time', () async {
+    final m = await table();
+    final id = m['id']! as String;
+    final after = await ref.move(who(m), id, m['version']! as int, {'kind': 'fold', 'tempo': 50});
+    final secret = (await store.get('secrets/$id'))!['state']! as Map;
+    final humans = (secret['humans']! as List).cast<int>();
+    final seats = (after['seats']! as List).cast<String>();
+    expect(humans.map((i) => seats[i]).toSet(), {'luca', 'sam'});
+    // Replay the log: every move by a person has just kind and amount.
+    final g = PokerGame.replay(secret.cast<String, Object?>());
+    expect(g.reads.players.fold(0, (n, r) => n + r.folds), greaterThan(0));
+    final logged = ((after['state']! as Map)['hands']! as List).cast<Map<Object?, Object?>>();
+    final h0 = (logged.first['moves']! as List).cast<List<Object?>>();
+    expect(h0.where((mv) => mv.length > 2 && mv[2] == 50), isEmpty);
+  });
+
+  test('older matches (no styles) still play by look', () {
+    expect(PokerGame.styleAt({}, 0, {'look': 'shades'}), BotStyle.rock);
+    expect(
+      PokerGame.styleAt(
+        {
+          'styles': ['maniac'],
+        },
+        0,
+        {'look': 'shades'},
+      ),
+      BotStyle.maniac,
+    );
+  });
+
   test('a friend leaves: with only one person left among bots, the game ends (stakes back)', () async {
     var m = await table();
     final id = m['id']! as String;
@@ -123,7 +196,7 @@ void main() {
   });
 
   test('both people bust: the bots are ranked by their chances, a full lineup', () async {
-    ref = Referee(store, rng: Random(6), clock: () => now); // a deal where the people go out first
+    ref = Referee(store, rng: Random(4), clock: () => now); // a deal where the people go out first
     var m = await table();
     final id = m['id']! as String;
     final seats = (m['seats']! as List).cast<String>();

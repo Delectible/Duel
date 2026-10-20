@@ -3,15 +3,14 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.8.6';
+  static const version = '0.8.7';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Hold'em plays like a real table: bots read ranges, bluff, trap, tilt, give off timing tells and study "
-      'you. Nine hidden personalities. Tap a player for your read on them, see the last hands, pot odds and '
-      "outs, and a game summary. New faces: redrawn, with lots more eyes, noses, mouths, hair, hats and "
-      'extras, all open, plus Surprise me. Bots wear them too.';
+      "Online Hold'em bots now play like the offline ones: they read the table, bluff, trap, tilt and take "
+      'their time, so their timing can give them away. Each has a hidden style, revealed at the end. Also '
+      'fixes a rare online game that could stall when a short stack went all in on the blinds.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -26,6 +25,7 @@ class AppInfo {
         "Hold'em: bots that read you; 9 hidden personalities",
         'Read cards, hand history, pot odds, game summary',
         'New faces: 7 parts, 100+ options, Surprise me',
+        "Online Hold'em bots read you and give tells too",
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),

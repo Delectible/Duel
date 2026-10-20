@@ -59,9 +59,9 @@ class PokerController extends ChangeNotifier {
     reads = TableReads(personas.length);
     // Each bot plays its own hidden way (no two alike): you work it out.
     final deck = [...BotStyle.values]..shuffle(_rng);
-    styles = [for (var i = 0; i <= bots; i++) i == 0 ? null : deck[(i - 1) % deck.length]];
+    _styles = [for (var i = 0; i <= bots; i++) i == 0 ? null : deck[(i - 1) % deck.length]];
     _bots = [
-      for (final s in styles) s == null ? null : PokerBot(style: s, difficulty: difficulty, rng: _rng),
+      for (final s in _styles) s == null ? null : PokerBot(style: s, difficulty: difficulty, rng: _rng),
     ];
   }
 
@@ -82,7 +82,7 @@ class PokerController extends ChangeNotifier {
       button: button,
     );
     _bots = List.filled(seats.length, null);
-    styles = List.filled(seats.length, null);
+    _styles = List.filled(seats.length, null);
     reads = TableReads(seats.length);
   }
 
@@ -107,9 +107,10 @@ class PokerController extends ChangeNotifier {
   late final SitAndGo game;
   late final List<PokerBot?> _bots;
 
-  /// How each bot plays, by seat (null: a person, or a bot the server
-  /// plays). Hidden until the game's over.
-  late final List<BotStyle?> styles;
+  /// How each bot plays, by seat (null: a person). Hidden until the game's
+  /// over (online: the server tells once it is).
+  List<BotStyle?> get styles => _styles;
+  late final List<BotStyle?> _styles;
 
   /// What the table has seen everyone do (read cards, the hand history,
   /// the summary; the bots study it too).
