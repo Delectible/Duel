@@ -97,13 +97,6 @@ class Persona {
 
   Color get skin => avatar.color.color;
 
-  static const _names = {
-    Look.cap: ['Pip', 'Bean', 'Tad', 'Dot'],
-    Look.shades: ['Boulder', 'Slate', 'Rocky', 'Flint'],
-    Look.fin: ['Finn', 'Reef', 'Marlin', 'Gill'],
-    Look.spiky: ['Blaze', 'Zap', 'Turbo', 'Bonkers'],
-  };
-
   static const _faces = {
     Look.cap: Avatar(color: AvatarColor.peach, face: Expression.freckles, hat: Hat.cap),
     Look.shades: Avatar(color: AvatarColor.stone, face: Expression.cool, hat: Hat.none),
@@ -119,18 +112,43 @@ class Persona {
   /// cap = Rookie, shades = Rock, fin = Shark, spiky = Maniac).
   static const botLooks = [Look.cap, Look.shades, Look.fin, Look.spiky];
 
-  /// [count] bots with a mix of looks and no repeated names.
+  /// Names bots are given at random.
+  static const botNames = [
+    'Pip', 'Bean', 'Tad', 'Dot', 'Boulder', 'Slate', 'Rocky', 'Flint', //
+    'Finn', 'Reef', 'Marlin', 'Gill', 'Blaze', 'Zap', 'Turbo', 'Bonkers', //
+    'Ace', 'Biscuit', 'Bingo', 'Blossom', 'Bramble', 'Buster', 'Button', 'Cactus', //
+    'Clover', 'Cocoa', 'Comet', 'Cosmo', 'Crumpet', 'Dash', 'Dizzy', 'Domino', //
+    'Dusty', 'Echo', 'Ember', 'Fizz', 'Flapjack', 'Fudge', 'Gizmo', 'Goose', //
+    'Gumbo', 'Hazel', 'Honey', 'Iggy', 'Indigo', 'Jazz', 'Jellybean', 'Jinx', //
+    'Juniper', 'Kiwi', 'Koko', 'Lark', 'Lemon', 'Lolly', 'Lucky', 'Mango', //
+    'Maple', 'Marbles', 'Mochi', 'Moxie', 'Muffin', 'Nacho', 'Nugget', 'Noodle', //
+    'Olive', 'Onyx', 'Otto', 'Pebble', 'Pepper', 'Pickle', 'Pixel', 'Plum', //
+    'Pogo', 'Popcorn', 'Pretzel', 'Puddle', 'Quill', 'Rascal', 'Razzle', 'Ripley', //
+    'Rosie', 'Rusty', 'Saffron', 'Sage', 'Scout', 'Shadow', 'Skipper', 'Smudge', //
+    'Sprout', 'Sparky', 'Squid', 'Sunny', 'Taffy', 'Tango', 'Tinsel', 'Toffee', //
+    'Trixie', 'Truffle', 'Tumble', 'Twiggy', 'Velvet', 'Waffles', 'Whisper', 'Widget', //
+    'Willow', 'Wobble', 'Yeti', 'Yoyo', 'Ziggy', 'Zinnia', 'Zest', 'Bubbles', //
+    'Chip', 'Duke', 'Lady Luck', 'Mittens', 'Sly', 'Snapper', 'Doc', 'Lulu', //
+  ];
+
+  /// [count] bots with random names and faces, no name twice. Each also
+  /// gets a look (a hidden personality some games use), mixed round.
   static List<Persona> bots(int count, Random rng) {
     final looks = [...botLooks]..shuffle(rng);
-    final used = <String>{};
+    final names = [...botNames]..shuffle(rng);
+    const hats = [Hat.cap, Hat.none, Hat.fin, Hat.spiky, Hat.headband];
     return [
       for (var i = 0; i < count; i++)
-        () {
-          final look = looks[i % looks.length];
-          final name = (_names[look]!.where((n) => !used.contains(n)).toList()..shuffle(rng)).first;
-          used.add(name);
-          return Persona(name: name, look: look, avatar: _faces[look]!);
-        }(),
+        Persona(
+          name: names[i],
+          look: looks[i % looks.length],
+          avatar: Avatar(
+            color: AvatarColor.values[rng.nextInt(AvatarColor.values.length)],
+            shape: HeadShape.values[rng.nextInt(HeadShape.values.length)],
+            face: Expression.values[rng.nextInt(Expression.values.length)],
+            hat: hats[rng.nextInt(hats.length)],
+          ),
+        ),
     ];
   }
 }

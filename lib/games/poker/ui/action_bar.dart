@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
+import '../../../core/account/account.dart';
 import 'poker_controller.dart';
+import 'table_stats.dart';
 
 /// Fold / Check or Call / Raise, with a raise panel: − and + in big-blind
 /// steps (hold to repeat), and Min, ½ Pot, Pot, All-in.
@@ -226,9 +228,26 @@ class _ActionBarState extends State<ActionBar> {
         ),
       ),
     ];
-    return stacked
+    final row = stacked
         ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: buttons.reversed.toList())
         : Row(children: buttons);
+    final odds = (AccountScope.maybeRead(context)?.pokerOdds ?? true) ? oddsLine(c) : null;
+    if (odds == null) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            odds,
+            key: const Key('odds'),
+            textAlign: TextAlign.center,
+            style: Toon.text(13, weight: FontWeight.w600, color: Toon.muted),
+          ),
+        ),
+        row,
+      ],
+    );
   }
 
   Widget _raisePanel() {

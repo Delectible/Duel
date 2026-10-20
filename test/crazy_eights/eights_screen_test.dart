@@ -32,7 +32,8 @@ Future<void> playGame(WidgetTester tester, {Future<void> Function(int step)? onS
     if (has(const Key('again'))) return;
     if (has(const Key('suit hearts'))) {
       await tester.pump(const Duration(milliseconds: 300)); // the panel slides open
-      await tester.tap(find.byKey(const Key('suit hearts')));
+      // (It may have been on its way out after the last pick.)
+      if (has(const Key('suit hearts'))) await tester.tap(find.byKey(const Key('suit hearts')));
     } else if (has(const Key('play drawn'))) {
       await tester.tap(find.byKey(const Key('play drawn')));
     } else if (playableCards(tester).evaluate().isNotEmpty) {
@@ -86,7 +87,7 @@ void main() {
       usePhone(tester, phones['pixel9pro']!);
       Toon.dark = dark;
       addTearDown(() => Toon.dark = false);
-      await tester.pumpWidget(app(2, seed: 5));
+      await tester.pumpWidget(app(2, seed: 2));
       var picked = false;
       for (var i = 0; i < 20000 && !picked; i++) {
         await tester.pump(const Duration(milliseconds: 20));
@@ -118,7 +119,7 @@ void main() {
           await tester.tap(find.byKey(const Key('pass')));
         }
       }
-      expect(picked, isTrue, reason: 'seed 5 should hand us an eight');
+      expect(picked, isTrue, reason: 'seed 2 should hand us an eight');
     });
   }
 

@@ -37,6 +37,15 @@ const pokerGuide = [
     icon: Icons.casino_rounded,
   ),
   GuideStage(
+    'reads',
+    'Reading the table',
+    'Every bot plays its own hidden way, and they study you too. Tap a player for your read on them: how '
+        'many hands they play, how often they fold to a bet, bluffs caught. Watch how long they think and '
+        'how big they bet. Hands shows the last hands; the line by your buttons gives pot odds and outs '
+        '(Settings can hide it).',
+    icon: Icons.psychology_rounded,
+  ),
+  GuideStage(
     'showdown',
     'Showdown',
     'Hands still in at the end are turned over. The best five-card hand wins the pot; equal hands split it. '

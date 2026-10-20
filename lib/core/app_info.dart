@@ -3,15 +3,15 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.8.5';
+  static const version = '0.8.6';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Playing with friends: if someone leaves, the game pauses and the host brings in a bot for them or ends '
-      'it (a bot sits in after 30 seconds). Whoever left can tap Game In Progress to take their seat back, '
-      'stake and all. If only one person is left, the game ends and stakes are returned. One game at a time, '
-      'and the host can end a stuck one from the party screen.';
+      "Hold'em plays like a real table. Bots read ranges, bluff, trap, tilt, give off timing tells and study "
+      'how you play. Nine hidden personalities with random names and faces. Tap a player for your read on '
+      'them, check the last hands, see pot odds and outs, and get a game summary with a line about '
+      "everyone's game.";
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -23,6 +23,8 @@ class AppInfo {
         'Chips with depth; cards dealt from the dealer',
         'New game pictures',
         'Leave and rejoin: the host brings in a bot or ends it',
+        "Hold'em: bots that read you; 9 hidden personalities",
+        'Read cards, hand history, pot odds, game summary',
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),

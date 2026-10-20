@@ -16,7 +16,7 @@ const blindLevels = <(int, int)>[
 /// Heads-up hands come round fast, so the blinds go up every 6 hands (3
 /// orbits). Bigger tables go slower, about two orbits a level, so a full
 /// table doesn't blind out before anyone has played a real hand. Bots-only
-/// runs (tool/poker/simulate.dart) last about 25 hands heads-up and 65
+/// runs (tool/poker/simulate.dart) last about 15 hands heads-up and 50
 /// six-handed.
 class SitAndGoConfig {
   const SitAndGoConfig({required this.startingStack, required this.handsPerLevel});

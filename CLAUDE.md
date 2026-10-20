@@ -189,9 +189,11 @@ weights cut from the variable font.
   forfeits). Win = stake back + stake x opponents x difficulty rate.
 - `lib/core/avatars/faces.dart`: `Avatar` (colour, head shape, face, hat;
   the first `Avatar.choices` of each are pickable, the rest are bots' /
-  later unlocks), `Persona`, `Face` (painted from the parts; `Face.part`
-  draws one part alone for the profile's 2x2 builder). Poker maps
-  bot `Look`s to `BotStyle`s.
+  later unlocks), `Persona` (`Persona.bots`: random names from
+  `botNames`, random faces), `Face` (painted from the parts; `Face.part`
+  draws one part alone for the profile's 2x2 builder). Offline poker
+  deals each bot a random hidden `BotStyle`; online, the referee maps
+  party bots' `Look`s to styles.
 - `lib/core/table/table_bits.dart`: what every game table shares:
   `GameLayout` (upright: top bar / commentary / table / controls; on its
   side: table left, the rest in a right-hand `SidePanel`;
@@ -231,11 +233,17 @@ weights cut from the variable font.
   (best five of seven, descriptions), `poker_hand.dart` (one no-limit hand:
   blinds, betting rules incl. incomplete all-in raises, side pots, odd
   chips), `sit_and_go.dart` (button, blind levels per table size, places),
-  `bot.dart` (Monte Carlo equity + `BotStyle` personalities).
+  `bot.dart` (9 `BotStyle`s: ranges per opponent, position, c-bets /
+  barrels / check-raises / traps, `Sizing`, timing `Tell`s via
+  `think()` → `Decision.tempo`, tilt, ICM; `classify`, `outs`,
+  `preflopRank`), `reads.dart` (`TableReads`: per-player stats from every
+  action (call `observe` before `apply`), tilt, sizing tells, the last 20
+  hands; bots read it, the app shows it).
   `dart run tool/poker/simulate.dart [n] [easy|normal|hard]` plays bot-only
   Sit & Gos for tuning.
 - `lib/games/poker/ui/`: `PokerController` (paces the table: deals, bots
-  think 2–10 s (`hurry()` = Skip), collect, payout; `pace` 0.05 in tests;
+  think 2–10 s from their tempo (`hurry()` = Skip); `styles` hidden and
+  random per bot; `reads`; `lineup`), collect, payout; `pace` 0.05 in tests;
   `talk` (bots' lines, `table_talk.dart`), `odds` when all in
   (`duel_engine/poker/odds.dart`), `bigWin`), `chips.dart` (`ChipPile`:
   3D chips by value), `table_view.dart` (seats
@@ -243,7 +251,9 @@ weights cut from the variable font.
   and winners), `action_bar.dart`, `hand_chart.dart` (the hands cheat sheet, opened from your hand's
   name; `handRanks`), `shuffle_deck.dart` (your deal: the controller's
   `TablePhase.shuffle` waits for a shuffle and Deal; tests use
-  `shuffleAndDeal`). Showdown results wait for Next hand
+  `shuffleAndDeal`), `table_stats.dart` (`TableInfo` strip, read cards
+  (tap a seat), hand history, `oddsLine` (`Account.pokerOdds`),
+  `GameSummary` with `pickQuotes`). Showdown results wait for Next hand
   (`waitingForYou` / `nextHand()`); `resultTimeout` (online: 10 s) moves
   on by itself with a countdown.
 - `lib/games/crazy_eights/`: `engine/crazy_eights.dart` (rules + an event

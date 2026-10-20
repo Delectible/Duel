@@ -10,6 +10,7 @@ import 'package:duel_engine/poker/bot.dart';
 import 'package:duel_engine/poker/hand_eval.dart';
 import 'package:duel_engine/poker/odds.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
+import 'package:duel_engine/poker/reads.dart';
 import 'package:duel_engine/poker/sit_and_go.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/online/party.dart';
@@ -55,9 +56,12 @@ class PokerController extends ChangeNotifier {
       config: SitAndGoConfig.forPlayers(bots + 1),
       rng: _rng,
     );
+    reads = TableReads(personas.length);
+    // Each bot plays its own hidden way (no two alike): you work it out.
+    final deck = [...BotStyle.values]..shuffle(_rng);
+    styles = [for (var i = 0; i <= bots; i++) i == 0 ? null : deck[(i - 1) % deck.length]];
     _bots = [
-      for (final (i, p) in personas.indexed)
-        i == 0 ? null : PokerBot(style: _styleFor[p.look]!, difficulty: difficulty, rng: _rng),
+      for (final s in styles) s == null ? null : PokerBot(style: s, difficulty: difficulty, rng: _rng),
     ];
   }
 
@@ -78,20 +82,14 @@ class PokerController extends ChangeNotifier {
       button: button,
     );
     _bots = List.filled(seats.length, null);
+    styles = List.filled(seats.length, null);
+    reads = TableReads(seats.length);
   }
 
   final Difficulty difficulty;
 
   /// Your face and name at the table.
   final Persona you;
-
-  /// Each bot look plays its own way.
-  static const _styleFor = {
-    Look.cap: BotStyle.rookie,
-    Look.shades: BotStyle.rock,
-    Look.fin: BotStyle.shark,
-    Look.spiky: BotStyle.maniac,
-  };
 
   /// How long a showdown result waits for Next hand before moving on by
   /// itself: null (bot games) waits for you; online games use 10 seconds so
@@ -108,6 +106,14 @@ class PokerController extends ChangeNotifier {
   late final List<Persona> personas;
   late final SitAndGo game;
   late final List<PokerBot?> _bots;
+
+  /// How each bot plays, by seat (null: a person, or a bot the server
+  /// plays). Hidden until the game's over.
+  late final List<BotStyle?> styles;
+
+  /// What the table has seen everyone do (read cards, the hand history,
+  /// the summary; the bots study it too).
+  late final TableReads reads;
 
   TablePhase phase = TablePhase.dealing;
 
@@ -177,6 +183,21 @@ class PokerController extends ChangeNotifier {
     return me != null && !me.folded;
   }
 
+  /// Everyone, best first: places for those out, the rest (still
+  /// playing) by their chips.
+  List<({int place, Persona who, bool you})> get lineup {
+    final out = [
+      for (final p in game.players)
+        if (p.place != null) (place: p.place!, who: personas[p.seat], you: p.seat == 0),
+    ];
+    final inPlay = [...game.players.where((p) => p.place == null)]
+      ..sort((a, b) => b.stack.compareTo(a.stack));
+    return [
+      for (final (k, p) in inPlay.indexed) (place: k + 1, who: personas[p.seat], you: p.seat == 0),
+      ...out..sort((a, b) => a.place.compareTo(b.place)),
+    ];
+  }
+
   /// Your place when your tournament is over.
   int? get yourPlace => game.players[0].place;
 
@@ -221,24 +242,25 @@ class PokerController extends ChangeNotifier {
       hurrying = false; // your move: the bots wait for you again
       return;
     }
+    final decision = bot.think(h, reads: reads, seats: game.handSeats);
     _botMove = () {
       _botMove = null;
       final youBet = _youAreAggressor(h);
-      h.apply(bot.decide(h));
+      _play(h, decision.move);
       _talkAbout(seat, h, youBet: youBet);
       _afterMove();
     };
-    _after(hurrying ? 250 + _rng.nextInt(200) : _thinkTime(h), _botMove!);
+    _after(hurrying ? 250 + _rng.nextInt(200) : thinkTime(decision.tempo), _botMove!);
   }
 
-  /// A bot's thinking time: 2 to 10 seconds, mostly 2 to 4, and longer
-  /// when there's a lot to call (the tank before a big decision).
-  int _thinkTime(PokerHand h) {
-    final me = h.players[h.toAct!];
-    final toCall = h.legalMoves().callAmount;
-    final big = toCall > 0 && toCall >= me.stack * 0.3;
-    final u = _rng.nextDouble();
-    return 2000 + (8000 * pow(u, big ? 1.6 : 3)).round();
+  /// A bot's thinking time from its tempo (0 snap .. 1 tank): 2 to 10
+  /// seconds. Some bots' timing gives their hand away; others' doesn't.
+  static int thinkTime(double tempo) => 2000 + (8000 * pow(tempo.clamp(0.0, 1.0), 1.8)).round();
+
+  /// Plays [m] in [h], the table noting it down first.
+  void _play(PokerHand h, Move m) {
+    reads.observe(h, game.handSeats, m);
+    h.apply(m);
   }
 
   /// You made the last bet or raise this street.
@@ -357,7 +379,9 @@ class PokerController extends ChangeNotifier {
     odds = const {};
     bigWin = null;
     bigWinSeat = null;
-    _dealt(game.startHand(deck: _nextDeck()));
+    final h = game.startHand(deck: _nextDeck());
+    _dealt(h);
+    reads.startHand(h, game.handSeats);
     handNumber++;
     justBusted = const [];
     final (sb, bb) = game.blinds;
@@ -423,7 +447,7 @@ class PokerController extends ChangeNotifier {
   /// Your move. Only while [yourTurn].
   void act(Move move) {
     if (!yourTurn) return;
-    hand!.apply(move);
+    _play(hand!, move);
     _afterMove();
   }
 
@@ -434,6 +458,7 @@ class PokerController extends ChangeNotifier {
       revealed.add(game.handSeats[i]);
     }
     phase = TablePhase.payout;
+    reads.endHand(h, game.handSeats, number: handNumber);
     _celebrate(h, r);
     odds = const {};
     if (!r.showdown) {

@@ -12,6 +12,7 @@ import 'hand_chart.dart';
 import 'shuffle_deck.dart';
 import 'chips.dart';
 import 'poker_controller.dart';
+import 'table_stats.dart';
 
 /// Where each seat sits, as fractions of the table area, clockwise from you
 /// at the bottom (action passes to your left, up the left side).
@@ -611,6 +612,24 @@ class _Avatar extends StatelessWidget {
   }
 }
 
+/// On the chip leader: a little trophy badge on the avatar.
+class _Crown extends StatelessWidget {
+  const _Crown();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('chip leader'),
+    width: 24,
+    height: 24,
+    decoration: BoxDecoration(
+      color: Toon.yellow,
+      shape: BoxShape.circle,
+      border: Border.all(color: Toon.ink, width: 2),
+    ),
+    child: const Icon(Icons.emoji_events_rounded, size: 15, color: Toon.inkLight),
+  );
+}
+
 class _Pulse extends StatefulWidget {
   const _Pulse({required this.child});
 
@@ -708,10 +727,16 @@ class _BotSeat extends StatelessWidget {
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
           children: [
+            // Tap for your read on them.
             Positioned(
               top: 14,
-              child: _Avatar(persona: persona, size: 54, acting: c.actingSeat == seat, winner: winner),
+              child: GestureDetector(
+                key: Key('read $seat'),
+                onTap: () => showReadCard(context, c, seat),
+                child: _Avatar(persona: persona, size: 54, acting: c.actingSeat == seat, winner: winner),
+              ),
             ),
+            if (!out && chipLeader(c) == seat) const Positioned(top: 50, right: 12, child: _Crown()),
             // Face down: tucked beside the avatar. Turned up: above or
             // below, clear of the board.
             if (showCards)
@@ -906,12 +931,17 @@ class _YourSeat extends StatelessWidget {
             top: 16,
             child: Column(
               children: [
-                _Avatar(persona: c.personas[0], size: 54, acting: c.yourTurn, winner: winner),
+                GestureDetector(
+                  key: const Key('read 0'),
+                  onTap: () => showReadCard(context, c, 0),
+                  child: _Avatar(persona: c.personas[0], size: 54, acting: c.yourTurn, winner: winner),
+                ),
                 const SizedBox(height: 4),
                 _NamePlate(name: c.personas[0].name, stack: p?.stack ?? table.stack),
               ],
             ),
           ),
+          if (chipLeader(c) == 0) const Positioned(left: 38, top: 52, child: _Crown()),
           if (c.phase == TablePhase.shuffle || (p != null && c.hand!.players[c.hand!.button] == p))
             const Positioned(left: 50, top: 12, child: _DealerButton()),
           if (p?.lastAction != null && c.phase != TablePhase.payout)

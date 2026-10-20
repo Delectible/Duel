@@ -99,6 +99,7 @@ class Account extends ChangeNotifier {
   int _balance = startingBalance;
   CurrencyChoice _currency = CurrencyChoice.pips;
   ThemeChoice _theme = ThemeChoice.system;
+  bool _pokerOdds = true;
   final Map<String, GameStats> _stats = {};
   String? _partyId;
 
@@ -107,6 +108,9 @@ class Account extends ChangeNotifier {
   int get balance => _balance;
   CurrencyChoice get currency => _currency;
   ThemeChoice get theme => _theme;
+
+  /// Hold'em: pot odds and outs under your buttons.
+  bool get pokerOdds => _pokerOdds;
 
   /// The online party you're in, so reopening the app takes you back.
   String? get partyId => _partyId;
@@ -153,6 +157,7 @@ class Account extends ChangeNotifier {
   set avatar(Avatar v) => _change(() => _avatar = v);
   set currency(CurrencyChoice v) => _change(() => _currency = v);
   set theme(ThemeChoice v) => _change(() => _theme = v);
+  set pokerOdds(bool v) => _change(() => _pokerOdds = v);
 
   String money(int amount) => _currency.format(amount);
 
@@ -227,6 +232,7 @@ class Account extends ChangeNotifier {
       _currency = CurrencyChoice.values.asNameMap()[j['currency']] ?? CurrencyChoice.pips;
       _theme = ThemeChoice.values.asNameMap()[j['theme']] ?? ThemeChoice.system;
       _partyId = j['party'] as String?;
+      _pokerOdds = j['odds'] as bool? ?? true;
       final left = j['left'] as Map<String, dynamic>? ?? {};
       left.forEach((k, v) {
         if (v is Map && v['g'] is String && v['s'] is int) {
@@ -249,6 +255,7 @@ class Account extends ChangeNotifier {
       'theme': _theme.name,
       'stats': {for (final e in _stats.entries) e.key: e.value.toJson()},
       'party': ?_partyId,
+      if (!_pokerOdds) 'odds': false,
       'left': {
         for (final e in _leftGames.entries) e.key: {'g': e.value.game, 's': e.value.stake},
       },

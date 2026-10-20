@@ -220,7 +220,7 @@ class OnlinePokerController extends PokerController {
         : 250;
     _after(think, () {
       _cursor++;
-      h.apply(m);
+      _play(h, m);
       _afterMove();
     });
   }
@@ -229,7 +229,7 @@ class OnlinePokerController extends PokerController {
   void act(Move move) {
     if (!yourTurn || _logged() != null) return;
     _cursor++;
-    hand!.apply(move);
+    _play(hand!, move);
     _afterMove();
     final send = {'kind': move.kind.name, 'amount': move.amount};
     unawaited(
@@ -277,13 +277,15 @@ class OnlinePokerController extends PokerController {
     while (_handIdx < _hands.length - 1 && !game.isOver) {
       final h = game.startHand(deck: _nextDeck());
       _dealt(h);
+      reads.startHand(h, game.handSeats);
+      handNumber++;
       for (final raw in _moves) {
         _advance(h);
-        h.apply(_toMove(MoveKind.values[raw[0]! as int], raw[1]! as int));
+        _play(h, _toMove(MoveKind.values[raw[0]! as int], raw[1]! as int));
       }
       _advance(h);
+      reads.endHand(h, game.handSeats, number: handNumber);
       game.finishHand();
-      handNumber++;
     }
   }
 
@@ -297,6 +299,7 @@ class OnlinePokerController extends PokerController {
   // --- The final standings ---------------------------------------------------
 
   /// Everyone placed so far, best first (all of them once it's over).
+  @override
   List<({int place, Persona who, bool you})> get lineup {
     final places = (_state['places'] as Map?) ?? const {};
     final list = [

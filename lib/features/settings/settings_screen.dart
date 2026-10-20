@@ -67,6 +67,38 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
+          Text("Hold'em", style: Toon.text(18, weight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          ToonButton(
+            key: const Key('poker odds'),
+            color: account.pokerOdds ? Toon.yellow : Toon.card,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            onPressed: () => account.pokerOdds = !account.pokerOdds,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Pot odds and outs',
+                    textAlign: TextAlign.start,
+                    style: Toon.text(16, color: Toon.on(account.pokerOdds ? Toon.yellow : Toon.card)),
+                  ),
+                ),
+                Text(
+                  account.pokerOdds ? 'On' : 'Off',
+                  style: Toon.text(
+                    16,
+                    weight: FontWeight.w700,
+                    color: Toon.on(account.pokerOdds ? Toon.yellow : Toon.card),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            'Shown by your buttons: what a call costs against the pot, and the cards that would help you.',
+            style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
+          ),
+          const SizedBox(height: 16),
         ],
         right: [
           Text('Money shown as', style: Toon.text(18, weight: FontWeight.w700)),

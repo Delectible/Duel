@@ -14,6 +14,7 @@ import '../../../core/online/party.dart';
 import '../../../features/party/lobby.dart';
 import 'poker_guide.dart';
 import 'poker_controller.dart';
+import 'table_stats.dart';
 import 'table_view.dart';
 
 /// Texas Hold'em Sit & Go against [bots] bots.
@@ -258,7 +259,7 @@ class _PokerScreenState extends State<PokerScreen> {
               children: [
                 GameLayout(
                   top: _Hud(c: _c, ticket: _ticket, onLeave: _leave),
-                  commentary: const SizedBox.shrink(),
+                  commentary: TableInfo(c: _c),
                   table: TableView(c: _c),
                   controls: ActionBar(c: _c),
                 ),
@@ -472,7 +473,10 @@ class _GameOver extends StatelessWidget {
                       '${c.game.handsPlayed} hand${c.game.handsPlayed == 1 ? '' : 's'}',
                       style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
                     ),
-                    if (c is OnlinePokerController) _Lineup(c: c as OnlinePokerController),
+                    GameSummary(
+                      c: c,
+                      footer: c is OnlinePokerController ? _Lineup(c: c as OnlinePokerController) : null,
+                    ),
                     const SizedBox(height: 10),
                     StakeResult(ticket),
                     const SizedBox(height: 14),
@@ -515,7 +519,7 @@ String _ordinal(int n) => switch (n) {
   _ => '${n}th',
 };
 
-/// Online: the table's finishing order (filling in as people go out).
+/// Online: a note under the finishing order.
 class _Lineup extends StatelessWidget {
   const _Lineup({required this.c});
 
@@ -523,59 +527,18 @@ class _Lineup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lineup = c.lineup;
-    if (lineup.isEmpty) return const SizedBox.shrink();
+    final note = c.matchOver && c.simulated
+        ? 'No people left at the table, so the bots were placed by their chances (bigger stacks, better odds).'
+        : !c.matchOver
+        ? 'The others are still playing…'
+        : null;
+    if (note == null) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Column(
-        key: const Key('lineup'),
-        children: [
-          for (final p in lineup)
-            Container(
-              margin: const EdgeInsets.only(bottom: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: p.you ? Toon.yellow : (p.place == 1 ? Toon.green.withValues(alpha: 0.35) : null),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 40,
-                    child: Text(
-                      _ordinal(p.place),
-                      style: Toon.text(15, weight: FontWeight.w700, color: p.you ? Toon.inkLight : null),
-                    ),
-                  ),
-                  Face(p.who, size: 26),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      p.you ? 'You' : p.who.name,
-                      style: Toon.text(15, color: p.you ? Toon.inkLight : null),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (c.matchOver && c.simulated)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'No people left at the table, so the bots were placed by their chances (bigger stacks, better odds).',
-                textAlign: TextAlign.center,
-                style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
-              ),
-            )
-          else if (!c.matchOver)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'The others are still playing…',
-                style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
-              ),
-            ),
-        ],
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        note,
+        textAlign: TextAlign.center,
+        style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
       ),
     );
   }

@@ -369,6 +369,39 @@ Ships as app version **0.4.1**.
   Firestore emulator, and `test/online/lobby_flow_test.dart` (three
   phones). → 0.8.5 · 2026-10-19
 
+### 16. Hold'em like a real table (requested 2026-10-20)
+
+- [x] **16.1 Bots that think like players** (`duel_engine/poker/bot.dart`):
+  they put each opponent on a range of hands (from position, raises,
+  calls, and what they've seen them do this game) and weigh their cards
+  against it; open wider late, steal blinds, 3-bet, defend; c-bet,
+  double-barrel, check-raise, slow-play, semi-bluff draws; bet sizes in
+  their own way; tighten up near the money and push / fold when short.
+  Hard reads you fully, Easy plays loose and doesn't read at all (Hard
+  beats Easy about 2 games in 3 in `tool/poker/simulate.dart`).
+- [x] **16.2 They study you** (`poker/reads.dart`, `TableReads`): every
+  action is noted (hands played, raises, aggression, folds to bets,
+  showdowns, bluffs caught, big-bet sizing honesty); bots exploit what
+  they see (bluff the folders, call the bluffers, believe honest bettors).
+- [x] **16.3 Tells and tilt**: each bot's thinking time follows its own
+  pattern (some tank with a bluff, some with a monster, some are
+  unreadable); losing a big pot puts them on tilt for a while.
+- [x] **16.4 Nine personalities, hidden**: Rookie, Rock, Shark, Maniac,
+  plus Grinder, Fish, Trapper, Bully, Sheriff, each with its own voice.
+  Bots get random names (120) and random faces; you work out who's who
+  from play. The summary reveals them.
+- [x] **16.5 Read cards**: tap any player (or yourself) for their numbers
+  and notes in plain words ("Folds to bets often: a good one to bluff").
+- [x] **16.6 Table info**: your place, your stack in big blinds, the
+  average stack, a trophy on the chip leader, and **Hands**: the last 20
+  hands, action by action, with the cards that were shown.
+- [x] **16.7 Pot odds and outs** by your buttons ("Pot odds 3.0 : 1 · you
+  need 25%", "9 outs · 35% to hit by the river"); Settings can hide it.
+- [x] **16.8 Game summary**: your hands won, biggest pot, best bluff and
+  hands played, then the whole lineup in finishing order, each with a line
+  picked from their most stand-out stat ("Caught bluffing 3 times, never
+  blushed.") and what each bot really was. → 0.8.6 · 2026-10-20
+
 ### 12. Fixes
 
 - [x] **12.3 Fix: online Hold'em "Something went wrong"** (reported

@@ -55,6 +55,7 @@ void main() {
     await tester.pumpWidget(DuelApp());
     await tester.tap(find.byKey(const Key('settings')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const Key('about')), 200);
     await tester.tap(find.byKey(const Key('about')));
     await tester.pumpAndSettle();
     expect(find.textContaining('Duel 0.'), findsWidgets); // the button and the sheet

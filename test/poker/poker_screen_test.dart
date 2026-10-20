@@ -136,6 +136,10 @@ void main() {
     await play(tester, hands: 400, raise: true);
     await shot(tester, 'poker_game_over');
     expect(find.text('Play again'), findsOneWidget);
+    // The summary: your numbers, then everyone with a line about their game.
+    expect(find.byKey(const Key('your numbers')), findsOneWidget);
+    expect(find.byKey(const Key('lineup')), findsOneWidget);
+    expect(find.textContaining('“'), findsWidgets);
     await tester.tap(find.text('Play again'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Hand 1'), findsOneWidget);
@@ -161,8 +165,10 @@ void main() {
     await tester.pumpWidget(app(1));
     // Heads-up the button alternates: your deal comes within two hands.
     final deck = find.byKey(const Key('deck'));
+    final next = find.byKey(const Key('next hand'));
     for (var i = 0; i < 4000 && deck.evaluate().isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 20));
+      if (next.evaluate().isNotEmpty) await tester.tap(next);
       if (yourTurn()) {
         await settleButtons(tester);
         await tester.tap(find.byKey(const Key('call')));
@@ -248,5 +254,54 @@ void main() {
     expect(find.text('How to play'), findsOneWidget);
     expect(find.text('You are here'), findsOneWidget);
     await shot(tester, 'poker_guide');
+  });
+
+  testWidgets('tap a seat for your read on them; the hand history after a hand', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(app(3));
+    await untilShowdown(tester);
+    await tester.tap(find.byKey(const Key('next hand')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byKey(const Key('your bb')), findsOneWidget);
+    expect(find.byKey(const Key('average')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('read 2')));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byKey(const Key('read card 2')), findsOneWidget);
+    expect(find.text('Plays'), findsOneWidget);
+    await shot(tester, 'poker_read_card');
+    await tester.tapAt(const Offset(20, 40));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    await tester.tap(find.byKey(const Key('history')));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byKey(const Key('hand history')), findsOneWidget);
+    expect(find.text('Hand 1'), findsWidgets);
+    expect(find.textContaining('Pre-flop: '), findsWidgets);
+    await shot(tester, 'poker_history');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pot odds and outs by your buttons', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(app(3));
+    final odds = find.byKey(const Key('odds'));
+    for (var i = 0; i < 8000 && odds.evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      if (await shuffleAndDeal(tester)) continue;
+      if (yourTurn() && odds.evaluate().isEmpty) {
+        await settleButtons(tester);
+        if (odds.evaluate().isEmpty) await tester.tap(find.byKey(const Key('call')));
+      }
+    }
+    expect(odds, findsOneWidget);
+    expect(tester.widget<Text>(odds).data, anyOf(contains('Pot odds'), contains('outs')));
+    await shot(tester, 'poker_odds');
   });
 }
