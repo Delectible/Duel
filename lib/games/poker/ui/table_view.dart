@@ -7,6 +7,7 @@ import 'package:duel_engine/cards.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
+import '../../../core/account/account.dart';
 import '../../../core/avatars/faces.dart';
 import 'hand_chart.dart';
 import 'shuffle_deck.dart';
@@ -937,7 +938,9 @@ class _YourSeat extends StatelessWidget {
     final r = c.hand?.result;
     final winner = c.phase == TablePhase.payout && r != null && (r.winnings[c.handIndex(0) ?? -1] ?? 0) > 0;
     final winning = c.phase == TablePhase.payout ? c.winningCards() : const <PlayingCard>{};
-    final name = folded ? null : c.yourHandName();
+    // Odds and outs off: you're on your own (the chart, but not your hand).
+    final helped = AccountScope.maybeRead(context)?.pokerOdds ?? true;
+    final name = folded || c.yourHandName() == null ? null : (helped ? c.yourHandName() : 'Hands');
 
     return SizedBox(
       width: 236,
@@ -1005,7 +1008,7 @@ class _YourSeat extends StatelessWidget {
               ),
             ),
           // All in: your chance to win, over your cards.
-          if (c.odds[0] case final chance? when !folded)
+          if (c.odds[0] case final chance? when !folded && helped)
             Positioned(left: 84, width: 134, top: -16, child: Center(child: _ChanceBadge(chance))),
           // Your hand's name: tap for the cheat sheet, your hand outlined.
           if (name != null)
@@ -1021,13 +1024,13 @@ class _YourSeat extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   tooltip: 'Poker hands',
                   onPressed: () {
-                    final yours = c.yourHand();
+                    final yours = helped ? c.yourHand() : null;
                     showHandChart(
                       context,
                       category: yours?.category,
                       royal: yours?.royal ?? false,
                       cards: yours?.cards ?? const [],
-                      name: name,
+                      name: helped ? name : null,
                     );
                   },
                   child: FittedBox(

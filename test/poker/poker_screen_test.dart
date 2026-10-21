@@ -1,5 +1,6 @@
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel/games/poker/ui/poker_screen.dart';
+import 'package:duel/core/account/account.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/games/poker/ui/table_stats.dart';
 import 'package:duel_engine/poker/reads.dart';
@@ -257,6 +258,24 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(find.text('Poker hands'), findsNothing);
+  });
+
+  testWidgets('odds and outs off: the button just says Hands, the chart shows no hand', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(AccountScope(account: Account()..pokerOdds = false, child: app(3)));
+    final chart = find.byKey(const Key('hand chart'));
+    for (var i = 0; i < 4000 && chart.evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      await shuffleAndDeal(tester);
+    }
+    expect(find.descendant(of: chart, matching: find.text('Hands')), findsOneWidget);
+    await tester.tap(chart);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('Poker hands'), findsOneWidget);
+    expect(find.text('You have'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('bot games: the showdown result waits for Next hand', (tester) async {

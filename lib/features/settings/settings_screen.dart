@@ -187,7 +187,7 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Pot odds and outs',
+                    'Odds, outs and your hand',
                     textAlign: TextAlign.start,
                     style: Toon.text(16, color: Toon.on(account.pokerOdds ? Toon.yellow : Toon.card)),
                   ),
@@ -204,7 +204,8 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           Text(
-            'Shown by your buttons: what a call costs against the pot, and the cards that would help you.',
+            'What a call costs against the pot, the cards that would help you, your chance when all in, and '
+            'what your hand is. Off: you\'re on your own (the hands chart is still there).',
             style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
           ),
           const SizedBox(height: 16),

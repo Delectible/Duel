@@ -485,6 +485,12 @@ Ships as app version **0.4.1**.
   Settings: pick one or Off, and a music volume of its own (default
   Lounge at half). Loops under everything, stops while the app is in the
   background. → 0.9.1 · 2026-10-21
+
+### 22. Playing blind (requested 2026-10-21)
+
+- [x] **22.1 Odds, outs and your hand** (the Hold'em setting): off now also
+  hides what your hand is (the chart button just says "Hands" and outlines
+  nothing) and the all-in chance badge. → 0.9.1 · 2026-10-21
   → 0.9.0 · 2026-10-21
 
 ### 12. Fixes
