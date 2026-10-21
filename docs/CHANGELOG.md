@@ -431,6 +431,14 @@ Ships as app version **0.4.1**.
 
 ### 12. Fixes
 
+- [x] **12.8 Four in a Row: the disc really drops** (reported 2026-10-21):
+  the falling disc was drawn inside its own hole, under the empty holes
+  above it, so it flickered in and out, and it used a bounce curve that
+  started fast. The board is now layered like the real one (discs behind
+  a blue front with holes cut out): the disc enters from above, speeds up
+  as it falls, shows through each hole it passes and settles with a small
+  bounce. → 0.8.8 · 2026-10-21
+
 - [x] **12.7 Layout sweep** (requested 2026-10-21, after chips covered a
   showdown): went through every screen's screenshots, both phones, both
   ways round. Hold'em: the pot now flies into the winner's face and fades

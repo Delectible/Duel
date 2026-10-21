@@ -10,7 +10,7 @@ class AppInfo {
   static const latest =
       "Hold'em tidy-up: the pot now flies into the winner instead of sitting on their cards, turned-up cards "
       'stay on screen on a phone on its side, bets sit clear of name plates, and the title no longer gets cut '
-      'short.';
+      'short. Four in a Row: discs now really drop, falling behind the board and showing through the holes.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

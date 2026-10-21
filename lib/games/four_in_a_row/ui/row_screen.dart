@@ -454,47 +454,48 @@ class _Board extends StatelessWidget {
                         ),
                       ),
                     ),
+                // The board in layers, like the real thing: discs sit
+                // behind a blue front with holes cut in it, so a dropped
+                // disc shows through each hole as it falls past.
                 Positioned(
                   left: 0,
                   top: 36,
                   width: width,
                   height: cell * 6 + 4,
-                  child: Container(
-                    decoration: Toon.box(Toon.blue, radius: 16, shadow: 5),
-                    child: Stack(
-                      clipBehavior: Clip.hardEdge,
-                      children: [
-                        for (var col = 0; col < 7; col++)
-                          for (var row = 0; row < 6; row++)
-                            Positioned(
-                              left: col * cell + cell * 0.08 - 2,
-                              top: (5 - row) * cell + cell * 0.08 - 1,
-                              child: _cell(g, col, row, cell, isLast: col == last && row == lastRow),
-                            ),
-                        if (g.winningLine.isNotEmpty)
-                          Positioned.fill(
-                            child: IgnorePointer(child: CustomPaint(painter: _WinLine(g.winningLine, cell))),
-                          ),
-                        // Tap targets, one per column.
-                        Row(
-                          children: [
-                            for (var col = 0; col < 7; col++)
-                              Expanded(
-                                child: GestureDetector(
-                                  key: Key('col $col'),
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: c.yourTurn && g.canDrop(col)
-                                      ? () {
-                                          HapticFeedback.lightImpact();
-                                          c.drop(col);
-                                        }
-                                      : null,
-                                ),
-                              ),
-                          ],
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned.fill(child: CustomPaint(painter: _BoardBack(cell))),
+                      for (var col = 0; col < 7; col++)
+                        for (var row = 0; row < 6; row++)
+                          if (g.board[col][row] >= 0)
+                            _disc(g, col, row, cell, isLast: col == last && row == lastRow),
+                      Positioned.fill(
+                        child: IgnorePointer(child: CustomPaint(painter: _BoardFront(cell))),
+                      ),
+                      if (g.winningLine.isNotEmpty)
+                        Positioned.fill(
+                          child: IgnorePointer(child: CustomPaint(painter: _WinLine(g.winningLine, cell))),
                         ),
-                      ],
-                    ),
+                      // Tap targets, one per column.
+                      Row(
+                        children: [
+                          for (var col = 0; col < 7; col++)
+                            Expanded(
+                              child: GestureDetector(
+                                key: Key('col $col'),
+                                behavior: HitTestBehavior.opaque,
+                                onTap: c.yourTurn && g.canDrop(col)
+                                    ? () {
+                                        HapticFeedback.lightImpact();
+                                        c.drop(col);
+                                      }
+                                    : null,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -505,36 +506,111 @@ class _Board extends StatelessWidget {
     );
   }
 
-  Widget _cell(FourInARow g, int col, int row, double cell, {required bool isLast}) {
-    final d = cell * 0.84;
-    final v = g.board[col][row];
-    final hole = Container(
-      width: d,
-      height: d,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Toon.paper,
-        border: Border.all(color: Toon.ink, width: 2),
-      ),
-    );
-    if (v < 0) return hole;
-    final winning = g.winningLine.contains((col, row));
-    Widget disc = _Disc(color: v == 0 ? Toon.red : Toon.yellow, size: d);
-    if (winning) disc = _Glow(child: disc);
-    if (isLast) {
-      // Falls from above the board and bounces into its hole.
-      final fall = (6 - row) * cell;
-      disc = TweenAnimationBuilder<double>(
-        key: ValueKey('drop${g.moves.length}'),
-        tween: Tween(begin: 0, end: 1),
-        duration: Duration(milliseconds: 260 + (6 - row) * 55),
-        curve: Curves.bounceOut,
-        builder: (context, t, child) => Transform.translate(offset: Offset(0, -fall * (1 - t)), child: child),
-        child: disc,
-      );
+  /// The disc in [col], [row]; the newest one falls in from above the
+  /// board, picking up speed, and settles with a little bounce.
+  Widget _disc(FourInARow g, int col, int row, double cell, {required bool isLast}) {
+    final d = cell * 0.8;
+    final at = _BoardBack.hole(col, row, cell);
+    Widget disc = _Disc(color: g.board[col][row] == 0 ? Toon.red : Toon.yellow, size: d);
+    if (g.winningLine.contains((col, row))) disc = _Glow(child: disc);
+    if (!isLast) {
+      return Positioned(left: at.dx - d / 2, top: at.dy - d / 2, child: disc);
     }
-    return Stack(children: [hole, disc]);
+    final start = -cell * 0.7;
+    final fall = at.dy - start;
+    // Time to fall grows with the square root of the distance (gravity),
+    // plus the settle.
+    final ms = (170 + 95 * sqrt(fall / cell)).round() + 140;
+    const land = 0.8;
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('drop${g.moves.length}'),
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: ms),
+      builder: (context, t, child) {
+        final double y;
+        if (t < land) {
+          final u = t / land;
+          y = start + fall * u * u; // speeding up
+        } else {
+          final b = (t - land) / (1 - land);
+          y = at.dy - cell * 0.14 * sin(pi * b); // a small bounce, then rest
+        }
+        return Positioned(left: at.dx - d / 2, top: y - d / 2, child: child!);
+      },
+      child: disc,
+    );
   }
+}
+
+/// Behind the discs: the board's shadow and the dark inside of the holes.
+class _BoardBack extends CustomPainter {
+  _BoardBack(this.cell);
+
+  final double cell;
+
+  /// Centre of the hole at [col], [row] (row 0 at the bottom).
+  static Offset hole(int col, int row, double cell) =>
+      Offset(col * cell + cell / 2, (5 - row) * cell + cell / 2 + 2);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(16));
+    canvas
+      ..drawRRect(r.shift(const Offset(0, 5)), Paint()..color = Toon.ink)
+      ..drawRRect(r, Paint()..color = Color.lerp(Toon.paper, Toon.ink, 0.12)!);
+  }
+
+  @override
+  bool shouldRepaint(_BoardBack old) => old.cell != cell;
+}
+
+/// In front of the discs: the blue board with its holes cut out.
+class _BoardFront extends CustomPainter {
+  _BoardFront(this.cell);
+
+  final double cell;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(16));
+    final radius = cell * 0.42;
+    final plate = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRRect(r);
+    for (var col = 0; col < 7; col++) {
+      for (var row = 0; row < 6; row++) {
+        plate.addOval(Rect.fromCircle(center: _BoardBack.hole(col, row, cell), radius: radius));
+      }
+    }
+    canvas.drawPath(plate, Paint()..color = Toon.blue);
+    // A lighter top edge on each hole, as if the board has some depth.
+    final rim = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = Toon.ink;
+    final shine = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = Colors.white.withValues(alpha: 0.35);
+    for (var col = 0; col < 7; col++) {
+      for (var row = 0; row < 6; row++) {
+        final c = _BoardBack.hole(col, row, cell);
+        canvas
+          ..drawCircle(c, radius, rim)
+          ..drawArc(Rect.fromCircle(center: c, radius: radius + 2.5), pi * 1.1, pi * 0.8, false, shine);
+      }
+    }
+    canvas.drawRRect(
+      r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = Toon.outline
+        ..color = Toon.ink,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_BoardFront old) => old.cell != cell;
 }
 
 class _Glow extends StatefulWidget {
@@ -569,7 +645,7 @@ class _WinLine extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    Offset center((int, int) c) => Offset(c.$1 * cell + cell / 2, (5 - c.$2) * cell + cell / 2);
+    Offset center((int, int) c) => _BoardBack.hole(c.$1, c.$2, cell);
     final a = center(cells.first), b = center(cells.last);
     canvas.drawLine(
       a,
