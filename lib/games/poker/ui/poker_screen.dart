@@ -371,17 +371,14 @@ class _Hud extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // The stake badge wraps under the name when space is tight
+                // (on its side), rather than squeezing it.
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Flexible(
-                      child: Text(
-                        "Texas Hold'em",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Toon.text(18, weight: FontWeight.w700),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
+                    Text("Texas Hold'em", maxLines: 1, style: Toon.text(18, weight: FontWeight.w700)),
                     StakeBadge(ticket),
                   ],
                 ),

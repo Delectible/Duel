@@ -3,14 +3,14 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.8.7';
+  static const version = '0.8.8';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Online Hold'em bots now play like the offline ones: they read the table, bluff, trap, tilt and take "
-      'their time, so their timing can give them away. Each has a hidden style, revealed at the end. Also '
-      'fixes a rare online game that could stall, and pop-up sheets (like the hands chart) now close in one swipe.';
+      "Hold'em tidy-up: the pot now flies into the winner instead of sitting on their cards, turned-up cards "
+      'stay on screen on a phone on its side, bets sit clear of name plates, and the title no longer gets cut '
+      'short.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

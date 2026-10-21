@@ -3,7 +3,7 @@ description: >-
   Card games, head to head: play against another player online or against
   a bot.
 publish_to: none
-version: 0.8.7+18
+version: 0.8.8+19
 
 environment:
   sdk: ^3.12.0

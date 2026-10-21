@@ -48,7 +48,12 @@ class TableView extends StatelessWidget {
         // little higher up, and bots show their cards beside them.
         final wide = GameLayout.wide(context);
         final center = wide ? const Offset(0.5, 0.43) : _center;
-        Offset betSpot(int seat) => Offset.lerp(spots[seat], center, seat == 0 ? 0.36 : 0.42)!;
+        // In front of each player: further in for side seats, whose name
+        // plates stick out towards the middle.
+        Offset betSpot(int seat) {
+          final side = (spots[seat].dx - 0.5).abs() > 0.2;
+          return Offset.lerp(spots[seat], center, seat == 0 ? 0.36 : (side ? 0.52 : 0.42))!;
+        }
 
         final h = c.hand;
         final boardCard = min(size.width * 0.12, wide ? size.height * 0.13 : 56.0).clamp(36.0, 56.0);
@@ -121,9 +126,10 @@ class TableView extends StatelessWidget {
                       deal: dealFor(s),
                       // Folded cards slide off to the middle.
                       muck: px(center) - (px(spots[s]) + const Offset(30, -17)),
-                      // On its side the seats along the top show them beside
-                      // (towards the middle), clear of the board.
-                      cards: wide && spots[s].dy <= 0.2
+                      // On its side the table is short: seats along the top
+                      // and up the sides show them beside (towards the
+                      // middle), on screen and clear of the board.
+                      cards: wide && spots[s].dy < 0.5
                           ? (spots[s].dx > 0.5 ? _CardsAt.left : _CardsAt.right)
                           : (_cardsAbove(spots[s]) ? _CardsAt.above : _CardsAt.below),
                     ),
@@ -191,10 +197,13 @@ class TableView extends StatelessWidget {
                   _Fly(
                     key: ValueKey('pay${c.handNumber}-$k-$w'),
                     from: potAt,
-                    to: px(Offset.lerp(spots[seat], center, 0.2)!),
+                    // Into the winner's stack (which counts up), then gone.
+                    // (onto the avatar: your seat's middle is your cards).
+                    to: px(spots[seat]) + (seat == 0 ? const Offset(-91, -25) : const Offset(0, -18)),
                     amount: share,
-                    duration: 650,
+                    duration: 1100,
                     stacks: 2,
+                    vanish: true,
                   ),
                 );
               }
@@ -318,6 +327,7 @@ class _Fly extends StatelessWidget {
     required this.amount,
     this.duration = 450,
     this.fade = false,
+    this.vanish = false,
     this.stacks = 1,
   });
 
@@ -328,6 +338,10 @@ class _Fly extends StatelessWidget {
 
   /// Fade in on the way (chips pushed out from under a seat).
   final bool fade;
+
+  /// Shrink away on arrival (won chips going into a stack), so they never
+  /// sit on top of anyone's cards.
+  final bool vanish;
   final int stacks;
 
   @override
@@ -337,7 +351,12 @@ class _Fly extends StatelessWidget {
     curve: Curves.easeOutCubic,
     builder: (context, t, child) => _At(
       Offset.lerp(from, to, t)!,
-      child: Opacity(opacity: fade ? min(1, t * 2.5) : 1, child: child),
+      child: vanish && t > 0.75
+          ? Opacity(
+              opacity: ((1 - t) / 0.25).clamp(0.0, 1.0),
+              child: Transform.scale(scale: 0.6 + 0.4 * (1 - t) / 0.25, child: child),
+            )
+          : Opacity(opacity: fade ? min(1, t * 2.5) : 1, child: child),
     ),
     child: ChipPile(amount: amount, stacks: stacks),
   );

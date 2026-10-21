@@ -431,6 +431,16 @@ Ships as app version **0.4.1**.
 
 ### 12. Fixes
 
+- [x] **12.7 Layout sweep** (requested 2026-10-21, after chips covered a
+  showdown): went through every screen's screenshots, both phones, both
+  ways round. Hold'em: the pot now flies into the winner's face and fades
+  as their stack counts up (it used to sit on their cards or name plate);
+  bots up the sides show turned-up cards beside them on a phone on its side
+  (they went off the top of the screen); side players' bets sit further in,
+  clear of their name plates; the stake badge wraps under the title instead
+  of squeezing it to "T…". Everything else checked out (cards caught mid-
+  flight aside). → 0.8.8 · 2026-10-21
+
 - [x] **12.6 Fix: sheets stuck half closed** (reported 2026-10-20): the
   poker hands chart (and How to play, read cards, hand history) were
   resizable sheets with a 40% minimum: a quick swipe down shrank them to
