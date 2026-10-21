@@ -9,6 +9,7 @@ import '../../../core/avatars/faces.dart';
 import 'package:duel_engine/crazy_eights/crazy_eights.dart';
 import 'package:duel_engine/crazy_eights/eights_bot.dart';
 import '../../../core/online/online_link.dart';
+import '../../../core/sound/sound.dart';
 
 enum EightsPhase {
   /// Cards going out.
@@ -91,6 +92,8 @@ class EightsController extends ChangeNotifier {
         _apply(m);
       }
       draws.clear();
+      _heard = game.events.length;
+      if (!caughtUp) Sound.deal(8);
       _after(caughtUp ? 300 : 1400, _step);
       return;
     }
@@ -101,6 +104,8 @@ class EightsController extends ChangeNotifier {
     pendingEight = null;
     round++;
     phase = EightsPhase.dealing;
+    _heard = game.events.length;
+    Sound.deal(8);
     _after(1400, _step);
   }
 
@@ -123,6 +128,7 @@ class EightsController extends ChangeNotifier {
 
   void _step() {
     if (game.isOver) {
+      if (phase != EightsPhase.over) Sound.play(game.winner == 0 ? Sfx.winBig : Sfx.loseBig);
       phase = EightsPhase.over;
       _notify();
       return;
@@ -177,7 +183,15 @@ class EightsController extends ChangeNotifier {
     }
   }
 
+  /// Events already heard.
+  var _heard = 0;
+
   void _afterMove() {
+    final news = game.events.skip(_heard);
+    _heard = game.events.length;
+    if (news.any((e) => e is Reshuffled)) Sound.play(Sfx.shuffle);
+    if (news.any((e) => e is Played)) Sound.play(Sfx.place);
+    if (news.any((e) => e is Drew)) Sound.play(Sfx.deal);
     _notify();
     // Time for the card to fly before the next player goes.
     _after(500, _step);
@@ -220,6 +234,8 @@ class EightsController extends ChangeNotifier {
     link?.send({'kind': 'draw'});
     draws.add((game.events.length, 0));
     if (game.turn == 0) {
+      _heard = game.events.length;
+      Sound.play(Sfx.deal);
       _notify(); // it fits: play it or keep it
     } else {
       _afterMove(); // didn't fit: turn over

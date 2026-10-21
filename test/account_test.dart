@@ -67,7 +67,9 @@ void main() {
       ..name = 'Luca'
       ..avatar = _face
       ..currency = CurrencyChoice.eur
-      ..theme = ThemeChoice.dark;
+      ..theme = ThemeChoice.dark
+      ..sound = false
+      ..volume = 0.3;
     a.placeStake(10);
     a.settle(gameId: 'gofish', stake: 10, outcome: Outcome.win, opponents: 2, difficulty: Difficulty.hard);
     final b = Account(store: store);
@@ -75,6 +77,8 @@ void main() {
     expect(b.avatar, _face);
     expect(b.currency, CurrencyChoice.eur);
     expect(b.theme, ThemeChoice.dark);
+    expect((b.sound, b.volume), (false, 0.3));
+    expect(Account().sound, isTrue, reason: 'sound is on by default');
     expect(b.balance, 130);
     expect(b.stats('gofish').won, 1);
     expect(b.money(-1240), '−€1,240');

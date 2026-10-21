@@ -5,6 +5,7 @@ import '../../core/app_info.dart';
 import '../../core/avatars/faces.dart';
 import '../../core/online/party.dart';
 import '../../core/session/play_setup.dart';
+import '../../core/sound/sound.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
 import '../preview/game_preview_screen.dart';
@@ -177,8 +178,10 @@ class _GameTile extends StatelessWidget {
     final why = blocked?.$1;
 
     // Every game opens its preview first; only Play! there starts it.
-    void tap() =>
-        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GamePreviewScreen(game: game)));
+    void tap() {
+      Sound.play(Sfx.tap, gain: 0.6);
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GamePreviewScreen(game: game)));
+    }
 
     return Semantics(
       button: true,

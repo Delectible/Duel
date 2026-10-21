@@ -3,14 +3,14 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.9.0';
+  static const version = '0.9.1';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Crazy Eights, Go Fish and Spades now play online with your party (and its bots). In Spades, pick a '
-      'partner: two who pick each other play together. When you make a party, choose who picks the games: '
-      'the host, a vote, or first come. Also, on its side the navigation buttons tuck away.';
+      'Sound effects: buttons tick, cards shuffle and deal, chips clink, and wins and losses each have their '
+      'own jingle, small to big. Showdowns and Blitz wars get a drum and a clash. Turn sound off or set the '
+      'volume in Settings.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -34,6 +34,7 @@ class AppInfo {
         'Crazy Eights, Go Fish, Spades online',
         'Spades: pick your partner',
         'Parties: host picks, vote or first come',
+        'Sound effects (Settings: on / off, volume)',
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),

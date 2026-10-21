@@ -3,7 +3,7 @@ description: >-
   Card games, head to head: play against another player online or against
   a bot.
 publish_to: none
-version: 0.9.0+20
+version: 0.9.1+21
 
 environment:
   sdk: ^3.12.0
@@ -25,6 +25,7 @@ dependencies:
   cloud_firestore: ^7.0.0
   # Calls to the referee (server/).
   http: ^1.6.0
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -37,6 +38,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Sound effects: Kenney.nl's CC0 packs (assets/sounds/LICENSE-kenney.txt).
+  assets:
+    - assets/sounds/
   fonts:
     # Fredoka (OFL, assets/fonts/OFL.txt), static weights cut from the
     # variable font with fontTools.

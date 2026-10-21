@@ -6,6 +6,7 @@ import '../../core/app_info.dart';
 import '../../core/theme/split_page.dart';
 import '../../core/theme/toon.dart';
 import '../home/home_screen.dart';
+import '../../core/sound/sound.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -66,6 +67,52 @@ class SettingsScreen extends StatelessWidget {
               ],
             ],
           ),
+          const SizedBox(height: 16),
+          Text('Sound', style: Toon.text(18, weight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          ToonButton(
+            key: const Key('sound'),
+            color: account.sound ? Toon.yellow : Toon.card,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            onPressed: () => account.sound = !account.sound,
+            child: Row(
+              children: [
+                Icon(account.sound ? Icons.volume_up_rounded : Icons.volume_off_rounded),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Sound effects',
+                    textAlign: TextAlign.start,
+                    style: Toon.text(16, color: Toon.on(account.sound ? Toon.yellow : Toon.card)),
+                  ),
+                ),
+                Text(
+                  account.sound ? 'On' : 'Off',
+                  style: Toon.text(
+                    16,
+                    weight: FontWeight.w700,
+                    color: Toon.on(account.sound ? Toon.yellow : Toon.card),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (account.sound)
+            Row(
+              children: [
+                const Icon(Icons.volume_down_rounded),
+                Expanded(
+                  child: Slider(
+                    key: const Key('volume'),
+                    value: account.volume,
+                    activeColor: Toon.purple,
+                    onChanged: (v) => account.volume = v,
+                    onChangeEnd: (_) => Sound.play(Sfx.chips),
+                  ),
+                ),
+                const Icon(Icons.volume_up_rounded),
+              ],
+            ),
           const SizedBox(height: 16),
           Text("Hold'em", style: Toon.text(18, weight: FontWeight.w700)),
           const SizedBox(height: 8),

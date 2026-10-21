@@ -12,6 +12,7 @@ import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/four_in_a_row/four_in_a_row.dart';
 import '../../../core/online/party.dart';
+import '../../../core/sound/sound.dart';
 import 'online_row.dart';
 import 'row_controller.dart';
 
@@ -144,6 +145,7 @@ class _RowScreenState extends State<RowScreen> {
             : Outcome.loss,
       );
       HapticFeedback.heavyImpact();
+      if (!_c.draw) Sound.later(_c.youWon ? Sfx.winBig : Sfx.loseBig, 500);
       Future<void>.delayed(Duration(milliseconds: (1600 * widget.pace).round()), () {
         if (mounted) setState(() => _showOver = true);
       });
@@ -537,9 +539,31 @@ class _Board extends StatelessWidget {
         }
         return Positioned(left: at.dx - d / 2, top: y - d / 2, child: child!);
       },
-      child: disc,
+      child: _DropSound(ms: (ms * land).round(), child: disc),
     );
   }
+}
+
+/// The clack when the newest disc lands.
+class _DropSound extends StatefulWidget {
+  const _DropSound({required this.ms, required this.child});
+
+  final int ms;
+  final Widget child;
+
+  @override
+  State<_DropSound> createState() => _DropSoundState();
+}
+
+class _DropSoundState extends State<_DropSound> {
+  @override
+  void initState() {
+    super.initState();
+    Sound.later(Sfx.drop, widget.ms);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// Behind the discs: the board's shadow and the dark inside of the holes.

@@ -9,6 +9,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/go_fish/fish_bot.dart';
 import 'package:duel_engine/go_fish/go_fish.dart';
 import '../../../core/online/online_link.dart';
+import '../../../core/sound/sound.dart';
 
 enum FishPhase { dealing, playing, over }
 
@@ -105,6 +106,7 @@ class FishController extends ChangeNotifier {
       round++;
       phase = FishPhase.dealing;
       _seenEvents = game.events.length;
+      if (game.events.isEmpty) Sound.deal(8);
       _after(1400, _step);
       return;
     }
@@ -121,6 +123,7 @@ class FishController extends ChangeNotifier {
     round++;
     phase = FishPhase.dealing;
     _seenEvents = game.events.length;
+    Sound.deal(8);
     _after(1400, _step);
   }
 
@@ -148,6 +151,7 @@ class FishController extends ChangeNotifier {
 
   void _step() {
     if (game.isOver) {
+      if (phase != FishPhase.over) Sound.play(game.winners!.contains(0) ? Sfx.winBig : Sfx.loseBig);
       phase = FishPhase.over;
       _notify();
       return;
@@ -248,12 +252,15 @@ class FishController extends ChangeNotifier {
     for (final e in game.events.skip(_seenEvents)) {
       switch (e) {
         case Asked(:final player, :final target, :final cards) when cards.isNotEmpty:
+          Sound.play(Sfx.place);
           flights.add(Flight(_flightId++, from: target, to: player, cards: cards, faceUp: true));
         case Fished(:final player, :final card, :final lucky):
           flights.add(Flight(_flightId++, from: -1, to: player, cards: [card], faceUp: lucky || player == 0));
+          Sound.play(Sfx.deal);
           if (lucky) _say(player, 'Got one: a ${rankName(card.rank)}! Go again.');
         case Booked():
           lastBook = e;
+          Sound.later(Sfx.book, 300);
         case Asked() || SatOut() || GameEnded():
           break;
       }

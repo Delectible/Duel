@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:duel_engine/difficulty.dart';
 import '../../core/session/play_setup.dart';
+import '../../core/sound/sound.dart';
 import '../../core/theme/toon.dart';
 import '../party/party_screen.dart';
 
@@ -72,7 +73,10 @@ class _ModeSwitch extends StatelessWidget {
         button: true,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => setup.mode = mode,
+          onTap: () {
+            Sound.play(Sfx.tap, gain: 0.6);
+            setup.mode = mode;
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),

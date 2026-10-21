@@ -15,6 +15,7 @@ import 'package:duel_engine/poker/sit_and_go.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/online/party.dart';
 import 'table_talk.dart';
+import '../../../core/sound/sound.dart';
 
 part 'online_poker.dart';
 
@@ -241,6 +242,7 @@ class PokerController extends ChangeNotifier {
     final bot = _bots[seat];
     if (bot == null) {
       hurrying = false; // your move: the bots wait for you again
+      Sound.play(Sfx.yourTurn, gain: 0.7);
       return;
     }
     final decision = bot.think(h, reads: reads, seats: game.handSeats);
@@ -261,7 +263,10 @@ class PokerController extends ChangeNotifier {
   /// Plays [m] in [h], the table noting it down first.
   void _play(PokerHand h, Move m) {
     reads.observe(h, game.handSeats, m);
+    final before = h.pot;
     h.apply(m);
+    // Chips going in (a bet, call or raise).
+    if (h.pot > before) Sound.play(Sfx.chips, gain: m.kind == MoveKind.raise ? 1 : 0.7);
   }
 
   /// You made the last bet or raise this street.
@@ -364,6 +369,7 @@ class PokerController extends ChangeNotifier {
   void shuffleDeck() {
     if (phase != TablePhase.shuffle) return;
     shuffles++;
+    Sound.play(Sfx.shuffle);
     _notify();
   }
 
@@ -390,6 +396,10 @@ class PokerController extends ChangeNotifier {
     _shownLevel = game.level;
     phase = TablePhase.dealing;
     _notify();
+    // A card sound for each card as it goes round.
+    for (var k = 0; k < hand!.players.length * 2; k++) {
+      Sound.later(Sfx.deal, ((500 + k * dealGap) * pace).round(), gain: 0.8);
+    }
     // Wait for the cards to go round (two each) before anyone acts.
     _after(500 + hand!.players.length * 2 * dealGap + 350, _step);
   }
@@ -406,15 +416,19 @@ class PokerController extends ChangeNotifier {
       _parked = null;
       _beforeAdvance(h);
       if (h.isAllInRunout) {
+        // Everyone's cards come up: the tension sting, once.
+        if (odds.isEmpty) Sound.play(Sfx.tension);
         for (var i = 0; i < h.players.length; i++) {
           if (!h.players[i].folded) revealed.add(game.handSeats[i]);
         }
         _updateOdds(h);
       }
       phase = TablePhase.collecting;
+      Sound.play(Sfx.collect, gain: 0.8);
       _notify();
       _after(450, () {
         h.nextStreet();
+        if (h.result == null) Sound.play(Sfx.place);
         if (h.result != null) {
           _payout();
           return;
@@ -461,6 +475,7 @@ class PokerController extends ChangeNotifier {
     phase = TablePhase.payout;
     reads.endHand(h, game.handSeats, number: handNumber);
     _celebrate(h, r);
+    _payoutSound(h, r);
     odds = const {};
     if (!r.showdown) {
       // Everyone else folded: nothing to read, move on.
@@ -484,6 +499,20 @@ class PokerController extends ChangeNotifier {
       });
     }
     _notify();
+  }
+
+  /// Chips to the winner, and how it went for you: a small or medium win
+  /// (a big pot), a small or medium loss at a showdown.
+  void _payoutSound(PokerHand h, HandResult r) {
+    Sound.play(Sfx.pot);
+    final i = handIndex(0);
+    if (i == null) return;
+    final big = bigWin != null;
+    if ((r.winnings[i] ?? 0) > 0) {
+      Sound.later(big ? Sfx.winMedium : Sfx.winSmall, 250);
+    } else if (r.showdown && r.shown.containsKey(i)) {
+      Sound.later(big ? Sfx.loseMedium : Sfx.loseSmall, 250);
+    }
   }
 
   /// A big pot gets a splash, and the bots have their say.
@@ -543,6 +572,8 @@ class PokerController extends ChangeNotifier {
     }
     _handEnded();
     if (game.isOver || game.players[0].stack == 0) {
+      // The tournament: the big win, or the big loss.
+      Sound.play(yourPlace == 1 ? Sfx.winBig : Sfx.loseBig);
       phase = TablePhase.finished;
       _notify();
       return;

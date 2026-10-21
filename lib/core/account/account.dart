@@ -100,6 +100,8 @@ class Account extends ChangeNotifier {
   CurrencyChoice _currency = CurrencyChoice.pips;
   ThemeChoice _theme = ThemeChoice.system;
   bool _pokerOdds = true;
+  bool _sound = true;
+  double _volume = 0.8;
   final Map<String, GameStats> _stats = {};
   String? _partyId;
 
@@ -111,6 +113,12 @@ class Account extends ChangeNotifier {
 
   /// Hold'em: pot odds and outs under your buttons.
   bool get pokerOdds => _pokerOdds;
+
+  /// Sound effects on, and how loud (0..1).
+  bool get sound => _sound;
+  double get volume => _volume;
+  set sound(bool v) => _change(() => _sound = v);
+  set volume(double v) => _change(() => _volume = v.clamp(0.0, 1.0));
 
   /// The online party you're in, so reopening the app takes you back.
   String? get partyId => _partyId;
@@ -233,6 +241,8 @@ class Account extends ChangeNotifier {
       _theme = ThemeChoice.values.asNameMap()[j['theme']] ?? ThemeChoice.system;
       _partyId = j['party'] as String?;
       _pokerOdds = j['odds'] as bool? ?? true;
+      _sound = j['sound'] as bool? ?? true;
+      _volume = (j['volume'] as num?)?.toDouble() ?? 0.8;
       final left = j['left'] as Map<String, dynamic>? ?? {};
       left.forEach((k, v) {
         if (v is Map && v['g'] is String && v['s'] is int) {
@@ -256,6 +266,8 @@ class Account extends ChangeNotifier {
       'stats': {for (final e in _stats.entries) e.key: e.value.toJson()},
       'party': ?_partyId,
       if (!_pokerOdds) 'odds': false,
+      if (!_sound) 'sound': false,
+      'volume': _volume,
       'left': {
         for (final e in _leftGames.entries) e.key: {'g': e.value.game, 's': e.value.stake},
       },

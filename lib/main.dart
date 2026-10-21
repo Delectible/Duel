@@ -15,6 +15,7 @@ import 'core/theme/rotation_fade.dart';
 import 'core/theme/toon.dart';
 import 'features/home/home_screen.dart';
 import 'core/theme/system_bars.dart';
+import 'core/sound/sound.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,8 @@ Future<void> main() async {
   // Markers in the phone's log (adb logcat) for checking a launch.
   WidgetsBinding.instance.addPostFrameCallback((_) => debugPrint('Duel: first frame'));
   unawaited(_goOnline(account, setup));
+  // Never waited for either: no audio just means no sounds.
+  unawaited(Sound.start());
 }
 
 /// The phone's saved account; if that can't be read the app still opens
@@ -69,6 +72,8 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.account.addListener(_applyTheme);
+    widget.account.addListener(_applySound);
+    _applySound();
     widget.setup.addListener(_partyChanged);
     _party = widget.party;
     Toon.dark = _wantDark();
@@ -87,8 +92,14 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
   void dispose() {
     widget.setup.removeListener(_partyChanged);
     widget.account.removeListener(_applyTheme);
+    widget.account.removeListener(_applySound);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _applySound() {
+    Sound.on = widget.account.sound;
+    Sound.volume = widget.account.volume;
   }
 
   bool _wantDark() => switch (widget.account.theme) {

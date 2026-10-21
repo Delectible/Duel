@@ -8,6 +8,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/avatars/faces.dart';
+import '../../../core/sound/sound.dart';
 
 enum BlitzPhase {
   /// Castles going up.
@@ -157,6 +158,7 @@ class BlitzController extends ChangeNotifier {
     fighting = false;
     round++;
     phase = BlitzPhase.dealing;
+    Sound.deal(8);
     _after(1300, _step);
   }
 
@@ -187,6 +189,7 @@ class BlitzController extends ChangeNotifier {
       }
     }
     if (game.isOver) {
+      if (phase != BlitzPhase.over) Sound.play(game.winner == 0 ? Sfx.winBig : Sfx.loseBig);
       phase = BlitzPhase.over;
       _notify();
       return;
@@ -220,8 +223,31 @@ class BlitzController extends ChangeNotifier {
     );
     lastWars = fresh.whereType<War>().toList();
     fighting = lastWars.isNotEmpty;
+    _sounds(fresh);
     actionId++;
     _notify();
+  }
+
+  /// A move's sounds: the card, a hit, the war's clash, someone knocked out.
+  void _sounds(List<BlitzEvent> fresh) {
+    if (fresh.any((e) => e is Blitzed)) {
+      Sound.play(Sfx.clash);
+    } else if (fresh.any((e) => e is Struck)) {
+      Sound.play(Sfx.place);
+      Sound.later(Sfx.fall, 250, gain: 0.7);
+    } else if (fresh.any((e) => e is Scouted || e is Fortified || e is Paired || e is Discarded)) {
+      Sound.play(Sfx.place);
+    }
+    if (fresh.any((e) => e is Drew)) Sound.later(Sfx.deal, 300, gain: 0.6);
+    // Each war: the drum as it starts, the clash, then the losers fall
+    // (in step with the war scene).
+    for (final (i, w) in fresh.whereType<War>().indexed) {
+      final at = (2600 * i * pace).round();
+      Sound.later(Sfx.tension, at);
+      Sound.later(Sfx.clash, at + (470 * pace).round());
+      if (w.losers.isNotEmpty) Sound.later(Sfx.fall, at + (1300 * pace).round());
+    }
+    if (!game.isOver && fresh.any((e) => e is Out && e.player != 0)) Sound.later(Sfx.winSmall, 400);
   }
 
   // --- You -----------------------------------------------------------------

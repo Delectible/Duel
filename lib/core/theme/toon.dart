@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../sound/sound.dart';
 
 /// Duel's cartoon look: flat colours, thick dark outlines, chunky drop
 /// shadows, rounded everything, Fredoka type.
@@ -172,6 +173,7 @@ class _ToonButtonState extends State<ToonButton> {
     setState(() => _down = down);
     if (down && widget.repeat) {
       HapticFeedback.selectionClick();
+      Sound.play(Sfx.tap, gain: 0.6);
       widget.onPressed!();
       var delay = 380;
       void tick() {
@@ -216,6 +218,7 @@ class _ToonButtonState extends State<ToonButton> {
         _press(false);
         if (wasDown && !widget.repeat) {
           HapticFeedback.lightImpact();
+          Sound.play(Sfx.tap, gain: 0.6);
           widget.onPressed?.call();
         }
       },

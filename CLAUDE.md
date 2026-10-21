@@ -110,7 +110,7 @@ together, GamePigeon-easy. Let it guide design and development choices.
 ## Stack
 
 Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. Packages: `shared_preferences`
-(saves the account) and Firebase (`firebase_core`, `firebase_auth`, `cloud_firestore`), all SPM on iOS.
+(saves the account), `audioplayers` (sounds) and Firebase (`firebase_core`, `firebase_auth`, `cloud_firestore`), all SPM on iOS.
 State is ChangeNotifier + InheritedNotifier. Font: Fredoka (assets/fonts, OFL), static
 weights cut from the variable font.
 
@@ -222,6 +222,12 @@ weights cut from the variable font.
   `test/sweep_test.dart` renders every screen light / dark, both ways.
 - `lib/features/profile/`, `lib/features/settings/`: the two buttons atop
   home.
+- `lib/core/sound/sound.dart`: `Sound.play(Sfx.x)` / `later` / `deal(n)`
+  (audioplayers, SPM on iOS; mp3s in `assets/sounds/`, Kenney CC0). Silent
+  until `Sound.start()` in main(), so tests stay quiet; `Account.sound` /
+  `volume` in Settings. `ToonButton` ticks by itself; games call it from
+  their controllers (wins / losses: small = a hand, medium = a big pot,
+  big = the game).
 - `lib/core/app_info.dart`: version, `latest` (Play's What's new),
   `revisions` (About).
 - `lib/core/session/`: `PlaySetup` (the connection bar: Bots / Friend,

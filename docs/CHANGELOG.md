@@ -449,6 +449,21 @@ Ships as app version **0.4.1**.
   have, the most votes wins, a coin toss on a tie, at the smallest stake
   voted for it) or **first come** (anyone can start a game).
 - [ ] **18.4 Blitz online** (later).
+
+### 19. Sound effects (requested 2026-10-21)
+
+- [x] **19.1 Sounds**, free CC0 sounds from Kenney.nl (`assets/sounds`,
+  `core/sound/sound.dart`, audioplayers): a soft tick on buttons and game
+  tiles, shuffle and deal, cards played, chips bet and pots pushed, your
+  turn, Four in a Row's disc landing, a Go Fish book. → 0.9.1 · 2026-10-21
+- [x] **19.2 Wins and losses by size**: Hold'em a small pot / a big pot
+  (the big-win splash: 30% of the chips in play
+  and at least 20 big blinds) / the tournament; other games a
+  hand, trick or knockout / the whole game. → 0.9.1 · 2026-10-21
+- [x] **19.3 Tense moments**: a drum when an all-in runs out, Blitz wars
+  get the drum, a clash and the fall. → 0.9.1 · 2026-10-21
+- [x] **19.4 Settings**: Sound on / off and volume (on by default); mixes
+  with music and follows the iPhone's silent switch. → 0.9.1 · 2026-10-21
   → 0.9.0 · 2026-10-21
 
 ### 12. Fixes

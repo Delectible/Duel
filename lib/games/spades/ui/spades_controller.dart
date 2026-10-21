@@ -9,6 +9,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/spades/spades.dart';
 import 'package:duel_engine/spades/spades_bot.dart';
 import '../../../core/online/online_link.dart';
+import '../../../core/sound/sound.dart';
 
 enum SpadesStage {
   /// Cards going out (four players).
@@ -161,6 +162,11 @@ class SpadesController extends ChangeNotifier {
     sweeping = false;
     justTook = null;
     stage = teams ? SpadesStage.dealing : SpadesStage.drawing;
+    if (teams) {
+      Sound.deal(10);
+    } else {
+      Sound.play(Sfx.shuffle);
+    }
     _notify();
     _after(teams ? 1600 : 500, _step);
   }
@@ -191,9 +197,11 @@ class SpadesController extends ChangeNotifier {
     final g = game;
     switch (g.phase) {
       case SpadesPhase.gameOver:
+        if (stage != SpadesStage.over) Sound.play(g.winner == g.team(0) ? Sfx.winBig : Sfx.loseBig);
         stage = SpadesStage.over;
         _notify();
       case SpadesPhase.handOver:
+        if (stage != SpadesStage.handOver) _handSound();
         stage = SpadesStage.handOver;
         _notify();
       case SpadesPhase.draw:
@@ -230,10 +238,21 @@ class SpadesController extends ChangeNotifier {
     }
   }
 
+  /// The hand's scores: a small win if your side did best.
+  void _handSound() {
+    final scored = game.events.whereType<HandScored>().lastOrNull;
+    if (scored == null) return;
+    final mine = scored.results.firstWhere((r) => r.team == game.team(0)).total;
+    final best = scored.results.every((r) => r.total <= mine);
+    Sound.play(best ? Sfx.winSmall : Sfx.loseSmall, gain: 0.8);
+  }
+
   void _played(int p, PlayingCard card) {
     game.play(p, card);
+    Sound.play(Sfx.place);
     final last = game.events.lastWhere((e) => e is Played || e is TrickWon);
     if (last is TrickWon) {
+      Sound.later(Sfx.collect, (1100 * pace).round(), gain: 0.6);
       // Leave the trick up a moment, then sweep it to the winner.
       lastTrick = last;
       stage = SpadesStage.trickDone;
