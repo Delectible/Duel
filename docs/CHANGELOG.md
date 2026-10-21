@@ -429,6 +429,28 @@ Ships as app version **0.4.1**.
   versions come back as the nearest new ones, and older apps still see a
   sensible face. → 0.8.6 · 2026-10-20
 
+### 18. More games online; how a party picks (requested 2026-10-21)
+
+- [x] **18.1 Crazy Eights, Go Fish and Spades online** with the party and
+  its bots. The referee keeps a seeded deal and the log of moves
+  (`server/lib/src/card_games.dart`, `SeededCardGame`); each phone
+  rebuilds the same table, turned so you sit at the bottom, and plays the
+  others' moves through it (`core/online/online_link.dart`: `OnlineLink`,
+  `OnlineGameFrame`). Same 45 s turn clock, leaving / bot or end /
+  rejoin, stakes and rematch as the other online games. Trade-off for
+  now: phones get the shuffle seed, so a hacked app could see other
+  hands (the app never shows them); Hold'em keeps its private deck.
+- [x] **18.2 Spades partners**: four players each pick a partner in turn
+  (secretly, or no preference); two who pick each other always play
+  together, the rest is the best fit, a coin toss between equals. Then the
+  deal. Spades online is for 2 or 4.
+- [x] **18.3 Who picks the games**, chosen when the party is made: **the
+  host**, **a vote** (everyone votes from the game's preview; when all
+  have, the most votes wins, a coin toss on a tie, at the smallest stake
+  voted for it) or **first come** (anyone can start a game).
+- [ ] **18.4 Blitz online** (later).
+  → 0.9.0 · 2026-10-21
+
 ### 12. Fixes
 
 - [x] **12.9 System buttons hide on its side** (requested 2026-10-21, on a

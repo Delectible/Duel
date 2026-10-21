@@ -141,6 +141,14 @@ weights cut from the variable font.
   stake they lost comes back (`Account.leftGame` / `takeBack`). One live
   game per party; the host can end it (`endMatch`). The watcher only opens
   a game for `party.inGame`.
+- Card games online (Crazy Eights, Go Fish, Spades): server
+  `card_games.dart` (`SeededCardGame`: seed + dealer + `order` + move log
+  `{p, kind, …}`, replayed through the engine; Spades: `wants` → `pairUp`
+  → `order`, next hand dealt by itself). App: `core/online/online_link.dart`
+  (`OnlineLink`: rotation `local`/`pos`, `next()` / `send()`, clock claim;
+  `OnlineGameFrame`: stake, pause card, ended card, fresh table per match)
+  and each controller's `link` (plays the next logged move where a bot
+  would decide). Party `mode` (`host` / `vote` / `first`), `Referee.vote`.
 - Online Four in a Row: `RowScreen.online` with `OnlineRowController`
   (implements `RowTable`, like the bot's `RowController`): you're always
   red (seats remapped), your drop shows at once, turn ring counted from

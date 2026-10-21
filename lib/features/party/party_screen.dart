@@ -24,6 +24,9 @@ class PartyScreen extends StatefulWidget {
 class _PartyScreenState extends State<PartyScreen> {
   final _code = TextEditingController();
 
+  /// How the new party will pick its games.
+  var _mode = 'host';
+
   @override
   void dispose() {
     _code.dispose();
@@ -88,11 +91,58 @@ class _PartyScreenState extends State<PartyScreen> {
       style: Toon.text(16, weight: FontWeight.w500),
     ),
     const SizedBox(height: 16),
+    Text('Who picks the games?', style: Toon.text(18, weight: FontWeight.w700)),
+    const SizedBox(height: 8),
+    for (final (mode, title, about, icon) in const [
+      ('host', 'The host', 'You pick; it starts on every phone.', Icons.star_rounded),
+      (
+        'vote',
+        'A vote',
+        'Everyone picks; most votes wins (a coin toss on a tie).',
+        Icons.how_to_vote_rounded,
+      ),
+      ('first', 'First come', 'Whoever hits Play first picks.', Icons.bolt_rounded),
+    ])
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: ToonButton(
+          key: Key('mode $mode'),
+          color: _mode == mode ? Toon.yellow : Toon.card,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          onPressed: () => setState(() => _mode = mode),
+          child: Row(
+            children: [
+              Icon(icon, color: Toon.on(_mode == mode ? Toon.yellow : Toon.card)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Toon.text(16, color: Toon.on(_mode == mode ? Toon.yellow : Toon.card)),
+                    ),
+                    Text(
+                      about,
+                      style: Toon.text(
+                        13,
+                        weight: FontWeight.w500,
+                        color: Toon.on(_mode == mode ? Toon.yellow : Toon.card),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    const SizedBox(height: 8),
     ToonButton(
       key: const Key('create party'),
       color: Toon.purple,
       padding: const EdgeInsets.all(16),
-      onPressed: party.busy ? null : () async => _say(await party.create()),
+      onPressed: party.busy ? null : () async => _say(await party.create(mode: _mode)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -205,9 +255,17 @@ class _PartyScreenState extends State<PartyScreen> {
       Text(
         alone
             ? 'Send your friend the code. When they type it in on their phone, they pop up here.'
-            : party.isHost
-            ? 'Everyone is here. Pick a game on the home screen and it starts on every phone.'
-            : '${party.hostName} picks the game. It starts here by itself.',
+            : switch (party.mode) {
+                'vote' =>
+                  'Everyone is here. Each of you votes for a game on the home screen; '
+                      'when everyone has voted, the winner starts (a coin toss on a tie).'
+                      '${party.votes.isEmpty ? '' : ' ${party.votes.length} of ${party.members.length} voted.'}',
+                'first' => 'Everyone is here. Whoever picks a game first on the home screen starts it.',
+                _ =>
+                  party.isHost
+                      ? 'Everyone is here. Pick a game on the home screen and it starts on every phone.'
+                      : '${party.hostName} picks the game. It starts here by itself.',
+              },
         style: Toon.text(16, weight: FontWeight.w500),
       ),
       const SizedBox(height: 12),

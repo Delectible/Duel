@@ -52,7 +52,8 @@ void main() {
     }
     expect(
       await run(
-        () => parties.first.setBots([const PartyBot(name: 'Pip', look: Look.cap, difficulty: Difficulty.easy)]),
+        () =>
+            parties.first.setBots([const PartyBot(name: 'Pip', look: Look.cap, difficulty: Difficulty.easy)]),
       ),
       isNull,
     );

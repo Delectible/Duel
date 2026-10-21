@@ -8,6 +8,7 @@ import 'package:duel_engine/difficulty.dart';
 import '../../../core/avatars/faces.dart';
 import 'package:duel_engine/crazy_eights/crazy_eights.dart';
 import 'package:duel_engine/crazy_eights/eights_bot.dart';
+import '../../../core/online/online_link.dart';
 
 enum EightsPhase {
   /// Cards going out.
@@ -32,10 +33,14 @@ class EightsController extends ChangeNotifier {
     Random? rng,
     this.pace = 1,
     this.you = const Persona.you(),
+    this.link,
   }) : _rng = rng ?? Random(),
        assert(bots >= 1 && bots <= 3) {
     _start(bots);
   }
+
+  /// Online: the party's game (the others' moves come from the server).
+  final OnlineLink? link;
 
   final Difficulty difficulty;
 
@@ -71,6 +76,24 @@ class EightsController extends ChangeNotifier {
   List<PlayingCard> get yourPlayable => yourTurn ? game.playable(0) : const [];
 
   void _start(int bots) {
+    final link = this.link;
+    if (link != null) {
+      personas = link.personas(you);
+      game = CrazyEights(players: link.n, rng: link.rng, dealer: link.localDealer);
+      _bots = List.filled(link.n, null);
+      draws.clear();
+      round++;
+      phase = EightsPhase.dealing;
+      // Coming back to it: everything so far, at once.
+      final caughtUp = link.cursor < link.moves.length;
+      for (var m = link.next(); m != null; m = link.next()) {
+        link.cursor++;
+        _apply(m);
+      }
+      draws.clear();
+      _after(caughtUp ? 300 : 1400, _step);
+      return;
+    }
     personas = [you, ...Persona.bots(bots, _rng)];
     game = CrazyEights(players: bots + 1, rng: _rng);
     _bots = [for (var p = 0; p <= bots; p++) p == 0 ? null : EightsBot(difficulty: difficulty, rng: _rng)];
@@ -107,6 +130,21 @@ class EightsController extends ChangeNotifier {
     phase = EightsPhase.playing;
     _notify();
     final p = game.turn;
+    final link = this.link;
+    if (link != null) {
+      // The server's next move (yours too, if it played for you).
+      final m = link.next();
+      if (m == null) {
+        if (p != 0) link.waiting = _step;
+        return;
+      }
+      _after(p == 0 ? 0 : 700 + _rng.nextInt(500), () {
+        link.cursor++;
+        _apply(m);
+        _afterMove();
+      });
+      return;
+    }
     final bot = _bots[p];
     if (bot == null) return; // your turn
     _after(700 + _rng.nextInt(600), () {
@@ -121,6 +159,22 @@ class EightsController extends ChangeNotifier {
       }
       _afterMove();
     });
+  }
+
+  /// A move from the server's log.
+  void _apply(Map<String, Object?> m) {
+    final p = m['p']! as int;
+    switch (m['kind']) {
+      case 'play':
+        final card = PlayingCard.parse('${m['card']}');
+        final suit = m['suit'] is int ? Suit.values[m['suit']! as int] : null;
+        game.play(p, card, chose: card.rank == 8 ? (suit ?? card.suit) : null);
+      case 'draw':
+        game.draw(p);
+        draws.add((game.events.length, p));
+      case 'pass':
+        game.pass(p);
+    }
   }
 
   void _afterMove() {
@@ -139,6 +193,7 @@ class EightsController extends ChangeNotifier {
       return;
     }
     game.play(0, card);
+    link?.send({'kind': 'play', 'card': '$card'});
     _afterMove();
   }
 
@@ -148,6 +203,7 @@ class EightsController extends ChangeNotifier {
     pendingEight = null;
     phase = EightsPhase.playing;
     game.play(0, eight, chose: suit);
+    link?.send({'kind': 'play', 'card': '$eight', 'suit': suit.index});
     _afterMove();
   }
 
@@ -161,6 +217,7 @@ class EightsController extends ChangeNotifier {
   void draw() {
     if (!yourTurn || !game.canDraw) return;
     game.draw(0);
+    link?.send({'kind': 'draw'});
     draws.add((game.events.length, 0));
     if (game.turn == 0) {
       _notify(); // it fits: play it or keep it
@@ -173,6 +230,7 @@ class EightsController extends ChangeNotifier {
   void pass() {
     if (!yourTurn || !game.canPass) return;
     game.pass(0);
+    link?.send({'kind': 'pass'});
     _afterMove();
   }
 

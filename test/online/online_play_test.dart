@@ -61,6 +61,12 @@ void main() {
         await wait();
         await shot(tester, 'online_start_$phone');
 
+        await tester.scrollUntilVisible(
+          find.byKey(const Key('create party')),
+          150,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pump();
         await tester.tap(find.byKey(const Key('create party')));
         await wait();
         final code = party.code!;

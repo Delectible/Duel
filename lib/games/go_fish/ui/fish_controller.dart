@@ -8,6 +8,7 @@ import 'package:duel_engine/cards.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/go_fish/fish_bot.dart';
 import 'package:duel_engine/go_fish/go_fish.dart';
+import '../../../core/online/online_link.dart';
 
 enum FishPhase { dealing, playing, over }
 
@@ -32,6 +33,7 @@ class FishController extends ChangeNotifier {
     Random? rng,
     this.pace = 1,
     this.you = const Persona.you(),
+    this.link,
   }) : _rng = rng ?? Random(),
        assert(bots >= 1 && bots <= 5) {
     _start(bots);
@@ -76,7 +78,36 @@ class FishController extends ChangeNotifier {
 
   bool get youMustFish => yourTurn && game.mustFish;
 
+  /// Online: the party's game (the others' moves come from the server).
+  final OnlineLink? link;
+
   void _start(int bots) {
+    final link = this.link;
+    if (link != null) {
+      personas = link.personas(you);
+      game = GoFish(players: link.n, rng: link.rng, dealer: link.localDealer);
+      _bots = List.filled(link.n, null);
+      // Coming back to it: everything so far, at once.
+      for (var m = link.next(); m != null; m = link.next()) {
+        link.cursor++;
+        final p = m['p']! as int;
+        if (m['kind'] == 'ask') {
+          game.ask(p, link.local(m['target']! as int), m['rank']! as int);
+        } else {
+          game.fish(p);
+        }
+      }
+      selected = null;
+      asking = null;
+      speech.clear();
+      flights.clear();
+      lastBook = null;
+      round++;
+      phase = FishPhase.dealing;
+      _seenEvents = game.events.length;
+      _after(1400, _step);
+      return;
+    }
     personas = [you, ...Persona.bots(bots, _rng)];
     game = GoFish(players: bots + 1, rng: _rng);
     _bots = [
@@ -124,6 +155,24 @@ class FishController extends ChangeNotifier {
     phase = FishPhase.playing;
     _notify();
     final p = game.turn;
+    final link = this.link;
+    if (link != null) {
+      // The server's next move (yours too, if it played for you).
+      final m = link.next();
+      if (m == null) {
+        if (p != 0) link.waiting = _step;
+        return;
+      }
+      _after(p == 0 ? 0 : 800, () {
+        link.cursor++;
+        if (m['kind'] == 'ask') {
+          _ask(p, link.local(m['target']! as int), m['rank']! as int);
+        } else {
+          _fish(p);
+        }
+      });
+      return;
+    }
     final bot = _bots[p];
     if (bot == null) return; // you
     _after(800 + _rng.nextInt(500), () {
@@ -141,6 +190,7 @@ class FishController extends ChangeNotifier {
     if (!yourTurn || game.mustFish || !game.askable(0).contains(rank)) return;
     final targets = game.targets(0);
     if (targets.length == 1) {
+      link?.send({'kind': 'ask', 'target': link!.pos(targets.single), 'rank': rank});
       _ask(0, targets.single, rank);
       return;
     }
@@ -153,12 +203,14 @@ class FishController extends ChangeNotifier {
     final r = selected;
     if (!yourTurn || r == null || !game.targets(0).contains(target)) return;
     selected = null;
+    link?.send({'kind': 'ask', 'target': link!.pos(target), 'rank': r});
     _ask(0, target, r);
   }
 
   /// Tap the pond after a miss.
   void fish() {
     if (!youMustFish) return;
+    link?.send({'kind': 'fish'});
     _fish(0);
   }
 

@@ -8,6 +8,7 @@ import 'package:duel_engine/cards.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/spades/spades.dart';
 import 'package:duel_engine/spades/spades_bot.dart';
+import '../../../core/online/online_link.dart';
 
 enum SpadesStage {
   /// Cards going out (four players).
@@ -37,11 +38,73 @@ class SpadesController extends ChangeNotifier {
     Random? rng,
     this.pace = 1,
     this.you = const Persona.you(),
+    this.link,
   }) : _rng = rng ?? Random(),
        assert(bots == 1 || bots == 3) {
+    final link = this.link;
+    if (link != null) {
+      personas = link.personas(you);
+      _bots = List.filled(link.n, null);
+      _startOnline(link);
+      return;
+    }
     personas = [you, ...Persona.bots(bots, _rng)];
     _bots = [for (var p = 0; p <= bots; p++) p == 0 ? null : SpadesBot(difficulty: difficulty, rng: _rng)];
     _start();
+  }
+
+  /// Online: the party's game (the others' moves come from the server).
+  final OnlineLink? link;
+
+  /// Online: partners came down to a coin toss.
+  bool get tossed => link?.state['tossed'] == true;
+
+  void _startOnline(OnlineLink link) {
+    final t = link.options['target'];
+    game = Spades(players: link.n, target: t is int ? t : 250, rng: link.rng, dealer: link.localDealer);
+    // Coming back to it: everything so far, at once (the server deals the
+    // next hand as soon as one ends).
+    for (var m = link.next(); m != null; m = link.next()) {
+      if (game.phase == SpadesPhase.handOver) game.nextHand();
+      link.cursor++;
+      _apply(m);
+    }
+    _newHand();
+  }
+
+  /// A move from the server's log.
+  void _apply(Map<String, Object?> m) {
+    final p = m['p']! as int;
+    switch (m['kind']) {
+      case 'draw':
+        game.draw(p, keep: m['keep'] == true);
+      case 'bid':
+        game.bid(p, m['tricks']! as int);
+      case 'play':
+        game.play(p, PlayingCard.parse('${m['card']}'));
+    }
+  }
+
+  /// Online: plays the server's next move for whoever is to go (you too,
+  /// if it played for you). True if it's handling the turn.
+  bool _online(int p) {
+    final link = this.link;
+    if (link == null) return false;
+    final m = link.next();
+    if (m == null) {
+      if (p != 0) link.waiting = _step;
+      return true;
+    }
+    _after(p == 0 ? 0 : 700, () {
+      link.cursor++;
+      if (m['kind'] == 'play') {
+        _played(p, PlayingCard.parse('${m['card']}'));
+      } else {
+        _apply(m);
+        _step();
+      }
+    });
+    return true;
   }
 
   final Difficulty difficulty;
@@ -137,6 +200,7 @@ class SpadesController extends ChangeNotifier {
         stage = SpadesStage.drawing;
         _notify();
         final p = g.turn;
+        if (_online(p)) return;
         final bot = _bots[p];
         if (bot == null) return;
         _after(380, () {
@@ -148,6 +212,7 @@ class SpadesController extends ChangeNotifier {
         if (g.turn == 0) yourBid = suggestedBid;
         _notify();
         final p = g.turn;
+        if (_online(p)) return;
         final bot = _bots[p];
         if (bot == null) return;
         _after(800 + _rng.nextInt(500), () {
@@ -158,6 +223,7 @@ class SpadesController extends ChangeNotifier {
         stage = SpadesStage.playing;
         _notify();
         final p = g.turn;
+        if (_online(p)) return;
         final bot = _bots[p];
         if (bot == null) return;
         _after(650 + _rng.nextInt(450), () => _played(p, bot.play(g, p)));
@@ -193,6 +259,7 @@ class SpadesController extends ChangeNotifier {
   void draw({required bool keep}) {
     if (!yourDraw) return;
     justTook = game.draw(0, keep: keep);
+    link?.send({'kind': 'draw', 'keep': keep});
     _step();
   }
 
@@ -205,11 +272,13 @@ class SpadesController extends ChangeNotifier {
   void bid() {
     if (!yourBidTurn) return;
     game.bid(0, yourBid);
+    link?.send({'kind': 'bid', 'tricks': yourBid});
     _step();
   }
 
   void play(PlayingCard card) {
     if (!yourPlayable.contains(card)) return;
+    link?.send({'kind': 'play', 'card': '$card'});
     _played(0, card);
   }
 

@@ -14,6 +14,7 @@ import '../../../core/avatars/faces.dart';
 import '../../../core/table/table_bits.dart';
 import 'package:duel_engine/crazy_eights/crazy_eights.dart';
 import 'eights_controller.dart';
+import '../../../core/online/online_link.dart';
 
 /// Stages of a Crazy Eights game for the "How to play" sheet.
 const eightsGuide = [
@@ -62,7 +63,16 @@ class EightsScreen extends StatefulWidget {
     this.pace = 1,
     this.seed,
     this.stake,
-  });
+  }) : link = null;
+
+  /// With your party, online (inside an [OnlineGameFrame]).
+  EightsScreen.online({super.key, required OnlineLink this.link, required StakeTicket this.stake})
+    : bots = link.n - 1,
+      difficulty = Difficulty.normal,
+      pace = 1,
+      seed = null;
+
+  final OnlineLink? link;
 
   final int bots;
   final Difficulty difficulty;
@@ -93,6 +103,7 @@ class _EightsScreenState extends State<EightsScreen> {
     pace: widget.pace,
     rng: widget.seed == null ? null : Random(widget.seed),
     you: _account.persona,
+    link: widget.link,
   )..addListener(_settle);
 
   /// Someone went out: you win only if it was you.
@@ -123,6 +134,8 @@ class _EightsScreenState extends State<EightsScreen> {
   }
 
   Future<void> _leave() async {
+    final link = widget.link;
+    if (link != null) return link.leave(context, _ticket, over: _c.phase == EightsPhase.over);
     if (_c.phase == EightsPhase.over || await confirmLeave(context, _ticket)) {
       if (mounted) Navigator.of(context).pop();
     }
@@ -144,8 +157,9 @@ class _EightsScreenState extends State<EightsScreen> {
                 GameLayout(
                   top: GameTopBar(
                     title: 'Crazy Eights',
-                    subtitle:
-                        'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
+                    subtitle: widget.link != null
+                        ? 'With your party${_c.yourTurn ? ' · ${widget.link!.secondsLeft}s' : ''}'
+                        : 'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
                     onLeave: _leave,
                     ticket: _ticket,
                     guide: eightsGuide,
@@ -160,8 +174,10 @@ class _EightsScreenState extends State<EightsScreen> {
                     child: _GameOver(
                       c: _c,
                       ticket: _ticket,
-                      onAgain: _playAgain,
-                      onLeave: () => Navigator.of(context).pop(),
+                      onAgain: widget.link == null ? _playAgain : widget.link!.rematch,
+                      againLabel: widget.link?.rematchLabel ?? 'Play again',
+                      leaveLabel: widget.link == null ? 'Games' : 'Back to party',
+                      onLeave: widget.link == null ? () => Navigator.of(context).pop() : _leave,
                     ),
                   ),
               ],
@@ -850,12 +866,21 @@ class _Actions extends StatelessWidget {
 }
 
 class _GameOver extends StatelessWidget {
-  const _GameOver({required this.c, required this.ticket, required this.onAgain, required this.onLeave});
+  const _GameOver({
+    required this.c,
+    required this.ticket,
+    required this.onAgain,
+    required this.onLeave,
+    this.againLabel = 'Play again',
+    this.leaveLabel = 'Games',
+  });
 
   final EightsController c;
   final StakeTicket ticket;
-  final VoidCallback onAgain;
+  final VoidCallback? onAgain;
   final VoidCallback onLeave;
+  final String againLabel;
+  final String leaveLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -905,7 +930,7 @@ class _GameOver extends StatelessWidget {
                               child: ToonButton(
                                 color: Toon.card,
                                 onPressed: onLeave,
-                                child: const Text('Games'),
+                                child: FittedBox(child: Text(leaveLabel)),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -914,7 +939,7 @@ class _GameOver extends StatelessWidget {
                                 key: const Key('again'),
                                 color: Toon.green,
                                 onPressed: onAgain,
-                                child: const Text('Play again'),
+                                child: FittedBox(child: Text(againLabel)),
                               ),
                             ),
                           ],

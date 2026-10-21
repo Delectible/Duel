@@ -38,7 +38,7 @@ class PokerGame extends OnlineGame {
   };
 
   @override
-  Doc start(int players, Random rng, {required int first, required Set<int> humans}) {
+  Doc start(int players, Random rng, {required int first, required Set<int> humans, Doc options = const {}}) {
     final seed = rng.nextInt(1 << 31);
     // Every seat gets a hidden way of playing (no two alike), used when a
     // bot sits there, or stands in for someone who left. Revealed at the

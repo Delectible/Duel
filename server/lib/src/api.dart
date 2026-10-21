@@ -50,7 +50,10 @@ Handler api(Referee referee, TokenVerifier verifier) {
   }
 
   r
-    ..post('/v1/parties', (Request q) => call(q, (p, _) => referee.createParty(p)))
+    ..post(
+      '/v1/parties',
+      (Request q) => call(q, (p, b) => referee.createParty(p, mode: '${b['mode'] ?? 'host'}')),
+    )
     ..post('/v1/parties/join', (Request q) => call(q, (p, b) => referee.joinParty(p, '${b['code'] ?? ''}')))
     ..post(
       '/v1/parties/<id>/bots',
@@ -70,6 +73,20 @@ Handler api(Referee referee, TokenVerifier verifier) {
           id,
           '${b['game'] ?? ''}',
           stake: b['stake'] is int ? b['stake']! as int : 0,
+          options: b['options'] is Map ? (b['options']! as Map).cast<String, Object?>() : const {},
+        ),
+      ),
+    )
+    ..post(
+      '/v1/parties/<id>/vote',
+      (Request q, String id) => call(
+        q,
+        (p, b) => referee.vote(
+          p,
+          id,
+          '${b['game'] ?? ''}',
+          stake: b['stake'] is int ? b['stake']! as int : 0,
+          options: b['options'] is Map ? (b['options']! as Map).cast<String, Object?>() : const {},
         ),
       ),
     )

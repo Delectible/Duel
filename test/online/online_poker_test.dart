@@ -59,6 +59,12 @@ void main() {
       await wait();
       await tester.tap(find.textContaining('Party ·'));
       await wait();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('create party')),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
       await tester.tap(find.byKey(const Key('create party')));
       await wait();
       expect(await run(() => sam.join(party.code!)), isNull);

@@ -134,6 +134,29 @@ class PartyService extends ChangeNotifier {
   /// Most people and bots at one table.
   static const maxTable = 6;
 
+  /// How this party picks games: 'host', 'vote' or 'first' (come).
+  String get mode => party?['mode'] as String? ?? 'host';
+
+  /// Votes so far (vote mode): uid -> the game they picked.
+  Map<String, String> get votes => {
+    for (final e in ((party?['votes'] as Map?) ?? const {}).entries)
+      '${e.key}': '${(e.value as Map)['game']}',
+  };
+
+  /// Your vote, if you've cast one.
+  String? get myVote => votes[uid];
+
+  /// The last vote's outcome: {game, tally, tossed}.
+  Map<Object?, Object?>? get lastVote => party?['lastVote'] as Map?;
+
+  /// You can start a game yourself (host picks: the host; first come:
+  /// anyone; a vote: nobody, you vote).
+  bool get canStart => switch (mode) {
+    'first' => true,
+    'vote' => false,
+    _ => isHost,
+  };
+
   String get hostName => members.where((m) => m.host).map((m) => m.persona.name).firstOrNull ?? 'The host';
 
   /// The game the party is on, while it's being played.
@@ -166,9 +189,10 @@ class PartyService extends ChangeNotifier {
   // --- Party -----------------------------------------------------------------
 
   /// Makes a party with you as host. Returns an error to show, or null.
-  Future<String?> create() => _run(() async {
+  /// [mode]: who picks the games ('host', 'vote' or 'first').
+  Future<String?> create({String mode = 'host'}) => _run(() async {
     await _signIn();
-    _follow(await backend.call('/v1/parties', _me));
+    _follow(await backend.call('/v1/parties', {..._me, 'mode': mode}));
   });
 
   Future<String?> join(String code) => _run(() async {
@@ -204,10 +228,31 @@ class PartyService extends ChangeNotifier {
   Doc? mine;
 
   /// Host: starts [gameId] for everyone, with each player putting in [stake].
-  Future<String?> start(String gameId, {int stake = 0}) => _run(() async {
+  Future<String?> start(String gameId, {int stake = 0, Doc options = const {}}) => _run(() async {
     final id = partyId;
     if (id == null) throw const OnlineError('Make or join a party first.');
-    _take(await backend.call('/v1/parties/$id/start', {'game': gameId, 'stake': stake}), adopt: true);
+    _take(
+      await backend.call('/v1/parties/$id/start', {'game': gameId, 'stake': stake, 'options': options}),
+      adopt: true,
+    );
+  });
+
+  /// Vote mode: your pick. Once everyone has voted the winner starts.
+  Future<String?> vote(String gameId, {int stake = 0, Doc options = const {}}) => _run(() async {
+    final id = partyId;
+    if (id == null) throw const OnlineError('Make or join a party first.');
+    final p = await backend.call('/v1/parties/$id/vote', {
+      'game': gameId,
+      'stake': stake,
+      'options': options,
+    });
+    final match = p['match'];
+    if (match is Map) {
+      _take(match.cast<String, Object?>(), adopt: true);
+    } else if (p['id'] == id) {
+      party = p;
+      _notify();
+    }
   });
 
   Future<void> _resume(String id) async {

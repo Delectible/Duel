@@ -69,7 +69,11 @@ class Referee {
   // --- Parties -------------------------------------------------------------
 
   /// Starts a party with [host] in it. Returns the party (with its code).
-  Future<Doc> createParty(Player host) => store.transaction((tx) async {
+  /// How a party picks its games: the host picks, everyone votes, or
+  /// whoever goes first.
+  static const modes = {'host', 'vote', 'first'};
+
+  Future<Doc> createParty(Player host, {String mode = 'host'}) => store.transaction((tx) async {
     String code;
     do {
       code = List.generate(6, (_) => _codeChars[_rng.nextInt(_codeChars.length)]).join();
@@ -83,6 +87,8 @@ class Referee {
       'names': {host.uid: cleanName(host.name)},
       'avatars': {host.uid: host.avatar},
       'bots': <Doc>[],
+      'mode': modes.contains(mode) ? mode : 'host',
+      'votes': <String, Object?>{},
       'matchId': null,
       'createdAt': _now,
     };
@@ -185,12 +191,66 @@ class Referee {
 
   /// Starts [gameId] for everyone in the party and its bots (host only).
   /// [stake] is what every player puts in; each phone takes and settles it.
-  Future<Doc> startMatch(Player p, String partyId, String gameId, {int stake = 0}) => store.transaction((
-    tx,
-  ) async {
-    final party = await tx.get('parties/$partyId');
-    if (party == null) throw const RefereeError(404, 'No such party');
-    if (party['host'] != p.uid) throw const RefereeError(403, 'Only the host can start a game');
+  Future<Doc> startMatch(Player p, String partyId, String gameId, {int stake = 0, Doc options = const {}}) =>
+      store.transaction((tx) async {
+        final party = await tx.get('parties/$partyId');
+        if (party == null) throw const RefereeError(404, 'No such party');
+        switch (party['mode'] ?? 'host') {
+          case 'vote':
+            throw const RefereeError(409, 'This party votes: vote for a game instead');
+          case 'first':
+            if (!(party['members']! as List).contains(p.uid)) {
+              throw const RefereeError(403, "You're not in this party");
+            }
+          default:
+            if (party['host'] != p.uid) throw const RefereeError(403, 'Only the host can start a game');
+        }
+        return _start(tx, party, gameId, stake: stake, options: options);
+      });
+
+  /// Votes for [gameId] (a party that votes). Once everyone has, the game
+  /// with the most votes starts (a coin toss between a tie), at the
+  /// smallest stake anyone voted for it with. Voting again changes your
+  /// vote.
+  Future<Doc> vote(Player p, String partyId, String gameId, {int stake = 0, Doc options = const {}}) =>
+      store.transaction((tx) async {
+        final party = await tx.get('parties/$partyId');
+        if (party == null) throw const RefereeError(404, 'No such party');
+        final members = (party['members']! as List).cast<String>();
+        if (!members.contains(p.uid)) throw const RefereeError(403, "You're not in this party");
+        if (!onlineGames.containsKey(gameId)) throw RefereeError(400, "$gameId can't be played online yet");
+        final votes = {...((party['votes'] as Map?) ?? const {}).cast<String, Object?>()};
+        votes[p.uid] = {'game': gameId, 'stake': stake.clamp(0, maxStake), 'options': options, 'at': _now};
+        party['votes'] = votes;
+        if (!members.every(votes.containsKey)) {
+          _put(tx, 'parties/$partyId', party);
+          return party;
+        }
+        final tally = <String, int>{};
+        for (final v in votes.values) {
+          tally.update((v! as Map)['game']! as String, (n) => n + 1, ifAbsent: () => 1);
+        }
+        final most = tally.values.reduce(max);
+        final top = (tally.keys.where((g) => tally[g] == most).toList()..sort());
+        final pick = top[_rng.nextInt(top.length)];
+        final forIt = [
+          for (final v in votes.values)
+            if ((v! as Map)['game'] == pick) v,
+        ]..sort((a, b) => ((a as Map)['at'] as int).compareTo((b as Map)['at'] as int));
+        party['votes'] = <String, Object?>{};
+        party['lastVote'] = {'game': pick, 'tally': tally, 'tossed': top.length > 1};
+        final match = await _start(
+          tx,
+          party,
+          pick,
+          stake: forIt.map((v) => (v as Map)['stake'] as int).reduce(min),
+          options: ((forIt.first as Map)['options'] as Map?)?.cast<String, Object?>() ?? const {},
+        );
+        return {...party, 'match': match};
+      });
+
+  Future<Doc> _start(Tx tx, Doc party, String gameId, {int stake = 0, Doc options = const {}}) async {
+    final partyId = party['id']! as String;
     // One game at a time: a live one has to finish or be ended first
     // (one nobody has touched for a long while is ended here).
     final currentId = party['matchId'] as String?;
@@ -210,6 +270,9 @@ class Referee {
     if (count < game.minPlayers || count > game.maxPlayers) {
       throw RefereeError(409, '${game.id} is for ${game.minPlayers}–${game.maxPlayers} players');
     }
+    if (game.counts case final ok? when !ok.contains(count)) {
+      throw RefereeError(409, '${game.id} is for ${(ok.toList()..sort()).join(' or ')} players');
+    }
     final names = <Object?, Object?>{...party['names']! as Map, for (final b in bots) b['id']: b['name']};
     final seats = [...members, for (final b in bots) b['id']! as String]..shuffle(_rng);
     final botSeats = {for (final b in bots) b['id']: b.cast<String, Object?>()};
@@ -222,11 +285,12 @@ class Referee {
       [for (final s in seats) botSeats[s]],
       first: _rng.nextInt(seats.length),
       stake: stake.clamp(0, maxStake),
+      options: options,
     );
     party['matchId'] = match['id'];
     _put(tx, 'parties/$partyId', party);
     return match;
-  });
+  }
 
   Future<Doc> _newMatch(
     Tx tx,
@@ -237,12 +301,13 @@ class Referee {
     List<Doc?> bots, {
     required int first,
     int stake = 0,
+    Doc options = const {},
   }) async {
     final humans = {
       for (final (i, b) in bots.indexed)
         if (b == null) i,
     };
-    final state = game.start(seats.length, _rng, first: first, humans: humans);
+    final state = game.start(seats.length, _rng, first: first, humans: humans, options: options);
     final match = <String, Object?>{
       'id': _id(),
       'game': game.id,
@@ -257,6 +322,7 @@ class Referee {
       'first': first,
       'status': 'live',
       'stake': stake,
+      'options': options,
       'version': 0,
       'turn': null,
       'state': null,
@@ -517,6 +583,7 @@ class Referee {
         [for (final b in bots) b?.cast<String, Object?>()],
         first: first,
         stake: match['stake'] as int? ?? 0,
+        options: (match['options'] as Map?)?.cast<String, Object?>() ?? const {},
       );
       match['next'] = next['id'];
       final party = await tx.get('parties/${match['party']}');

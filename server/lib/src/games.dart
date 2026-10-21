@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/four_in_a_row/four_in_a_row.dart';
 
+import 'card_games.dart';
 import 'poker_game.dart';
 import 'store.dart';
 
@@ -34,9 +35,14 @@ abstract class OnlineGame {
   int get minPlayers;
   int get maxPlayers;
 
+  /// Table sizes it can be played at, when not every one in range works
+  /// (Spades: 2 or 4).
+  Set<int>? get counts => null;
+
   /// A new game for [players] seats; [first] seat starts; [humans] are the
-  /// seats people sit in (the rest are bots).
-  Doc start(int players, Random rng, {required int first, required Set<int> humans});
+  /// seats people sit in (the rest are bots); [options] are the game's own
+  /// (Spades: the target score).
+  Doc start(int players, Random rng, {required int first, required Set<int> humans, Doc options = const {}});
 
   /// Whose turn it is, or null when the game is over.
   int? turn(Doc state);
@@ -90,10 +96,13 @@ class RowGame extends OnlineGame {
   }
 
   @override
-  Doc start(int players, Random rng, {required int first, required Set<int> humans}) => {
-    'first': first,
-    'moves': <int>[],
-  };
+  Doc start(
+    int players,
+    Random rng, {
+    required int first,
+    required Set<int> humans,
+    Doc options = const {},
+  }) => {'first': first, 'moves': <int>[]};
 
   @override
   int? turn(Doc state) {
@@ -134,4 +143,10 @@ class RowGame extends OnlineGame {
 }
 
 /// Every game that can be played online, by id.
-const onlineGames = <String, OnlineGame>{'connect4': RowGame(), 'holdem': PokerGame()};
+const onlineGames = <String, OnlineGame>{
+  'connect4': RowGame(),
+  'holdem': PokerGame(),
+  'crazy8': EightsGame(),
+  'gofish': FishGame(),
+  'spades': SpadesGame(),
+};

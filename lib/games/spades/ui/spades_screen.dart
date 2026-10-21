@@ -14,6 +14,8 @@ import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/spades/spades.dart';
 import 'spades_controller.dart';
+import '../../../core/online/online_link.dart';
+import '../../../core/online/party.dart';
 
 /// How to play Spades, by stage (the ? button).
 const spadesGuide = [
@@ -68,7 +70,19 @@ class SpadesScreen extends StatefulWidget {
     this.pace = 1,
     this.seed,
     this.stake,
-  }) : assert(bots == 1 || bots == 3);
+  }) : assert(bots == 1 || bots == 3),
+       link = null;
+
+  /// With your party, online (inside an [OnlineGameFrame]), once partners
+  /// are settled.
+  SpadesScreen.online({super.key, required OnlineLink this.link, required StakeTicket this.stake})
+    : bots = link.n - 1,
+      difficulty = Difficulty.normal,
+      target = link.options['target'] is int ? link.options['target']! as int : 250,
+      pace = 1,
+      seed = null;
+
+  final OnlineLink? link;
 
   final int bots;
   final Difficulty difficulty;
@@ -99,6 +113,7 @@ class _SpadesScreenState extends State<SpadesScreen> {
     pace: widget.pace,
     rng: widget.seed == null ? null : Random(widget.seed),
     you: _account.persona,
+    link: widget.link,
   )..addListener(_settle);
 
   void _settle() {
@@ -115,6 +130,8 @@ class _SpadesScreenState extends State<SpadesScreen> {
   }
 
   Future<void> _leave() async {
+    final link = widget.link;
+    if (link != null) return link.leave(context, _ticket, over: _c.stage == SpadesStage.over);
     if (_c.stage == SpadesStage.over || await confirmLeave(context, _ticket)) {
       if (mounted) Navigator.of(context).pop();
     }
@@ -151,7 +168,9 @@ class _SpadesScreenState extends State<SpadesScreen> {
                 GameLayout(
                   top: GameTopBar(
                     title: 'Spades',
-                    subtitle: '$vs · to ${widget.target} · ${widget.difficulty.label}',
+                    subtitle: widget.link != null
+                        ? '$vs · to ${widget.target}${_c.yourTurn ? ' · ${widget.link!.secondsLeft}s' : ''}'
+                        : '$vs · to ${widget.target} · ${widget.difficulty.label}',
                     onLeave: _leave,
                     ticket: _ticket,
                     guide: spadesGuide,
@@ -186,8 +205,94 @@ class _SpadesScreenState extends State<SpadesScreen> {
           'hand${g.handNumber == 1 ? '' : 's'}.',
       ticket: _ticket,
       won: won,
-      onAgain: _playAgain,
-      onLeave: () => Navigator.of(context).pop(),
+      onAgain: widget.link == null ? _playAgain : widget.link!.rematch,
+      againLabel: widget.link?.rematchLabel ?? 'Play again',
+      leaveLabel: widget.link == null ? 'Games' : 'Back to party',
+      onLeave: widget.link == null ? () => Navigator.of(context).pop() : _leave,
+    );
+  }
+}
+
+/// Online, four players: before the deal, each person in turn says who
+/// they'd like as a partner (kept secret); then the server seats the
+/// teams (two who want each other always sit together; a coin toss
+/// settles the rest).
+class PartnerPicker extends StatelessWidget {
+  const PartnerPicker({super.key, required this.party});
+
+  final PartyService party;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = party.match!;
+    final names = (m['names']! as List).cast<Object?>();
+    final mine = m['turn'] == party.seat;
+    final turn = m['turn'] as int?;
+    final others = [
+      for (var s = 0; s < names.length; s++)
+        if (s != party.seat) s,
+    ];
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: ToonBox(
+                key: const Key('partner picker'),
+                color: Toon.paper,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Spades: pick a partner',
+                      textAlign: TextAlign.center,
+                      style: Toon.text(24, weight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      mine
+                          ? 'Who would you like on your team? Two who pick each other always play together; '
+                                'otherwise a coin toss settles it. Nobody sees your pick.'
+                          : 'Waiting for ${turn == null ? 'everyone' : party.nameAt(turn)} to pick a partner…',
+                      textAlign: TextAlign.center,
+                      style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+                    ),
+                    if (mine) ...[
+                      const SizedBox(height: 14),
+                      for (final s in others)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: ToonButton(
+                            key: Key('partner $s'),
+                            color: Toon.card,
+                            onPressed: party.busy ? null : () => party.move({'kind': 'partner', 'want': s}),
+                            child: Text('${names[s]}'),
+                          ),
+                        ),
+                      ToonButton(
+                        key: const Key('partner any'),
+                        color: Toon.card,
+                        onPressed: party.busy ? null : () => party.move({'kind': 'partner', 'want': -1}),
+                        child: const Text('No preference'),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    ToonButton(
+                      color: Toon.card,
+                      onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+                      child: const Text('Back to party'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

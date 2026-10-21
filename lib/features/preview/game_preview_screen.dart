@@ -159,6 +159,18 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
             ),
             const SizedBox(height: 10),
           ],
+          // A party that votes: who's voted so far.
+          if (online && blocked == null && party.mode == 'vote') ...[
+            Text(
+              party.myVote == game.id
+                  ? 'You voted for this. ${party.votes.length} of ${party.members.length} voted.'
+                  : '${party.votes.length} of ${party.members.length} voted. When everyone has, the most votes wins.',
+              key: const Key('votes'),
+              textAlign: TextAlign.center,
+              style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+            ),
+            const SizedBox(height: 8),
+          ],
           if (blocked != null) ...[
             Text(
               blocked.$2,
@@ -214,7 +226,11 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
                             : online
                             ? () async {
                                 // Starts on every phone; each takes the stake.
-                                final error = await party.start(game.id, stake: _stake);
+                                // A party that votes: this is your vote.
+                                final options = {'target': ?_choice};
+                                final error = party.mode == 'vote'
+                                    ? await party.vote(game.id, stake: _stake, options: options)
+                                    : await party.start(game.id, stake: _stake, options: options);
                                 if (!context.mounted) return;
                                 if (error != null) {
                                   ScaffoldMessenger.of(context)
@@ -237,7 +253,12 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
                                   MaterialPageRoute<void>(builder: (_) => game.open!(setup, ticket, _choice)),
                                 );
                               },
-                        child: Text('Play!', style: Toon.text(20, weight: FontWeight.w700)),
+                        child: Text(
+                          online && party.mode == 'vote'
+                              ? (party.myVote == game.id ? 'Voted' : 'Vote')
+                              : 'Play!',
+                          style: Toon.text(20, weight: FontWeight.w700),
+                        ),
                       ),
               ),
             ],

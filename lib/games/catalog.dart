@@ -23,6 +23,7 @@ import 'spades/at_home.dart';
 import 'previews.dart';
 import 'tile_art.dart';
 import 'spades/ui/spades_screen.dart';
+import '../core/online/online_link.dart';
 
 /// A game on the picker. Adding a game: its folder under lib/games/, plus
 /// one entry in [games].
@@ -152,7 +153,9 @@ class GameInfo {
           '$playing is being played. Finish it first${party.isHost ? ', or end it from the party screen' : ''}.',
         );
       }
-      if (!party.isHost) return ('Host picks', '${party.hostName} picks the game. It starts here by itself.');
+      if (party.mode == 'host' && !party.isHost) {
+        return ('Host picks', '${party.hostName} picks the game. It starts here by itself.');
+      }
     }
     return null;
   }
@@ -232,6 +235,11 @@ final games = <GameInfo>[
     minutes: (players) => 3 + players * 2,
     atHome: eightsAtHome,
     open: (setup, stake, _) => EightsScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
+    openOnline: (party) => OnlineGameFrame(
+      party: party,
+      gameId: 'crazy8',
+      builder: (link, ticket) => EightsScreen.online(link: link, stake: ticket),
+    ),
   ),
   GameInfo(
     id: 'gofish',
@@ -250,6 +258,11 @@ final games = <GameInfo>[
     minutes: (players) => 5 + players * 2,
     atHome: fishAtHome,
     open: (setup, stake, _) => FishScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
+    openOnline: (party) => OnlineGameFrame(
+      party: party,
+      gameId: 'gofish',
+      builder: (link, ticket) => FishScreen.online(link: link, stake: ticket),
+    ),
   ),
   GameInfo(
     id: 'connect4',
@@ -298,6 +311,13 @@ final games = <GameInfo>[
     opponentsFor: (players) => players == 4 ? 2 : 1,
     open: (setup, stake, target) =>
         SpadesScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, target: target ?? 250),
+    // Four players pick partners first; then the table.
+    openOnline: (party) => OnlineGameFrame(
+      party: party,
+      gameId: 'spades',
+      builder: (link, ticket) =>
+          link.seated ? SpadesScreen.online(link: link, stake: ticket) : PartnerPicker(party: party),
+    ),
   ),
   GameInfo(
     id: 'blitz',

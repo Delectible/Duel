@@ -13,6 +13,7 @@ import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/go_fish/go_fish.dart';
 import 'fish_controller.dart';
+import '../../../core/online/online_link.dart';
 
 const fishGuide = [
   GuideStage(
@@ -67,7 +68,16 @@ class FishScreen extends StatefulWidget {
     this.pace = 1,
     this.seed,
     this.stake,
-  });
+  }) : link = null;
+
+  /// With your party, online (inside an [OnlineGameFrame]).
+  FishScreen.online({super.key, required OnlineLink this.link, required StakeTicket this.stake})
+    : bots = link.n - 1,
+      difficulty = Difficulty.normal,
+      pace = 1,
+      seed = null;
+
+  final OnlineLink? link;
 
   final int bots;
   final Difficulty difficulty;
@@ -96,6 +106,7 @@ class _FishScreenState extends State<FishScreen> {
     pace: widget.pace,
     rng: widget.seed == null ? null : Random(widget.seed),
     you: _account.persona,
+    link: widget.link,
   )..addListener(_settle);
 
   void _settle() {
@@ -132,6 +143,8 @@ class _FishScreenState extends State<FishScreen> {
   }
 
   Future<void> _leave() async {
+    final link = widget.link;
+    if (link != null) return link.leave(context, _ticket, over: _c.phase == FishPhase.over);
     if (_c.phase == FishPhase.over || await confirmLeave(context, _ticket)) {
       if (mounted) Navigator.of(context).pop();
     }
@@ -153,8 +166,9 @@ class _FishScreenState extends State<FishScreen> {
                 GameLayout(
                   top: GameTopBar(
                     title: 'Go Fish',
-                    subtitle:
-                        'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
+                    subtitle: widget.link != null
+                        ? 'With your party${_c.yourTurn ? ' · ${widget.link!.secondsLeft}s' : ''}'
+                        : 'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
                     onLeave: _leave,
                     ticket: _ticket,
                     guide: fishGuide,
@@ -195,8 +209,10 @@ class _FishScreenState extends State<FishScreen> {
           : '$books books to your $mine.',
       ticket: _ticket,
       won: won,
-      onAgain: _playAgain,
-      onLeave: () => Navigator.of(context).pop(),
+      onAgain: widget.link == null ? _playAgain : widget.link!.rematch,
+      againLabel: widget.link?.rematchLabel ?? 'Play again',
+      leaveLabel: widget.link == null ? 'Games' : 'Back to party',
+      onLeave: widget.link == null ? () => Navigator.of(context).pop() : _leave,
     );
   }
 }

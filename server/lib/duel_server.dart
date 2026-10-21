@@ -3,6 +3,7 @@ library;
 
 export 'src/api.dart';
 export 'src/auth.dart';
+export 'src/card_games.dart';
 export 'src/firestore_store.dart';
 export 'src/games.dart';
 export 'src/poker_game.dart';
