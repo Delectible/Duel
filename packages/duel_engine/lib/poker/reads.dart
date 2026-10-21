@@ -79,6 +79,14 @@ class PlayerReads {
 
   int allIns = 0, handsWon = 0, biggestPot = 0, chipsWon = 0;
 
+  /// Sizing (for tips): first raises before the flop and their size in big
+  /// blinds; bets after the flop and their size as a share of the pot.
+  int opens = 0, sizedBets = 0;
+  double openBlinds = 0, betShare = 0;
+
+  /// Called the big blind before the flop with nobody raising yet.
+  int limps = 0;
+
   /// Times they went on tilt (lost a big pot).
   int tilts = 0;
 
@@ -177,9 +185,14 @@ class TableReads {
 
     if (street == Street.preflop) {
       if ((kind == MoveKind.call || aggressive) && _vpip.add(seat)) r.vpip++;
+      if (kind == MoveKind.call && preflopAggressor == null && legal.callAmount > 0) r.limps++;
       if (aggressive) {
         if (preflopAggressor == null) {
           r.pfr++;
+          if (!allIn) {
+            r.opens++;
+            r.openBlinds += to / h.bigBlind;
+          }
         } else {
           r.threeBets++;
         }
@@ -190,6 +203,10 @@ class TableReads {
       if (street == Street.flop && seat == preflopAggressor && legal.isBet && _cbetTaken.add(seat)) {
         r.cbetChances++;
         if (aggressive) r.cbets++;
+      }
+      if (aggressive && legal.isBet && !allIn && pot > 0) {
+        r.sizedBets++;
+        r.betShare += (to - p.bet) / pot;
       }
       if (!legal.canCheck) {
         r.facedBets++;

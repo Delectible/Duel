@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:duel_engine/cards.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/poker/bot.dart';
+import 'package:duel_engine/poker/coach.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/reads.dart';
 import 'package:duel_engine/poker/sit_and_go.dart';
@@ -41,6 +42,9 @@ void main() {
       expect(opener.cbetChances, 1);
       expect(opener.cbets, 1);
       expect(opener.handsWon, 1);
+      expect((opener.opens, opener.openBlinds), (1, 3.0), reason: 'opened to 3 big blinds');
+      expect(opener.sizedBets, 1);
+      expect(opener.betShare, closeTo(80 / 130, 0.001), reason: 'c-bet 80 into 130');
       expect(defender.vpip, 1);
       expect(defender.pfr, 0);
       expect(defender.facedBets, 1);
@@ -195,5 +199,46 @@ void main() {
     expect(quotes.keys.toSet(), {0, 1, 2, 3});
     expect(quotes.values.toSet().length, 4);
     expect(quotes[3], contains('Shoved 6 times'));
+  });
+
+  test('tips: the biggest leaks first, then what went well', () {
+    expect(coachTips(PlayerReads()..hands = 3, players: 6), isEmpty, reason: 'too little to go on');
+    final loose = PlayerReads()
+      ..hands = 40
+      ..vpip = 28
+      ..limps = 12
+      ..opens = 6
+      ..openBlinds = 6 * 3
+      ..sizedBets = 8
+      ..betShare = 8 * 0.2
+      ..calls = 20
+      ..bets = 3
+      ..raises = 2;
+    final tips = coachTips(loose, players: 6);
+    expect(tips.first.title, 'Play fewer hands');
+    final titles = tips.map((t) => t.title).toList();
+    expect(
+      titles,
+      containsAll(['Raise instead of just calling', 'Bet bigger after the flop', 'Bet more, call less']),
+    );
+    expect(titles, isNot(contains('Raise a bit more before the flop')), reason: '3 big blinds is right');
+    final tight = PlayerReads()
+      ..hands = 40
+      ..vpip = 3
+      ..sizedBets = 4
+      ..betShare = 4 * 0.6;
+    final t2 = coachTips(tight, players: 6);
+    expect(t2.first.title, 'Play a few more hands');
+    expect(t2.where((t) => t.good).map((t) => t.title), contains('Nice bet sizes'));
+    // Heads-up, half your hands is about right.
+    expect(
+      coachTips(
+        PlayerReads()
+          ..hands = 40
+          ..vpip = 24,
+        players: 2,
+      ).any((t) => t.title == 'Good hand choice'),
+      isTrue,
+    );
   });
 }

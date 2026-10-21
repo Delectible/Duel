@@ -9,8 +9,9 @@ class AppInfo {
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
       'Sound effects: buttons tick, cards shuffle and deal, chips clink, and wins and losses each have their '
-      'own jingle, small to big. Showdowns and Blitz wars get a drum and a clash. Turn sound off or set the '
-      'volume in Settings.';
+      'own jingle, small to big; showdowns and Blitz wars get a drum and a clash (Settings: on / off, '
+      "volume). Hold'em's end-of-game board has Improve your game: tips from how you played. Small cards "
+      'show one suit.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -35,6 +36,7 @@ class AppInfo {
         'Spades: pick your partner',
         'Parties: host picks, vote or first come',
         'Sound effects (Settings: on / off, volume)',
+        "Hold'em: Improve your game tips",
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:duel_engine/cards.dart';
 import 'package:duel_engine/poker/bot.dart';
+import 'package:duel_engine/poker/coach.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/reads.dart';
 import '../../../core/avatars/faces.dart';
@@ -600,6 +601,22 @@ class GameSummary extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 8),
+        ToonButton(
+          key: const Key('improve'),
+          color: Toon.blue,
+          radius: 12,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          onPressed: () => showCoach(context, me, players: lineup.length),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.school_rounded, size: 20),
+              const SizedBox(width: 6),
+              Text('Improve your game', style: Toon.text(15)),
+            ],
+          ),
+        ),
         const SizedBox(height: 10),
         Column(
           key: const Key('lineup'),
@@ -671,4 +688,55 @@ class GameSummary extends StatelessWidget {
       ],
     );
   }
+}
+
+/// "Improve your game": tips from how you played this game.
+Future<void> showCoach(BuildContext context, PlayerReads me, {required int players}) {
+  final tips = coachTips(me, players: players);
+  return showToonSheet<void>(
+    context,
+    height: 0.7,
+    builder: (context) => ListView(
+      key: const Key('coach'),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      children: [
+        Text('Improve your game', style: Toon.text(22, weight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Text(
+          tips.isEmpty
+              ? 'Play a few more hands and there\'ll be tips here.'
+              : 'From the ${me.hands} hands you played this game.',
+          style: Toon.text(13, weight: FontWeight.w600, color: Toon.muted),
+        ),
+        const SizedBox(height: 12),
+        for (final t in tips)
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: Toon.box(Toon.card, radius: 14, shadow: 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  t.good ? Icons.thumb_up_alt_rounded : Icons.lightbulb_rounded,
+                  color: t.good ? Toon.green : Toon.orange,
+                  size: 26,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(t.title, style: Toon.text(16, weight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text(t.text, style: Toon.text(13.5, weight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    ),
+  );
 }

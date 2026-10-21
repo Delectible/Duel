@@ -166,7 +166,8 @@ class CardView extends StatelessWidget {
                     c.rankLabel,
                     style: Toon.text(w * (c.rank == 10 ? 0.36 : 0.42), weight: FontWeight.w700, color: color),
                   ),
-                  SuitIcon(c.suit, size: w * 0.24, onLight: true),
+                  // Small cards: the big suit alone (a tiny one reads as a smudge).
+                  if (w >= 44) SuitIcon(c.suit, size: w * 0.24, onLight: true),
                 ],
               ),
             ),

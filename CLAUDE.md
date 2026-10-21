@@ -240,7 +240,7 @@ weights cut from the variable font.
   one); on a bright fill use `Toon.on(color)`. Cards stay white
   (`cardFace`).
 - `lib/core/cards/` (+ `duel_engine/cards.dart`): `PlayingCard` / `Deck` and `CardView` (suits are drawn
-  paths; Fredoka has no suit glyphs). Shared by every card game.
+  paths; Fredoka has no suit glyphs; under 44 px wide, one suit only). Shared by every card game.
 - `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player
   range, tile art (`tile_art.dart`: a small painted scene per game, about
   84 x 64, scaled to the tile), sample `board` (`previews.dart`), `rules`, `minutes`
@@ -259,7 +259,9 @@ weights cut from the variable font.
   `think()` → `Decision.tempo`, tilt, ICM; `classify`, `outs`,
   `preflopRank`), `reads.dart` (`TableReads`: per-player stats from every
   action (call `observe` before `apply`), tilt, sizing tells, the last 20
-  hands; bots read it, the app shows it).
+  hands; bots read it, the app shows it; sizing and limps feed the tips),
+  `coach.dart` (`coachTips`: "Improve your game" on the end-of-game board,
+  `showCoach` in `table_stats.dart`).
   `dart run tool/poker/simulate.dart [n] [easy|normal|hard]` plays bot-only
   Sit & Gos for tuning.
 - `lib/games/poker/ui/`: `PokerController` (paces the table: deals, bots

@@ -464,6 +464,18 @@ Ships as app version **0.4.1**.
   get the drum, a clash and the fall. → 0.9.1 · 2026-10-21
 - [x] **19.4 Settings**: Sound on / off and volume (on by default); mixes
   with music and follows the iPhone's silent switch. → 0.9.1 · 2026-10-21
+
+### 20. Cards and coaching (requested 2026-10-21)
+
+- [x] **20.1 Small cards show one suit**: under 44 px wide the little suit
+  under the rank goes (it read as a smudge); the big one stays.
+  → 0.9.1 · 2026-10-21
+- [x] **20.2 Improve your game** (Hold'em, on the end-of-game board): up
+  to four tips from how you played (`duel_engine/poker/coach.dart` over
+  your `TableReads`): too many / too few hands for the table size,
+  limping, raise and bet sizes, calling vs betting, folding to bets,
+  c-bets, all-ins; then what went well. Needs 8+ hands. Other games
+  later. → 0.9.1 · 2026-10-21
   → 0.9.0 · 2026-10-21
 
 ### 12. Fixes

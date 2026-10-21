@@ -1,6 +1,8 @@
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel/games/poker/ui/poker_screen.dart';
 import 'package:duel/core/theme/toon.dart';
+import 'package:duel/games/poker/ui/table_stats.dart';
+import 'package:duel_engine/poker/reads.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -140,10 +142,51 @@ void main() {
     expect(find.byKey(const Key('your numbers')), findsOneWidget);
     expect(find.byKey(const Key('lineup')), findsOneWidget);
     expect(find.textContaining('“'), findsWidgets);
+    await tester.tap(find.byKey(const Key('improve')));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byKey(const Key('coach')), findsOneWidget);
+    await shot(tester, 'poker_coach');
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.tap(find.text('Play again'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Hand 1'), findsOneWidget);
   });
+
+  for (final MapEntry(key: phone, value: size) in phones.entries) {
+    testWidgets('improve your game tips fit on $phone', (tester) async {
+      usePhone(tester, size);
+      final me = PlayerReads()
+        ..hands = 40
+        ..vpip = 28
+        ..limps = 12
+        ..sizedBets = 8
+        ..betShare = 1.6
+        ..calls = 20
+        ..bets = 3
+        ..showdowns = 6
+        ..showdownsWon = 4;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () => showCoach(context, me, players: 6),
+                  child: const Text('go'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('go'));
+      await tester.pumpAndSettle();
+      expect(find.text('Play fewer hands'), findsOneWidget);
+      await shot(tester, 'poker_coach_$phone');
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   // Turned-up cards and the result note stay clear of the board and seats.
   for (final bots in [1, 3, 5]) {
