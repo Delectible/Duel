@@ -50,6 +50,10 @@ abstract class OnlineGame {
   /// Applies [move] for [seat]; throws [MoveError] if it isn't allowed.
   Doc play(Doc state, int seat, Doc move);
 
+  /// A move made out of turn that doesn't touch whose turn it is (Hold'em:
+  /// showing your cards after a hand): the clock keeps running.
+  bool aside(Doc move) => false;
+
   Result? result(Doc state);
 
   /// What to play for a player whose time ran out (or who left).

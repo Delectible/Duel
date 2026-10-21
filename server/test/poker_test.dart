@@ -231,4 +231,48 @@ void main() {
     expect(firsts[1]! / 3000, closeTo(0.3, 0.05));
     expect(firsts[2]! / 3000, closeTo(0.1, 0.04));
   });
+
+  test('a person who loses a showdown mucks unless they show; a winner everyone folded to may show', () {
+    const g = PokerGame();
+    var state = g.start(2, Random(1), first: 0, humans: {0, 1});
+    Map<String, Object?> hand(int i) =>
+        ((g.public(state)['hands']! as List)[i] as Map).cast<String, Object?>();
+    // Hand 1: check it down to a showdown.
+    while ((state['hands']! as List).length == 1) {
+      final seat = g.turn(state)!;
+      final t = PokerGame.replay(state);
+      state = g.play(state, seat, {'kind': t.hand.legalMoves().canCheck ? 'check' : 'call'});
+    }
+    final first = PokerGame.replay({
+      ...state,
+      'hands': [(state['hands']! as List).first],
+    });
+    final winners = {
+      for (final e in first.hand.result!.winnings.entries)
+        if (e.value > 0) first.seats[e.key],
+    };
+    final loser = {0, 1}.difference(winners).single;
+    expect(hand(0)['mucked'], [loser]);
+    expect(
+      (hand(0)['shown']! as Map).keys,
+      containsAll(['0', '1']),
+      reason: 'the phones need both to settle the pot',
+    );
+    expect(PokerGame.replay(state).history.first['mucked'], [loser]);
+    expect(() => g.play(state, winners.single, {'kind': 'show', 'hand': 0}), throwsA(isA<MoveError>()));
+    final turn = g.turn(state);
+    state = g.play(state, loser, {'kind': 'show', 'hand': 0});
+    expect(hand(0)['mucked'], isNull);
+    expect(g.turn(state), turn, reason: 'showing is not a turn');
+    expect(g.aside({'kind': 'show'}), isTrue);
+    // Hand 2: the first to act raises, the other folds.
+    final raiser = g.turn(state)!;
+    state = g.play(state, raiser, {'kind': 'raise', 'amount': 200});
+    state = g.play(state, g.turn(state)!, {'kind': 'fold'});
+    expect(() => g.play(state, 1 - raiser, {'kind': 'show', 'hand': 1}), throwsA(isA<MoveError>()));
+    expect(hand(1)['showed'], isNull);
+    state = g.play(state, raiser, {'kind': 'show', 'hand': 1});
+    expect(hand(1)['showed'], [raiser]);
+    expect((hand(1)['shown']! as Map).keys, ['$raiser']);
+  });
 }

@@ -491,6 +491,18 @@ Ships as app version **0.4.1**.
 - [x] **22.1 Odds, outs and your hand** (the Hold'em setting): off now also
   hides what your hand is (the chart button just says "Hands" and outlines
   nothing) and the all-in chance badge. → 0.9.1 · 2026-10-21
+
+### 23. Show or muck (requested 2026-10-21)
+
+- [x] **23.1 Show or muck, every hand** (Hold'em, bots and online): lose a
+  showdown and your cards stay down (Muck, the default) unless you tap
+  Show; win with everyone folding and you can Show them too (a few
+  seconds before the next deal). Mucked hands never reach the bots'
+  memory or the other phones' tables; a shown bluff does, so the bots
+  call you lighter (and say so). Not after an all-in runout (the cards
+  are already up). Online: a `show` move the referee takes out of turn
+  (`OnlineGame.aside`, the clock keeps running); the match carries
+  `mucked` / `showed` per hand. Bots still always show. → 0.9.1 · 2026-10-21
   → 0.9.0 · 2026-10-21
 
 ### 12. Fixes

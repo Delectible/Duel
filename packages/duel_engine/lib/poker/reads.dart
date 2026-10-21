@@ -146,6 +146,7 @@ class TableReads {
 
   /// A new hand: [seats] maps hand index -> table seat.
   void startHand(PokerHand h, List<int> seats) {
+    _ended = null;
     _actions.clear();
     _lastBet.clear();
     _vpip.clear();
@@ -236,16 +237,22 @@ class TableReads {
     _actions.add(ActionRecord(seat, street, label, to, pot));
   }
 
+  /// The hand that just ended (until the next starts), for [reveal].
+  PokerHand? _ended;
+  Street? _lastStreet;
+
   /// The hand is over ([h.result] set): showdowns, sizing tells, winners,
-  /// moods, and the hand goes into the history.
-  void endHand(PokerHand h, List<int> seats, {required int number}) {
+  /// moods, and the hand goes into the history. [mucked] (hand indexes)
+  /// lost a showdown without turning their cards up: nobody learns them.
+  void endHand(PokerHand h, List<int> seats, {required int number, Set<int> mucked = const {}}) {
     final result = h.result;
     if (result == null) return;
+    _ended = h;
     final total = result.pots.fold(0, (s, p) => s + p.amount);
     for (final p in players) {
       p.tilt *= 0.75;
     }
-    final lastStreet = _actions.where((a) => a.label != ActionLabel.fold).lastOrNull?.street;
+    _lastStreet = _actions.where((a) => a.label != ActionLabel.fold).lastOrNull?.street;
     for (final e in result.winnings.entries) {
       if (e.value <= 0) continue;
       final r = players[seats[e.key]];
@@ -257,23 +264,8 @@ class TableReads {
       for (final e in result.shown.entries) {
         final seat = seats[e.key];
         final r = players[seat];
-        r.showdowns++;
         final won = (result.winnings[e.key] ?? 0) > 0;
-        if (won) r.showdownsWon++;
-        final strong = e.value.category.index >= HandCategory.twoPair.index;
-        final bet = _lastBet[seat];
-        if (bet != null && bet.street == lastStreet) {
-          r.aggressiveShowdowns++;
-          if (!won && e.value.category.index <= HandCategory.pair.index) r.bluffsShown++;
-          final big = bet.put >= bet.pot * 0.7;
-          if (big) {
-            r.bigBetsShown++;
-            if (strong) r.bigBetsStrong++;
-          } else {
-            r.smallBetsShown++;
-            if (strong) r.smallBetsStrong++;
-          }
-        }
+        if (!mucked.contains(e.key)) _readShown(seat, e.value, won: won);
         // Lost a big pot: steaming for a while.
         final p = h.players[e.key];
         if (!won && p.committed >= p.startStack * 0.35 && p.committed > 0) {
@@ -288,10 +280,7 @@ class TableReads {
         final seat = seats[e.key];
         final hole = h.players[e.key].hole;
         if (_lastBet[seat] == null || hole.length < 2) continue;
-        final weak = h.board.length >= 3
-            ? evaluateHand([...hole, ...h.board]).category == HandCategory.highCard
-            : hole[0].rank != hole[1].rank && max(hole[0].rank, hole[1].rank) < 12;
-        if (weak) {
+        if (_weak(hole, h.board)) {
           players[seat].bluffWins++;
           players[seat].bestBluff = max(players[seat].bestBluff, total);
         }
@@ -304,7 +293,10 @@ class TableReads {
         actions: List.of(_actions),
         board: List.of(h.board),
         holes: {for (var i = 0; i < h.players.length; i++) seats[i]: List.of(h.players[i].hole)},
-        shown: {for (final i in result.shown.keys) seats[i]},
+        shown: {
+          for (final i in result.shown.keys)
+            if (!mucked.contains(i)) seats[i],
+        },
         won: {
           for (final e in result.winnings.entries)
             if (e.value > 0) seats[e.key]: e.value,
@@ -315,6 +307,65 @@ class TableReads {
     );
     while (history.length > keep) {
       history.removeAt(0);
+    }
+  }
+
+  /// A hand seen at a showdown: how often they get there and win, and what
+  /// they bet the last street with (sizing tells, bluffs).
+  void _readShown(int seat, HandValue value, {required bool won}) {
+    final r = players[seat];
+    r.showdowns++;
+    if (won) r.showdownsWon++;
+    final strong = value.category.index >= HandCategory.twoPair.index;
+    final bet = _lastBet[seat];
+    if (bet != null && bet.street == _lastStreet) {
+      r.aggressiveShowdowns++;
+      if (!won && value.category.index <= HandCategory.pair.index) r.bluffsShown++;
+      final big = bet.put >= bet.pot * 0.7;
+      if (big) {
+        r.bigBetsShown++;
+        if (strong) r.bigBetsStrong++;
+      } else {
+        r.smallBetsShown++;
+        if (strong) r.smallBetsStrong++;
+      }
+    }
+  }
+
+  static bool _weak(List<PlayingCard> hole, List<PlayingCard> board) => board.length >= 3
+      ? evaluateHand([...hole, ...board]).category == HandCategory.highCard
+      : hole[0].rank != hole[1].rank && max(hole[0].rank, hole[1].rank) < 12;
+
+  /// After the hand ([endHand]), [i] turned their cards up after all: a
+  /// mucked loser, or a winner everyone folded to. A shown bluff gets
+  /// noted (the table will call them lighter); a shown monster too.
+  void reveal(PokerHand h, List<int> seats, int i) {
+    final result = h.result;
+    if (result == null || !identical(h, _ended)) return;
+    final seat = seats[i];
+    final last = history.lastOrNull;
+    if (last == null || last.shown.contains(seat)) return;
+    last.shown.add(seat);
+    final hole = h.players[i].hole;
+    if (hole.length < 2) return;
+    if (result.showdown) {
+      final value = result.shown[i];
+      if (value != null) _readShown(seat, value, won: (result.winnings[i] ?? 0) > 0);
+      return;
+    }
+    // Won with everyone folding: a bet they made, and what it was.
+    final bet = _lastBet[seat];
+    if (bet == null) return;
+    final r = players[seat];
+    r.aggressiveShowdowns++;
+    final weak = _weak(hole, h.board);
+    if (weak) r.bluffsShown++;
+    if (bet.put >= bet.pot * 0.7) {
+      r.bigBetsShown++;
+      if (!weak) r.bigBetsStrong++;
+    } else {
+      r.smallBetsShown++;
+      if (!weak) r.smallBetsStrong++;
     }
   }
 }

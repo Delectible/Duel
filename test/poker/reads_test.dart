@@ -102,6 +102,77 @@ void main() {
     });
   });
 
+  group('mucking and showing', () {
+    // Heads-up, button 0: 0 has 7-2, 1 has aces; 0 bets the river as a
+    // bluff and gets called, or 1 folds to it.
+    (PokerHand, TableReads) play({required bool fold}) {
+      final h = hand([
+        1000,
+        1000,
+      ], deck: stacked(players: 2, button: 0, holes: {0: '2c 7d', 1: 'Ah Ad'}, board: '3c 8s 9d Jc 4h'));
+      final seats = [0, 1];
+      final reads = TableReads(2)..startHand(h, seats);
+      void act(Move m) {
+        reads.observe(h, seats, m);
+        h.apply(m);
+      }
+
+      act(const Move.call());
+      act(const Move.check());
+      for (var street = 0; street < 2; street++) {
+        h.nextStreet();
+        act(const Move.check());
+        act(const Move.check());
+      }
+      h.nextStreet();
+      act(const Move.check());
+      act(const Move.raiseTo(40)); // 0 bluffs the river
+      act(fold ? const Move.fold() : const Move.call());
+      if (h.result == null) h.nextStreet(); // the showdown
+      return (h, reads);
+    }
+
+    test('a mucked loser is not read until shown', () {
+      final (h, reads) = play(fold: false);
+      expect(h.muckable, {0});
+      expect(h.showable, isNull);
+      reads.endHand(h, [0, 1], number: 1, mucked: {0});
+      expect(reads.players[0].showdowns, 0);
+      expect(reads.history.last.shown, {1});
+      reads.reveal(h, [0, 1], 0);
+      expect(reads.players[0].showdowns, 1);
+      expect(reads.players[0].bluffsShown, 1, reason: 'the river bet was a bluff');
+      expect(reads.history.last.shown, {0, 1});
+      reads.reveal(h, [0, 1], 0);
+      expect(reads.players[0].showdowns, 1, reason: 'once');
+    });
+
+    test('a bluff shown after everyone folded: the table calls lighter', () {
+      final (h, reads) = play(fold: true);
+      expect(h.muckable, isEmpty);
+      expect(h.showable, 0);
+      reads.endHand(h, [0, 1], number: 1);
+      expect(reads.players[0].bluffRate, 0);
+      reads.reveal(h, [0, 1], 0);
+      expect(reads.players[0].bluffRate, 1);
+      expect(reads.history.last.shown, {0});
+    });
+
+    test('after an all-in runout nobody can muck', () {
+      final h = hand([
+        1000,
+        1000,
+      ], deck: stacked(players: 2, button: 0, holes: {0: '2c 7d', 1: 'Ah Ad'}, board: '3c 8s 9d Jc 4h'));
+      h.apply(const Move.raiseTo(1000));
+      h.apply(const Move.call());
+      while (h.result == null) {
+        h.nextStreet();
+      }
+      expect(h.ranOut, isTrue);
+      expect(h.muckable, isEmpty);
+    });
+  });
+
   group('hand reading', () {
     test('pre-flop ranks: aces best, 7-2 offsuit near the bottom', () {
       expect(preflopRank(cards('As Ad')), lessThan(0.01));

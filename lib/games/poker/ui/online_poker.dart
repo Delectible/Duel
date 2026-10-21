@@ -266,6 +266,7 @@ class OnlinePokerController extends PokerController {
       _turnAt = m['turnAt'];
       _heard = _clock();
     }
+    if (phase == TablePhase.payout) _refreshShows();
     final parked = _parked;
     if (parked != null) {
       _parked = null;
@@ -273,6 +274,46 @@ class OnlinePokerController extends PokerController {
     } else {
       _notify();
     }
+  }
+
+  /// The people who lost this showdown and kept their cards down.
+  @override
+  Set<int> _mucked(PokerHand h) => {
+    for (final s in (_thisHand?['mucked'] as List?) ?? const []) ?handIndex(_local(s as int)),
+  };
+
+  /// Someone turned their cards up after the hand: show them here too.
+  void _refreshShows() {
+    final h = hand;
+    final r = h?.result;
+    if (h == null || r == null) return;
+    final mucked = _mucked(h);
+    final showed = [
+      for (final s in (_thisHand?['showed'] as List?) ?? const []) ?handIndex(_local(s as int)),
+    ];
+    final up = [
+      for (final i in r.shown.keys)
+        if (!mucked.contains(i)) i,
+      ...showed,
+    ];
+    for (final i in up) {
+      final seat = game.handSeats[i];
+      if (seat == 0 || revealed.contains(seat)) continue;
+      _showCards(h);
+      revealed.add(seat);
+      reads.reveal(h, game.handSeats, i);
+    }
+  }
+
+  @override
+  void _shown(int i) {
+    final hand = _handIdx;
+    unawaited(
+      party.move({'kind': 'show', 'hand': hand}).then((e) {
+        // The table moved on under us: once more with the newest version.
+        if (e != null && !_disposed) unawaited(party.move({'kind': 'show', 'hand': hand}));
+      }),
+    );
   }
 
   @override
@@ -299,7 +340,10 @@ class OnlinePokerController extends PokerController {
         _play(h, _toMove(MoveKind.values[raw[0]! as int], raw[1]! as int));
       }
       _advance(h);
-      reads.endHand(h, game.handSeats, number: handNumber);
+      reads.endHand(h, game.handSeats, number: handNumber, mucked: _mucked(h));
+      for (final s in (_thisHand?['showed'] as List?) ?? const []) {
+        if (handIndex(_local(s as int)) case final i?) reads.reveal(h, game.handSeats, i);
+      }
       game.finishHand();
     }
   }

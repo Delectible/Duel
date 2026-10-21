@@ -11,7 +11,8 @@ class AppInfo {
       'Sound and music: buttons tick, cards shuffle and deal, chips clink, wins and losses each get a '
       'jingle, small to big, and showdowns and Blitz wars a drum and a clash. Five kinds of background '
       "music to pick from (Lounge, Lo-fi, Tavern, Tiki, Arcade) with their own volume in Settings. Hold'em's "
-      'end-of-game board has Improve your game: tips from how you played. Small cards show one suit.';
+      'end-of-game board has Improve your game: tips from how you played, and after a hand you can show or '
+      'muck your cards. Small cards show one suit.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -38,6 +39,7 @@ class AppInfo {
         'Sound effects (Settings: on / off, volume)',
         'Background music: five to pick from',
         "Hold'em: Improve your game tips",
+        "Hold'em: show or muck your cards",
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),

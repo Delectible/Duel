@@ -30,6 +30,12 @@ enum Talk {
 
   /// Knocked out.
   bust,
+
+  /// You showed the bluff it folded to.
+  bluffed,
+
+  /// You showed the strong hand it folded to.
+  shownStrong,
 }
 
 /// Each bot has a voice: the rookie is nervous and polite, the rock says
@@ -46,6 +52,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['Aw, shucks.', 'I really liked that hand…'],
     Talk.niceHand: ['Nice hand!', 'How did you know?!'],
     Talk.bust: ['Good game, everyone!', 'That was fun anyway!'],
+    Talk.bluffed: ['You were bluffing?!', 'That is so mean! …Teach me?'],
+    Talk.shownStrong: ['Phew, glad I folded!', 'Oh wow, good fold by me.'],
   },
   BotStyle.rock: {
     Talk.allIn: ['All in.', 'I have it.'],
@@ -57,6 +65,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['Hm.', 'Noted.'],
     Talk.niceHand: ['Well played.', 'Hm. Good hand.'],
     Talk.bust: ['GG.', 'Back to the library.'],
+    Talk.bluffed: ['Noted.', 'Hm. Noted.'],
+    Talk.shownStrong: ['Good fold.', 'As I thought.'],
   },
   BotStyle.shark: {
     Talk.allIn: ['Your move.', 'All of it. Call me.', "Let's see your nerve."],
@@ -68,6 +78,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['Lucky.', "Enjoy it. It won't last."],
     Talk.niceHand: ['Lucky river.', 'Hmph. Nice hand.'],
     Talk.bust: ['Rigged.', "I'll be back."],
+    Talk.bluffed: ['Cute. Do it again.', 'I let you have that one.'],
+    Talk.shownStrong: ['Obviously. I folded.', 'Saw it coming.'],
   },
   BotStyle.maniac: {
     Talk.allIn: ['ALL IN BABY!', 'YOLO!', 'Who wants to gamble?!'],
@@ -79,6 +91,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['NOOO!', 'I was SO close!', 'Again! Again!'],
     Talk.niceHand: ['Ooh, sneaky!', 'Okay okay, nice one!'],
     Talk.bust: ['Rebuy! Can I rebuy?', 'Worth it!'],
+    Talk.bluffed: ['NO WAY! Respect!', 'Ha! You bluffed me! Love it!'],
+    Talk.shownStrong: ['Boring! Bluff next time!', 'Yeah yeah, you had it.'],
   },
   BotStyle.grinder: {
     Talk.allIn: ['Standard.', 'Easy shove, by the chart.'],
@@ -90,6 +104,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['Cooler.', 'Played it right. Long run.'],
     Talk.niceHand: ['Good call.', 'Well played, sir or madam.'],
     Talk.bust: ['GG. Variance.', 'Next session.'],
+    Talk.bluffed: ['Interesting. Adjusting.', 'Logged.'],
+    Talk.shownStrong: ['Standard fold.', 'Correct fold, then.'],
   },
   BotStyle.fish: {
     Talk.allIn: ['Something tells me…', 'All in! I feel it!'],
@@ -101,6 +117,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['So close!', 'It was one card off!'],
     Talk.niceHand: ['I had to see it!', 'Ah, what did you have?'],
     Talk.bust: ['Who needs chips anyway?', 'Fun while it lasted!'],
+    Talk.bluffed: ['I knew it! I should have called!', 'Next time I call!'],
+    Talk.shownStrong: ['See, I can fold!', 'Good thing I folded!'],
   },
   BotStyle.trapper: {
     Talk.allIn: ['Oh dear. All in, I suppose.', 'I think I have to…'],
@@ -112,6 +130,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['Didn’t see that coming.', 'Well. Well, well.'],
     Talk.niceHand: ['Sneaky! I like it.', 'You got me there.'],
     Talk.bust: ['Caught in my own trap.', 'Good game, all.'],
+    Talk.bluffed: ["Oh, you'll pay for that.", "I'll remember that."],
+    Talk.shownStrong: ['Mm, I believe it.', 'Nice. Patience.'],
   },
   BotStyle.bully: {
     Talk.allIn: ['You gonna call that?', 'Put it all in. Go on.', 'Pay up or fold.'],
@@ -123,6 +143,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['You won’t do that twice.', 'Huh. Lucky.'],
     Talk.niceHand: ['Enjoy it.', 'Okay, okay.'],
     Talk.bust: ['This table’s rigged.', 'Whatever.'],
+    Talk.bluffed: ['Try that again. I dare you.', 'Lucky I let it go.'],
+    Talk.shownStrong: ['Whatever.', 'Big deal.'],
   },
   BotStyle.sheriff: {
     Talk.allIn: ['Nobody pushes me around.', "All in. I'm not buying it."],
@@ -134,6 +156,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.lose: ['You actually had it?', 'Huh. Didn’t see that.'],
     Talk.niceHand: ['Fair enough, you had it.', 'Okay, you had it.'],
     Talk.bust: ['Someone had to keep you honest.', 'I regret nothing.'],
+    Talk.bluffed: ['I KNEW it! Never again.', "Next time I'm calling you down."],
+    Talk.shownStrong: ['Fine, you had it this time.', 'Hm. Honest, for once.'],
   },
 };
 

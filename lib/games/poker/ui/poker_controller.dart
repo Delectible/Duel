@@ -137,6 +137,16 @@ class PokerController extends ChangeNotifier {
   /// The showdown result is up and waits for [nextHand].
   bool waitingForYou = false;
 
+  /// The hand's over and you may turn your cards up (you lost a showdown,
+  /// or everyone folded to you); until you do, they're mucked.
+  bool canShowCards = false;
+
+  /// You turned them up this hand.
+  bool showedCards = false;
+
+  /// You lost a showdown and kept your cards down.
+  bool get youMucked => canShowCards && !showedCards && (hand?.result?.showdown ?? false);
+
   /// Seconds left before the result moves on by itself (timeout only).
   int? secondsLeft;
   Timer? _countdown;
@@ -355,6 +365,7 @@ class PokerController extends ChangeNotifier {
 
   void _newHand() {
     revealed.clear();
+    canShowCards = showedCards = false;
     if (_youDeal) {
       // The button's come round to you: you shuffle and deal.
       shuffles = 0;
@@ -469,18 +480,22 @@ class PokerController extends ChangeNotifier {
   void _payout() {
     final h = hand!;
     final r = h.result!;
+    final mucked = _mucked(h);
     for (final i in r.shown.keys) {
-      revealed.add(game.handSeats[i]);
+      if (!mucked.contains(i)) revealed.add(game.handSeats[i]);
     }
     phase = TablePhase.payout;
-    reads.endHand(h, game.handSeats, number: handNumber);
+    reads.endHand(h, game.handSeats, number: handNumber, mucked: mucked);
+    final me = handIndex(0);
+    canShowCards = me != null && (h.muckable.contains(me) || h.showable == me);
     _celebrate(h, r);
     _payoutSound(h, r);
     odds = const {};
     if (!r.showdown) {
-      // Everyone else folded: nothing to read, move on.
+      // Everyone else folded: nothing to read, move on (a moment longer
+      // if it's yours, to show your cards if you like).
       _notify();
-      _after(1500, _endHand);
+      _after(canShowCards ? 3500 : 1500, _endHand);
       return;
     }
     // Who won and with what: wait until you've read it (Next hand).
@@ -551,6 +566,51 @@ class PokerController extends ChangeNotifier {
         _say(losers.first, Talk.lose, chance: 0.5);
       }
     }
+  }
+
+  /// Hands that lost a showdown and stay face down (offline: yours, unless
+  /// you show them; bots always show).
+  Set<int> _mucked(PokerHand h) => {if (handIndex(0) case final i? when h.muckable.contains(i)) i};
+
+  /// Turns your cards up for the table after the hand. The bots remember
+  /// what you had (a shown bluff makes them call you lighter).
+  void showCards() {
+    final h = hand;
+    final i = handIndex(0);
+    if (!canShowCards || showedCards || h == null || i == null || phase != TablePhase.payout) return;
+    showedCards = true;
+    revealed.add(0);
+    reads.reveal(h, game.handSeats, i);
+    _shown(i);
+    // A bluff shown off gets a reaction from someone it worked on.
+    final r = h.result!;
+    if (!r.showdown && i == h.showable && h.players[i].hole.length == 2) {
+      final weak = h.board.length >= 3
+          ? evaluateHand([...h.players[i].hole, ...h.board]).category == HandCategory.highCard
+          : h.players[i].hole[0].rank != h.players[i].hole[1].rank &&
+                max(h.players[i].hole[0].rank, h.players[i].hole[1].rank) < 12;
+      final folders = [
+        for (final (k, p) in h.players.indexed)
+          if (k != i && p.folded && _bots[game.handSeats[k]] != null) game.handSeats[k],
+      ];
+      if (folders.isNotEmpty) {
+        _say(folders[_rng.nextInt(folders.length)], weak ? Talk.bluffed : Talk.shownStrong, chance: 0.8);
+      }
+    }
+    _notify();
+  }
+
+  /// Online: tells the server you showed.
+  void _shown(int i) {}
+
+  /// Keep them down: with everyone folded to you, straight on to the next
+  /// hand.
+  void muckCards() {
+    final r = hand?.result;
+    if (!canShowCards || showedCards || r == null || r.showdown || phase != TablePhase.payout) return;
+    canShowCards = false;
+    _timer?.cancel();
+    _endHand();
   }
 
   /// You've read the result: on to the next hand.

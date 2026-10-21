@@ -64,10 +64,80 @@ class _ActionBarState extends State<ActionBar> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         child: c.waitingForYou
-            ? _nextHandButton()
+            ? (c.canShowCards
+                  ? Row(
+                      children: [
+                        _showChoice(),
+                        const SizedBox(width: 8),
+                        Expanded(child: _nextHandButton()),
+                      ],
+                    )
+                  : _nextHandButton())
+            : c.canShowCards && c.phase == TablePhase.payout
+            ? SizedBox(
+                height: 60,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Center(child: Text('Everyone folded.', style: Toon.text(15))),
+                    ),
+                    _showChoice(),
+                  ],
+                ),
+              )
             : c.phase == TablePhase.shuffle
             ? _dealButton()
             : (c.yourTurn ? (_raising ? _raisePanel() : _buttons()) : _status()),
+      ),
+    );
+  }
+
+  /// Muck (keep your cards down: the default) or Show them to the table.
+  Widget _showChoice() {
+    Widget option(
+      String label,
+      IconData icon, {
+      required bool on,
+      required VoidCallback onTap,
+      required Key key,
+    }) => ToonButton(
+      key: key,
+      color: on ? Toon.yellow : Toon.card,
+      radius: 12,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      onPressed: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20),
+          Text(
+            label,
+            style: Toon.text(13, weight: FontWeight.w700, color: Toon.on(on ? Toon.yellow : Toon.card)),
+          ),
+        ],
+      ),
+    );
+    return SizedBox(
+      height: 60,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          option(
+            'Muck',
+            Icons.visibility_off_rounded,
+            on: !c.showedCards,
+            onTap: c.muckCards,
+            key: const Key('muck'),
+          ),
+          const SizedBox(width: 6),
+          option(
+            c.showedCards ? 'Shown' : 'Show',
+            Icons.visibility_rounded,
+            on: c.showedCards,
+            onTap: c.showCards,
+            key: const Key('show cards'),
+          ),
+        ],
       ),
     );
   }
@@ -84,23 +154,26 @@ class _ActionBarState extends State<ActionBar> {
         key: const Key('next hand'),
         color: Toon.green,
         onPressed: c.nextHand,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(last ? 'Continue' : 'Next hand', style: Toon.text(18, weight: FontWeight.w700)),
-            const SizedBox(width: 6),
-            const Icon(Icons.arrow_forward_rounded),
-            if (left != null) ...[
-              const SizedBox(width: 10),
-              Container(
-                width: 30,
-                height: 30,
-                alignment: Alignment.center,
-                decoration: Toon.box(Toon.card, radius: 15, shadow: 0),
-                child: Text('$left', style: Toon.text(15, weight: FontWeight.w700)),
-              ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(last ? 'Continue' : 'Next hand', style: Toon.text(18, weight: FontWeight.w700)),
+              const SizedBox(width: 6),
+              const Icon(Icons.arrow_forward_rounded),
+              if (left != null) ...[
+                const SizedBox(width: 10),
+                Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: Toon.box(Toon.card, radius: 15, shadow: 0),
+                  child: Text('$left', style: Toon.text(15, weight: FontWeight.w700)),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

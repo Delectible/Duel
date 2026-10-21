@@ -174,6 +174,30 @@ class PokerHand {
 
   bool get headsUp => players.length == 2;
 
+  /// Everyone left was all in and the cards were turned up for the rest of
+  /// the board: nobody can muck.
+  bool ranOut = false;
+
+  /// Once it's over: the hands that lost a showdown and may be mucked
+  /// (never turned up for the table).
+  Set<int> get muckable {
+    final r = result;
+    if (r == null || !r.showdown || ranOut) return const {};
+    return {
+      for (final i in r.shown.keys)
+        if ((r.winnings[i] ?? 0) == 0) i,
+    };
+  }
+
+  /// Once it's over: the winner when everyone else folded (they may show
+  /// their cards if they like).
+  int? get showable {
+    final r = result;
+    if (r == null || r.showdown) return null;
+    final i = players.indexWhere((p) => !p.folded);
+    return i < 0 ? null : i;
+  }
+
   /// Everything in the middle, current-street bets included.
   int get pot => players.fold(0, (s, p) => s + p.committed);
 
@@ -302,6 +326,7 @@ class PokerHand {
   /// when the betting round is over.
   void nextStreet() {
     if (toAct != null || result != null) throw StateError('Betting round still open');
+    if (isAllInRunout) ranOut = true;
     for (final p in players) {
       p.bet = 0;
       p._acted = false;

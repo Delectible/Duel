@@ -68,7 +68,13 @@ class PokerGame extends OnlineGame {
       button: state['button']! as int,
     );
     final hands = (state['hands']! as List).cast<List<Object?>>();
+    final humans = (state['humans']! as List).cast<int>().toSet();
+    // People who turned their cards up after a hand: [hand, seat].
+    final shows = {
+      for (final s in (state['shows'] as List?) ?? const []) ((s as List)[0]! as int, s[1]! as int),
+    };
     final history = <Doc>[];
+    final canShow = <Set<int>>[];
     final holes = <Map<int, List<PlayingCard>>>[];
     final reads = TableReads(n);
     late PokerHand h;
@@ -85,18 +91,46 @@ class PokerGame extends OnlineGame {
         h.apply(move);
       }
       advance(h);
-      if (h.result != null) reads.endHand(h, g.handSeats, number: number + 1);
+      // People who lost a showdown keep their cards down unless they show
+      // them; a person everyone folded to may show theirs. (Bots always
+      // show at a showdown.)
+      final seatOf = g.handSeats;
+      final muck = {
+        for (final k in h.muckable)
+          if (humans.contains(seatOf[k])) k,
+      };
+      final winner = h.showable;
+      final allowed = {
+        for (final k in muck) seatOf[k],
+        if (winner != null && humans.contains(seatOf[winner])) seatOf[winner],
+      };
+      canShow.add(allowed);
+      final mucked = {
+        for (final k in muck)
+          if (!shows.contains((number, seatOf[k]))) k,
+      };
+      final showed =
+          winner != null && allowed.contains(seatOf[winner]) && shows.contains((number, seatOf[winner]));
+      if (h.result != null) {
+        reads.endHand(h, seatOf, number: number + 1, mucked: mucked);
+        if (showed) reads.reveal(h, seatOf, winner);
+      }
       history.add({
         'board': [for (final c in h.board) '$c'],
-        // Turned up at a showdown (or an all-in runout).
+        // Turned up at a showdown (or an all-in runout), and a winner who
+        // chose to show. Mucked hands are sent for the phones' tables to
+        // settle the pot, but never turned up.
         'shown': {
           for (final k in h.result?.shown.keys ?? const <int>[])
-            '${g.handSeats[k]}': [for (final c in h.players[k].hole) '$c'],
+            '${seatOf[k]}': [for (final c in h.players[k].hole) '$c'],
+          if (showed) '${seatOf[winner]}': [for (final c in h.players[winner].hole) '$c'],
         },
+        if (mucked.isNotEmpty) 'mucked': [for (final k in mucked) seatOf[k]],
+        if (showed) 'showed': [seatOf[winner]],
       });
       if (h.result != null) g.finishHand();
     }
-    return PokerTable(g, h, state, history, holes, reads);
+    return PokerTable(g, h, state, history, holes, reads, canShow);
   }
 
   static Move toMove(MoveKind kind, int amount) => switch (kind) {
@@ -122,7 +156,30 @@ class PokerGame extends OnlineGame {
   }
 
   @override
+  bool aside(Doc move) => move['kind'] == 'show';
+
+  /// Turns your cards up after hand number [move]'s `hand` (0-based): you
+  /// lost a showdown, or everyone folded to you.
+  Doc _show(Doc state, int seat, Doc move) {
+    final t = replay(state);
+    final hand = move['hand'];
+    if (hand is! int || hand < 0 || hand >= t.canShow.length || !t.canShow[hand].contains(seat)) {
+      throw const MoveError('Nothing to show');
+    }
+    final shows = [...(state['shows'] as List?) ?? const []];
+    if (shows.any((s) => (s as List)[0] == hand && s[1] == seat)) return state;
+    return {
+      ...state,
+      'shows': [
+        ...shows,
+        [hand, seat],
+      ],
+    };
+  }
+
+  @override
   Doc play(Doc state, int seat, Doc move) {
+    if (move['kind'] == 'show') return _show(state, seat, move);
     final t = replay(state);
     if (t.over) throw const MoveError('The game is over');
     final h = t.hand;
@@ -266,7 +323,7 @@ class PokerGame extends OnlineGame {
 /// A replayed tournament, with what was dealt (for [PokerGame.public] /
 /// [PokerGame.private]).
 class PokerTable {
-  PokerTable(this.game, this.hand, Doc state, this.history, this.holes, this.reads)
+  PokerTable(this.game, this.hand, Doc state, this.history, this.holes, this.reads, this.canShow)
     : humans = (state['humans']! as List).cast<int>().toSet(),
       seats = [for (final p in hand.players) p.seat] {
     final gone = (state['gone']! as List).cast<int>().toSet();
@@ -331,6 +388,9 @@ class PokerTable {
 
   /// What the table has seen everyone do (the bots read it).
   final TableReads reads;
+
+  /// Per hand: the seats that may still turn their cards up.
+  final List<Set<int>> canShow;
 
   /// Who won (first place).
   int get winner => places.entries.firstWhere((e) => e.value == 1).key;

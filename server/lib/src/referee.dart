@@ -354,8 +354,8 @@ class Referee {
     } on MoveError catch (e) {
       throw RefereeError(400, e.message);
     }
-    (match['timeouts']! as List)[seat] = 0;
-    _commit(tx, match, game, before, state);
+    if (!game.aside(move)) (match['timeouts']! as List)[seat] = 0;
+    _commit(tx, match, game, before, state, keepClock: game.aside(move));
     return match;
   });
 
@@ -662,7 +662,7 @@ class Referee {
   /// Plays bots (and players who left) until a person is to move, then
   /// writes it all: the secret state, the public match, each person's own
   /// cards. [before] is the state the players last saw.
-  void _commit(Tx tx, Doc match, OnlineGame game, Doc before, Doc state) {
+  void _commit(Tx tx, Doc match, OnlineGame game, Doc before, Doc state, {bool keepClock = false}) {
     final bots = match['bots']! as List;
     final gone = (match['gone']! as List).cast<int>();
     final standIns = _standIns(match);
@@ -684,7 +684,7 @@ class Referee {
     final result = game.result(state);
     if (result != null) {
       _finish(match, result, reason: result.draw ? 'draw' : 'won');
-    } else {
+    } else if (!keepClock || match['turn'] != game.turn(state)) {
       match['turn'] = game.turn(state);
       match['deadline'] = _now + (turnTime + game.show(before, state)).inMilliseconds;
       match['turnAt'] = _now;

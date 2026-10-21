@@ -278,6 +278,31 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final MapEntry(key: phone, value: size) in phones.entries) {
+    testWidgets('losing a showdown: muck by default, or show on $phone', (tester) async {
+      usePhone(tester, size);
+      await tester.pumpWidget(app(1, pace: 0.2));
+      final show = find.byKey(const Key('show cards'));
+      for (var i = 0; i < 20000; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+        if (show.evaluate().isNotEmpty) break;
+        if (await shuffleAndDeal(tester)) continue;
+        if (yourTurn()) {
+          await settleButtons(tester);
+          await tester.tap(find.byKey(const Key('call')));
+        }
+      }
+      expect(show, findsOneWidget);
+      expect(find.byKey(const Key('muck')), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 300));
+      await shot(tester, 'poker_muck_$phone');
+      await tester.tap(show);
+      await tester.pump();
+      expect(find.text('Shown'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('bot games: the showdown result waits for Next hand', (tester) async {
     usePhone(tester, phones['pixel9pro']!);
     await tester.pumpWidget(app(3));

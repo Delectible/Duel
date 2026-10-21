@@ -169,7 +169,10 @@ weights cut from the variable font.
   `poker_game.dart` Hold'em: `replay` rebuilds the hand and `TableReads`;
   hidden `styles` per seat (public once over); bot moves logged as
   `[kind, amount, tempo%]`, phones wait `onlineThinkMs`, `show` adds it to
-  the next clock; full state in `secrets/{id}`, public in the
+  the next clock; `{kind: show, hand}` turns a person's cards up after a
+  hand (out of turn: `OnlineGame.aside` keeps the clock; state `shows`,
+  public `mucked` / `showed`; mucked cards still go out so phones settle
+  the pot, but aren't shown or read); full state in `secrets/{id}`, public in the
   match, `private` per player in `matches/{id}/hands/{uid}`). Players only
   read Firestore; only the referee writes.
   Every write goes through `_put`, which stamps `expireAt` (games a day
@@ -261,7 +264,9 @@ weights cut from the variable font.
   `think()` → `Decision.tempo`, tilt, ICM; `classify`, `outs`,
   `preflopRank`), `reads.dart` (`TableReads`: per-player stats from every
   action (call `observe` before `apply`), tilt, sizing tells, the last 20
-  hands; bots read it, the app shows it; sizing and limps feed the tips),
+  hands; bots read it, the app shows it; sizing and limps feed the tips;
+  `endHand(mucked:)` skips mucked hands, `reveal` adds a shown one;
+  `PokerHand.muckable` / `showable` / `ranOut`),
   `coach.dart` (`coachTips`: "Improve your game" on the end-of-game board,
   `showCoach` in `table_stats.dart`).
   `dart run tool/poker/simulate.dart [n] [easy|normal|hard]` plays bot-only
@@ -279,7 +284,8 @@ weights cut from the variable font.
   `shuffleAndDeal`), `table_stats.dart` (`TableInfo` strip, read cards
   (tap a seat), hand history, `oddsLine` (`Account.pokerOdds`),
   `GameSummary` with `pickQuotes`). Showdown results wait for Next hand
-  (`waitingForYou` / `nextHand()`); `resultTimeout` (online: 10 s) moves
+  (`waitingForYou` / `nextHand()`; Show / Muck: `canShowCards`,
+  `showCards()` / `muckCards()`); `resultTimeout` (online: 10 s) moves
   on by itself with a countdown.
 - `lib/games/crazy_eights/`: `engine/crazy_eights.dart` (rules + an event
   list the commentary and animations read), `engine/eights_bot.dart`;
