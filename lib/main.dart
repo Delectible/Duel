@@ -14,6 +14,7 @@ import 'core/session/play_setup.dart';
 import 'core/theme/rotation_fade.dart';
 import 'core/theme/toon.dart';
 import 'features/home/home_screen.dart';
+import 'core/theme/system_bars.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -120,7 +121,7 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
             title: AppInfo.name,
             debugShowCheckedModeBanner: false,
             theme: Toon.theme(),
-            builder: (context, child) => RotationFade(child: child!),
+            builder: (context, child) => SystemBars(child: RotationFade(child: child!)),
             home: const HomeScreen(),
           ),
         ),

@@ -2,6 +2,7 @@ import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/games/catalog.dart';
 import 'package:duel/main.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'screens.dart';
@@ -74,5 +75,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(opacity(), 1);
     expect(find.text('Pick a game'), findsOneWidget);
+  });
+
+  testWidgets('on its side the system bars hide (a swipe brings them back); upright they show', (
+    tester,
+  ) async {
+    final modes = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'SystemChrome.setEnabledSystemUIMode') modes.add('${call.arguments}');
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(DuelApp(setup: PlaySetup()));
+    await tester.pumpAndSettle();
+    expect(modes.last, contains('edgeToEdge'));
+    usePhone(tester, phones['pixel9pro_land']!);
+    await tester.pumpAndSettle();
+    expect(modes.last, contains('immersiveSticky'));
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpAndSettle();
+    expect(modes.last, contains('edgeToEdge'));
   });
 }

@@ -3,14 +3,13 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.8.8';
+  static const version = '0.8.9';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Hold'em tidy-up: the pot now flies into the winner instead of sitting on their cards, turned-up cards "
-      'stay on screen on a phone on its side, bets sit clear of name plates, and the title no longer gets cut '
-      'short. Four in a Row: discs now really drop, falling behind the board and showing through the holes.';
+      'On its side (great on tablets), the navigation buttons and status bar now tuck away: swipe in from '
+      'the edge to bring them back for a moment.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

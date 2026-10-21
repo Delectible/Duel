@@ -431,6 +431,12 @@ Ships as app version **0.4.1**.
 
 ### 12. Fixes
 
+- [x] **12.9 System buttons hide on its side** (requested 2026-10-21, on a
+  tablet): with the phone or tablet on its side, Android's navigation
+  buttons and status bar hide (immersive sticky): a swipe in from the edge
+  shows them for a moment, then they slide away. Upright, they show as
+  before (`core/theme/system_bars.dart`). → 0.8.9 · 2026-10-21
+
 - [x] **12.8 Four in a Row: the disc really drops** (reported 2026-10-21):
   the falling disc was drawn inside its own hole, under the empty holes
   above it, so it flickered in and out, and it used a bounce curve that
