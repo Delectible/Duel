@@ -476,6 +476,15 @@ Ships as app version **0.4.1**.
   limping, raise and bet sizes, calling vs betting, folding to bets,
   c-bets, all-ins; then what went well. Needs 8+ hands. Other games
   later. → 0.9.1 · 2026-10-21
+
+### 21. Music (requested 2026-10-21)
+
+- [x] **21.1 Background music**, five CC0 tracks from OpenGameArt
+  (`assets/music`, credits in `CREDITS.txt`): Lounge (8-bit bossa nova),
+  Lo-fi, Tavern (medieval inn), Tiki (island exotica), Arcade (chiptune).
+  Settings: pick one or Off, and a music volume of its own (default
+  Lounge at half). Loops under everything, stops while the app is in the
+  background. → 0.9.1 · 2026-10-21
   → 0.9.0 · 2026-10-21
 
 ### 12. Fixes

@@ -39,8 +39,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   # Sound effects: Kenney.nl's CC0 packs (assets/sounds/LICENSE-kenney.txt).
+  # Music: CC0 tracks from OpenGameArt (assets/music/CREDITS.txt).
   assets:
     - assets/sounds/
+    - assets/music/
   fonts:
     # Fredoka (OFL, assets/fonts/OFL.txt), static weights cut from the
     # variable font with fontTools.

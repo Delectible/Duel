@@ -8,10 +8,10 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Sound effects: buttons tick, cards shuffle and deal, chips clink, and wins and losses each have their '
-      'own jingle, small to big; showdowns and Blitz wars get a drum and a clash (Settings: on / off, '
-      "volume). Hold'em's end-of-game board has Improve your game: tips from how you played. Small cards "
-      'show one suit.';
+      'Sound and music: buttons tick, cards shuffle and deal, chips clink, wins and losses each get a '
+      'jingle, small to big, and showdowns and Blitz wars a drum and a clash. Five kinds of background '
+      "music to pick from (Lounge, Lo-fi, Tavern, Tiki, Arcade) with their own volume in Settings. Hold'em's "
+      'end-of-game board has Improve your game: tips from how you played. Small cards show one suit.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -36,6 +36,7 @@ class AppInfo {
         'Spades: pick your partner',
         'Parties: host picks, vote or first come',
         'Sound effects (Settings: on / off, volume)',
+        'Background music: five to pick from',
         "Hold'em: Improve your game tips",
       ],
     ),

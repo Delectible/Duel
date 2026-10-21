@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../avatars/faces.dart';
 import 'package:duel_engine/difficulty.dart';
+import '../sound/sound.dart';
 import '../theme/toon.dart';
 
 /// How money is shown. One pip is one of anything: it's display only.
@@ -102,6 +103,8 @@ class Account extends ChangeNotifier {
   bool _pokerOdds = true;
   bool _sound = true;
   double _volume = 0.8;
+  Track? _music = Track.lounge;
+  double _musicVolume = 0.5;
   final Map<String, GameStats> _stats = {};
   String? _partyId;
 
@@ -119,6 +122,12 @@ class Account extends ChangeNotifier {
   double get volume => _volume;
   set sound(bool v) => _change(() => _sound = v);
   set volume(double v) => _change(() => _volume = v.clamp(0.0, 1.0));
+
+  /// Background music (null: off) and its own volume.
+  Track? get music => _music;
+  double get musicVolume => _musicVolume;
+  set music(Track? t) => _change(() => _music = t);
+  set musicVolume(double v) => _change(() => _musicVolume = v.clamp(0.0, 1.0));
 
   /// The online party you're in, so reopening the app takes you back.
   String? get partyId => _partyId;
@@ -243,6 +252,8 @@ class Account extends ChangeNotifier {
       _pokerOdds = j['odds'] as bool? ?? true;
       _sound = j['sound'] as bool? ?? true;
       _volume = (j['volume'] as num?)?.toDouble() ?? 0.8;
+      _music = j['music'] == 'off' ? null : Track.values.asNameMap()[j['music']] ?? Track.lounge;
+      _musicVolume = (j['musicVolume'] as num?)?.toDouble() ?? 0.5;
       final left = j['left'] as Map<String, dynamic>? ?? {};
       left.forEach((k, v) {
         if (v is Map && v['g'] is String && v['s'] is int) {
@@ -268,6 +279,8 @@ class Account extends ChangeNotifier {
       if (!_pokerOdds) 'odds': false,
       if (!_sound) 'sound': false,
       'volume': _volume,
+      'music': _music?.name ?? 'off',
+      'musicVolume': _musicVolume,
       'left': {
         for (final e in _leftGames.entries) e.key: {'g': e.value.game, 's': e.value.stake},
       },

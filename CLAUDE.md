@@ -227,7 +227,9 @@ weights cut from the variable font.
   until `Sound.start()` in main(), so tests stay quiet; `Account.sound` /
   `volume` in Settings. `ToonButton` ticks by itself; games call it from
   their controllers (wins / losses: small = a hand, medium = a big pot,
-  big = the game).
+  big = the game). `Music` in the same file: one `Track` on a loop
+  (`assets/music/music_<name>.mp3`, CC0, `CREDITS.txt`), `Account.music`
+  (null = off) / `musicVolume`, paused in the background (main.dart).
 - `lib/core/app_info.dart`: version, `latest` (Play's What's new),
   `revisions` (About).
 - `lib/core/session/`: `PlaySetup` (the connection bar: Bots / Friend,

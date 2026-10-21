@@ -100,7 +100,16 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
   void _applySound() {
     Sound.on = widget.account.sound;
     Sound.volume = widget.account.volume;
+    Music.set(widget.account.music, widget.account.musicVolume);
   }
+
+  /// No music while the app is in the background.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) => Music.away(
+    state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached,
+  );
 
   bool _wantDark() => switch (widget.account.theme) {
     ThemeChoice.light => false,

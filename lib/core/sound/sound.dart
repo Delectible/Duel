@@ -59,6 +59,7 @@ abstract final class Sound {
         _players.add(p);
       }
       _started = true;
+      unawaited(Music._sync());
     } on Object {
       // No audio on this device: stay silent.
     }
@@ -93,5 +94,77 @@ abstract final class Sound {
   static void later(Sfx s, int ms, {double gain = 1}) {
     if (!_started || !on) return;
     Timer(Duration(milliseconds: ms), () => play(s, gain: gain));
+  }
+}
+
+/// Background music (CC0, from OpenGameArt; `assets/music`).
+enum Track {
+  lounge('Lounge', '8-bit bossa nova'),
+  lofi('Lo-fi', 'Chill beats'),
+  tavern('Tavern', 'Medieval inn'),
+  tiki('Tiki', 'Island exotica'),
+  arcade('Arcade', 'Chiptune');
+
+  const Track(this.label, this.blurb);
+
+  final String label;
+  final String blurb;
+}
+
+/// One track on a loop under everything, at its own volume. Quiet while
+/// the app is in the background, and (like [Sound]) until [Sound.start].
+abstract final class Music {
+  static Track? _track;
+  static double _volume = 0.5;
+  static var _away = false;
+
+  static AudioPlayer? _player;
+  static Track? _playing;
+  static var _paused = false;
+
+  /// The chosen track (null: no music) and its volume.
+  static void set(Track? track, double volume) {
+    if (track == _track && volume == _volume) return;
+    _track = track;
+    _volume = volume;
+    unawaited(_sync());
+  }
+
+  /// The app went to the background (or came back).
+  static void away(bool away) {
+    if (away == _away) return;
+    _away = away;
+    unawaited(_sync());
+  }
+
+  static Future<void> _sync() async {
+    if (!Sound._started) return;
+    try {
+      final p = _player ??= AudioPlayer();
+      final want = _away || _volume <= 0 ? null : _track;
+      // Music sits under the effects.
+      final volume = _volume * 0.6;
+      if (want == null) {
+        if (_playing != null && !_paused) {
+          _paused = true;
+          await p.pause();
+        }
+        return;
+      }
+      if (want != _playing) {
+        _playing = want;
+        _paused = false;
+        await p.setReleaseMode(ReleaseMode.loop);
+        await p.play(AssetSource('music/music_${want.name}.mp3'), volume: volume);
+        return;
+      }
+      await p.setVolume(volume);
+      if (_paused) {
+        _paused = false;
+        await p.resume();
+      }
+    } on Object {
+      // No music then.
+    }
   }
 }

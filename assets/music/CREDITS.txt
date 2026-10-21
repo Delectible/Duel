@@ -1,0 +1,15 @@
+Background music. Every track is CC0 (public domain dedication,
+https://creativecommons.org/publicdomain/zero/1.0/), from OpenGameArt.org.
+Re-encoded to mp3 (96 kbps) and loudness-matched; otherwise unchanged.
+
+music_lounge.mp3  "Bossa Nova" (8bit Bossa) by Joth
+                  https://opengameart.org/content/bossa-nova
+music_lofi.mp3    "Chill lofi inspired" by omfgdude
+                  https://opengameart.org/content/chill-lofi-inspired
+music_tavern.mp3  "Medieval: The Old Tower Inn" by RandomMind
+                  https://opengameart.org/content/medieval-the-old-tower-inn
+music_tiki.mp3    "Enchanted Tiki 86" by cynicmusic
+                  https://opengameart.org/content/enchanted-tiki-86
+music_arcade.mp3  "Stage 2" from "4 Chiptunes (Adventure)" by Juhani Junkala
+                  (SubspaceAudio)
+                  https://opengameart.org/content/4-chiptunes-adventure

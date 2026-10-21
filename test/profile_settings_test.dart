@@ -2,6 +2,7 @@ import 'package:duel/core/account/account.dart';
 import 'package:duel/core/avatars/faces.dart';
 import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/core/theme/toon.dart';
+import 'package:duel/core/sound/sound.dart';
 import 'package:duel/features/profile/profile_screen.dart';
 import 'package:duel/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
@@ -144,11 +145,35 @@ void main() {
     await tester.tap(find.byKey(const Key('theme dark')));
     await tester.pumpAndSettle();
     expect(a.theme, ThemeChoice.dark);
-    await tester.ensureVisible(find.byKey(const Key('currency eur')));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('currency eur')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('currency eur')));
     await tester.pumpAndSettle();
     expect(a.currency, CurrencyChoice.eur);
     expect(a.money(100), '€100');
+  });
+
+  testWidgets('settings: music picks a track, Off hides its volume', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    final a = Account();
+    await tester.pumpWidget(_wrap(const SettingsScreen(), a));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('music tiki')));
+    await tester.pumpAndSettle();
+    await shot(tester, 'settings_music');
+    await tester.tap(find.byKey(const Key('music tiki')));
+    await tester.pumpAndSettle();
+    expect(a.music, Track.tiki);
+    expect(find.byKey(const Key('music volume')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('music off')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('music off')));
+    await tester.pumpAndSettle();
+    expect(a.music, isNull);
+    expect(find.byKey(const Key('music volume')), findsNothing);
   });
 }

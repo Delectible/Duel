@@ -114,6 +114,68 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 16),
+          Text('Music', style: Toon.text(18, weight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, box) {
+              final w = (box.maxWidth - 8) / 2;
+              Widget pick(Track? t) {
+                final on = account.music == t;
+                final fill = on ? Toon.yellow : Toon.card;
+                return SizedBox(
+                  width: w,
+                  child: ToonButton(
+                    key: Key('music ${t?.name ?? 'off'}'),
+                    color: fill,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    onPressed: () => account.music = t,
+                    child: Row(
+                      children: [
+                        Icon(t == null ? Icons.music_off_rounded : Icons.music_note_rounded, size: 20),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(t?.label ?? 'Off', style: Toon.text(15, color: Toon.on(fill))),
+                              Text(
+                                t?.blurb ?? 'No music',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Toon.text(11, weight: FontWeight.w600, color: Toon.on(fill)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [pick(null), for (final t in Track.values) pick(t)],
+              );
+            },
+          ),
+          if (account.music != null)
+            Row(
+              children: [
+                const Icon(Icons.volume_down_rounded),
+                Expanded(
+                  child: Slider(
+                    key: const Key('music volume'),
+                    value: account.musicVolume,
+                    activeColor: Toon.purple,
+                    onChanged: (v) => account.musicVolume = v,
+                  ),
+                ),
+                const Icon(Icons.volume_up_rounded),
+              ],
+            ),
+          const SizedBox(height: 16),
           Text("Hold'em", style: Toon.text(18, weight: FontWeight.w700)),
           const SizedBox(height: 8),
           ToonButton(

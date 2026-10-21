@@ -1,6 +1,7 @@
 import 'package:duel/core/account/account.dart';
 import 'package:duel/core/avatars/faces.dart';
 import 'package:duel/core/account/stake.dart';
+import 'package:duel/core/sound/sound.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -69,7 +70,9 @@ void main() {
       ..currency = CurrencyChoice.eur
       ..theme = ThemeChoice.dark
       ..sound = false
-      ..volume = 0.3;
+      ..volume = 0.3
+      ..music = Track.tiki
+      ..musicVolume = 0.2;
     a.placeStake(10);
     a.settle(gameId: 'gofish', stake: 10, outcome: Outcome.win, opponents: 2, difficulty: Difficulty.hard);
     final b = Account(store: store);
@@ -79,6 +82,10 @@ void main() {
     expect(b.theme, ThemeChoice.dark);
     expect((b.sound, b.volume), (false, 0.3));
     expect(Account().sound, isTrue, reason: 'sound is on by default');
+    expect((b.music, b.musicVolume), (Track.tiki, 0.2));
+    final c = Account(store: store)..music = null;
+    expect(Account(store: store).music, isNull, reason: 'music off is kept');
+    expect(c.music, isNull);
     expect(b.balance, 130);
     expect(b.stats('gofish').won, 1);
     expect(b.money(-1240), '−€1,240');
