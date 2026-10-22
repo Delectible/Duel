@@ -163,7 +163,7 @@ class SpadesController extends ChangeNotifier {
     justTook = null;
     stage = teams ? SpadesStage.dealing : SpadesStage.drawing;
     if (teams) {
-      Sound.deal(10);
+      Sound.deal(13, gapMs: 90);
     } else {
       Sound.play(Sfx.shuffle);
     }

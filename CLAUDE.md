@@ -225,7 +225,10 @@ weights cut from the variable font.
   `test/sweep_test.dart` renders every screen light / dark, both ways.
 - `lib/features/profile/`, `lib/features/settings/`: the two buttons atop
   home.
-- `lib/core/sound/sound.dart`: `Sound.play(Sfx.x)` / `later` / `deal(n)`
+- `lib/core/sound/sound.dart`: `Sound.play(Sfx.x)` / `later` / `deal(n,
+  gapMs)` (match the game's deal animation; each recording has a `_Pool`
+  of players loaded once, stopped and replayed: low-latency players never
+  hear a sound end)
   (audioplayers, SPM on iOS; mp3s in `assets/sounds/`, Kenney CC0). Silent
   until `Sound.start()` in main(), so tests stay quiet; Android: game
   usage on the media volume, no audio focus (mixes with Spotify); iOS:

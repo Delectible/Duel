@@ -158,7 +158,6 @@ class BlitzController extends ChangeNotifier {
     fighting = false;
     round++;
     phase = BlitzPhase.dealing;
-    Sound.deal(8);
     _after(1300, _step);
   }
 

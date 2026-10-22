@@ -10,7 +10,8 @@ class AppInfo {
   static const latest =
       'Smoother: games now run at your screen\'s full refresh rate (90 or 120 Hz where it has it), and the '
       'tables redraw far less each frame, which should help older phones and tablets a lot. Changing the '
-      'music is quick now too, and on Android sound follows the media volume instead of the ringer.';
+      'music is quick now too, sounds keep in step with the cards (a single riffle per shuffle), and on '
+      'Android sound follows the media volume instead of the ringer.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

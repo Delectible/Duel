@@ -106,7 +106,7 @@ class FishController extends ChangeNotifier {
       round++;
       phase = FishPhase.dealing;
       _seenEvents = game.events.length;
-      if (game.events.isEmpty) Sound.deal(8);
+      if (game.events.isEmpty) Sound.deal(link.n <= 3 ? 7 : 5);
       _after(1400, _step);
       return;
     }
@@ -123,7 +123,7 @@ class FishController extends ChangeNotifier {
     round++;
     phase = FishPhase.dealing;
     _seenEvents = game.events.length;
-    Sound.deal(8);
+    Sound.deal(bots <= 2 ? 7 : 5);
     _after(1400, _step);
   }
 

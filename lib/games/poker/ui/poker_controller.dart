@@ -409,7 +409,8 @@ class PokerController extends ChangeNotifier {
     _notify();
     // A card sound for each card as it goes round.
     for (var k = 0; k < hand!.players.length * 2; k++) {
-      Sound.later(Sfx.deal, ((500 + k * dealGap) * pace).round(), gain: 0.8);
+      // In step with the cards: one every dealGap from the start.
+      Sound.later(Sfx.deal, (k * dealGap * pace).round(), gain: 0.8);
     }
     // Wait for the cards to go round (two each) before anyone acts.
     _after(500 + hand!.players.length * 2 * dealGap + 350, _step);

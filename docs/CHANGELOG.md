@@ -543,6 +543,17 @@ Ships as app version **0.4.1**.
   unchanged: mixes with other audio, follows the silent switch.
   → 0.9.2 · 2026-10-22
 
+- [x] **26.5 Sounds in step, every time**: a shuffle is now one riffle
+  (Kenney's card-fan-1, 0.76 s, the length of the shuffle animation)
+  instead of a 3 s run of shuffles, and plays on every shuffle. Repeats
+  used to drop out: on Android a low-latency player never hears its
+  sound end, so asking it to play the same clip again did nothing, and
+  each play loaded its file first (the lag). Now every recording has its
+  own few players, loaded once at launch, stopped and replayed. Deal
+  sounds follow each game's deal animation (Hold'em's ran 0.5 s late;
+  the other games played a shuffle and then started 0.7 s late, with no
+  shuffle on screen). → 0.9.2 · 2026-10-22
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

@@ -44,9 +44,15 @@ abstract final class Sound {
   static double volume = 0.8;
 
   static final _rng = Random();
-  static final List<AudioPlayer> _players = [];
-  static var _next = 0;
+
+  /// Each recording has its own few players, loaded once: a sound plays at
+  /// once (nothing to load) and the same one can overlap itself (a deal).
+  static final _pools = <String, _Pool>{};
   static final _last = <Sfx, DateTime>{};
+
+  static List<String> _files(Sfx s) => [
+    if (s.variants == 0) s.file else for (var v = 1; v <= s.variants; v++) '${s.file}$v',
+  ];
 
   /// Called once from main().
   static Future<void> start() async {
@@ -64,27 +70,19 @@ abstract final class Sound {
           iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
         ),
       );
-      for (var i = 0; i < 6; i++) {
-        final p = AudioPlayer();
-        await p.setReleaseMode(ReleaseMode.stop);
-        await p.setPlayerMode(PlayerMode.lowLatency);
-        _players.add(p);
-      }
       _started = true;
       unawaited(Music._sync());
-      // Each sound is copied out of the app once before it first plays:
-      // do it now, quietly, rather than on the first tap (slow storage).
-      unawaited(
-        AudioCache.instance
-            .loadAll([
-              for (final s in Sfx.values)
-                if (s.variants == 0)
-                  'sounds/${s.file}.mp3'
-                else
-                  for (var v = 1; v <= s.variants; v++) 'sounds/${s.file}$v.mp3',
-            ])
-            .catchError((Object _) => <Uri>[]),
-      );
+      // Load every sound now, quietly, rather than on its first play
+      // (slow storage). Ones that come in quick runs get more players.
+      for (final s in Sfx.values) {
+        final busy = s == Sfx.deal || s == Sfx.place || s == Sfx.chips || s == Sfx.tap;
+        for (final f in _files(s)) {
+          _pools[f] = _Pool(f, busy ? 3 : 2);
+        }
+      }
+      for (final pool in _pools.values) {
+        await pool.load();
+      }
     } on Object {
       // No audio on this device: stay silent.
     }
@@ -98,20 +96,14 @@ abstract final class Sound {
     final last = _last[s];
     if (last != null && now.difference(last).inMilliseconds < 40) return;
     _last[s] = now;
-    final file = s.variants == 0 ? s.file : '${s.file}${1 + _rng.nextInt(s.variants)}';
-    final p = _players[_next++ % _players.length];
-    unawaited(
-      p
-          .play(AssetSource('sounds/$file.mp3'), volume: (volume * gain).clamp(0.0, 1.0))
-          .catchError((Object _) {}),
-    );
+    final files = _files(s);
+    _pools[files[_rng.nextInt(files.length)]]?.play((volume * gain).clamp(0.0, 1.0));
   }
 
-  /// A shuffle, then [cards] cards dealt one after another.
-  static void deal(int cards, {int gapMs = 90}) {
-    play(Sfx.shuffle);
+  /// [cards] dealt one after another, [gapMs] apart (as the deal animates).
+  static void deal(int cards, {int gapMs = 100}) {
     for (var i = 0; i < cards; i++) {
-      later(Sfx.deal, 700 + i * gapMs, gain: 0.7);
+      later(Sfx.deal, i * gapMs, gain: 0.7);
     }
   }
 
@@ -119,6 +111,44 @@ abstract final class Sound {
   static void later(Sfx s, int ms, {double gain = 1}) {
     if (!_started || !on) return;
     Timer(Duration(milliseconds: ms), () => play(s, gain: gain));
+  }
+}
+
+/// A few players for one recording, taking turns.
+class _Pool {
+  _Pool(this.file, this.size);
+
+  final String file;
+  final int size;
+  final _players = <AudioPlayer>[];
+  final _volumes = <AudioPlayer, double>{};
+  var _next = 0;
+
+  Future<void> load() async {
+    for (var i = 0; i < size; i++) {
+      final p = AudioPlayer();
+      await p.setReleaseMode(ReleaseMode.stop);
+      await p.setPlayerMode(PlayerMode.lowLatency);
+      await p.setSource(AssetSource('sounds/$file.mp3'));
+      _players.add(p);
+    }
+  }
+
+  void play(double volume) {
+    if (_players.isEmpty) return;
+    final p = _players[_next++ % _players.length];
+    unawaited(
+      () async {
+        // Stop first: in low-latency mode a player never hears that its sound
+        // ended, and would otherwise ignore being asked to play it again.
+        await p.stop();
+        if (_volumes[p] != volume) {
+          _volumes[p] = volume;
+          await p.setVolume(volume);
+        }
+        await p.resume();
+      }().catchError((Object _) {}),
+    );
   }
 }
 

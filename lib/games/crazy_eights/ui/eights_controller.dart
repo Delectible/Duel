@@ -93,7 +93,7 @@ class EightsController extends ChangeNotifier {
       }
       draws.clear();
       _heard = game.events.length;
-      if (!caughtUp) Sound.deal(8);
+      if (!caughtUp) Sound.deal(link.n == 2 ? 7 : 5, gapMs: 110);
       _after(caughtUp ? 300 : 1400, _step);
       return;
     }
@@ -105,7 +105,8 @@ class EightsController extends ChangeNotifier {
     round++;
     phase = EightsPhase.dealing;
     _heard = game.events.length;
-    Sound.deal(8);
+    // Your cards come in 110 ms apart.
+    Sound.deal(bots == 1 ? 7 : 5, gapMs: 110);
     _after(1400, _step);
   }
 
