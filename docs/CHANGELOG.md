@@ -529,6 +529,13 @@ Ships as app version **0.4.1**.
   Hold'em hand: felt redrawn 1,217 → 1 times, faces 2,535 → 21, chip
   piles 172 → 7. → 0.9.2 · 2026-10-22
 
+- [x] **26.3 Music switches fast** (took ~10 s on the tablet): an asset
+  track was copied to a temp file before it could play, slow on old
+  storage. Android now plays it straight from memory (falls back to the
+  file if that fails); the old track stops at once; quick taps only play
+  the last pick. Sound effects are copied out once in the background at
+  launch instead of on their first play. → 0.9.2 · 2026-10-22
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

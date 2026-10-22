@@ -9,7 +9,8 @@ class AppInfo {
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
       'Smoother: games now run at your screen\'s full refresh rate (90 or 120 Hz where it has it), and the '
-      'tables redraw far less each frame, which should help older phones and tablets a lot.';
+      'tables redraw far less each frame, which should help older phones and tablets a lot. Changing the '
+      'music is quick now too.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

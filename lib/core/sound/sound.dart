@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 /// Every sound in the app (Kenney's CC0 packs, `assets/sounds`).
 enum Sfx {
@@ -60,6 +62,19 @@ abstract final class Sound {
       }
       _started = true;
       unawaited(Music._sync());
+      // Each sound is copied out of the app once before it first plays:
+      // do it now, quietly, rather than on the first tap (slow storage).
+      unawaited(
+        AudioCache.instance
+            .loadAll([
+              for (final s in Sfx.values)
+                if (s.variants == 0)
+                  'sounds/${s.file}.mp3'
+                else
+                  for (var v = 1; v <= s.variants; v++) 'sounds/${s.file}$v.mp3',
+            ])
+            .catchError((Object _) => <Uri>[]),
+      );
     } on Object {
       // No audio on this device: stay silent.
     }
@@ -137,11 +152,30 @@ abstract final class Music {
     unawaited(_sync());
   }
 
+  /// Android plays the track straight from memory: as an asset it would
+  /// first be copied to a file (seconds on slow storage). iOS can't play
+  /// bytes, but reads its assets straight from the app.
+  static Future<Source> _source(Track t) async {
+    final asset = 'music/music_${t.name}.mp3';
+    if (defaultTargetPlatform != TargetPlatform.android) return AssetSource(asset);
+    try {
+      final data = await rootBundle.load('assets/$asset');
+      return BytesSource(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        mimeType: 'audio/mpeg',
+      );
+    } on Object {
+      return AssetSource(asset);
+    }
+  }
+
+  static Track? get _want => _away || _volume <= 0 ? null : _track;
+
   static Future<void> _sync() async {
     if (!Sound._started) return;
     try {
       final p = _player ??= AudioPlayer();
-      final want = _away || _volume <= 0 ? null : _track;
+      final want = _want;
       // Music sits under the effects.
       final volume = _volume * 0.6;
       if (want == null) {
@@ -154,8 +188,22 @@ abstract final class Music {
       if (want != _playing) {
         _playing = want;
         _paused = false;
+        // The old track stops at once, whatever the new one takes to load.
+        await p.stop();
+        final source = await _source(want);
+        // Picked another one (or none) meanwhile: that call sorts it out.
+        if (_playing != want) return;
+        if (_want != want) {
+          _playing = null;
+          return;
+        }
         await p.setReleaseMode(ReleaseMode.loop);
-        await p.play(AssetSource('music/music_${want.name}.mp3'), volume: volume);
+        try {
+          await p.play(source, volume: volume);
+        } on Object {
+          // Older Androids can't play from memory: the file it is.
+          await p.play(AssetSource('music/music_${want.name}.mp3'), volume: volume);
+        }
         return;
       }
       await p.setVolume(volume);
