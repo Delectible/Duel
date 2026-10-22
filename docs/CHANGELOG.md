@@ -514,6 +514,23 @@ Ships as app version **0.4.1**.
   name). On its side: your bet sits just above your cards (it was on
   them), and the top middle seat's bet beside it (it was on its name).
   Checked on both phones, both ways, 2 to 6 players. → 0.9.1 · 2026-10-22
+
+### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
+
+- [ ] **25.1 Online cash tables, open to everyone**: a set of public
+  Hold'em tables at different stakes, always running with bots; any
+  player can sit down at any time and takes a bot's seat (the bot comes
+  back when they leave), so any number of people can play. Leave any
+  time (mid-hand: fold, then cash out).
+- [ ] **25.2 Pips are the chips**: buy in from your balance, cash out to
+  it. You need the pips (no credit); earn them in the other games first.
+  No cut: it's among friends, not a casino.
+- [ ] **25.3 Unlocks**: bigger tables open up as you go (e.g. by balance
+  or by what you've won).
+- Needs a server-side wallet first: today each phone keeps its own pips,
+  and in a cash game pips pass between people, so the referee must hold
+  balances (move the balance there once). Then public tables (not party
+  matches) with seats people join and leave mid-session.
   → 0.9.0 · 2026-10-21
 
 ### 12. Fixes
