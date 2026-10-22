@@ -536,6 +536,13 @@ Ships as app version **0.4.1**.
   the last pick. Sound effects are copied out once in the background at
   launch instead of on their first play. → 0.9.2 · 2026-10-22
 
+- [x] **26.4 Media volume, not the ringer** (Android): the sounds were
+  set up as "respect silence", which Android files under ringtones (the
+  ringer volume). Now they're game audio on the media volume, with no
+  audio focus, so Spotify and the like keep playing underneath. iOS
+  unchanged: mixes with other audio, follows the silent switch.
+  → 0.9.2 · 2026-10-22
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

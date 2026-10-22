@@ -227,7 +227,9 @@ weights cut from the variable font.
   home.
 - `lib/core/sound/sound.dart`: `Sound.play(Sfx.x)` / `later` / `deal(n)`
   (audioplayers, SPM on iOS; mp3s in `assets/sounds/`, Kenney CC0). Silent
-  until `Sound.start()` in main(), so tests stay quiet; `Account.sound` /
+  until `Sound.start()` in main(), so tests stay quiet; Android: game
+  usage on the media volume, no audio focus (mixes with Spotify); iOS:
+  ambient (mixes, silent switch); music plays from memory on Android; `Account.sound` /
   `volume` in Settings. `ToonButton` ticks by itself; games call it from
   their controllers (wins / losses: small = a hand, medium = a big pot,
   big = the game). `Music` in the same file: one `Track` on a loop

@@ -51,8 +51,18 @@ abstract final class Sound {
   /// Called once from main().
   static Future<void> start() async {
     try {
+      // Media volume (not the ringer) and no audio focus on Android, so
+      // Spotify and the like keep playing underneath; on iOS "ambient":
+      // mixes with other audio and follows the silent switch.
       await AudioPlayer.global.setAudioContext(
-        AudioContextConfig(focus: AudioContextConfigFocus.mixWithOthers, respectSilence: true).build(),
+        AudioContext(
+          android: const AudioContextAndroid(
+            usageType: AndroidUsageType.game,
+            contentType: AndroidContentType.sonification,
+            audioFocus: AndroidAudioFocus.none,
+          ),
+          iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+        ),
       );
       for (var i = 0; i < 6; i++) {
         final p = AudioPlayer();
