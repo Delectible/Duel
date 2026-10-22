@@ -56,8 +56,23 @@ class TableView extends StatelessWidget {
           return Offset.lerp(spots[seat], center, seat == 0 ? 0.36 : (side ? 0.52 : 0.42))!;
         }
 
+        // Where a seat's bet sits, in pixels. On its side the table is short:
+        // yours goes just above your cards (straight in, it would sit on
+        // them) and the top middle seat's beside it (in front, on its name).
+        Offset betAt(int seat) {
+          final spot = spots[seat];
+          if (wide && seat == 0) return px(spot) + const Offset(-24, -86);
+          if (wide && spot.dy < 0.2 && (spot.dx - 0.5).abs() < 0.1) return px(spot) + const Offset(-84, 22);
+          return px(betSpot(seat));
+        }
+
         final h = c.hand;
-        final boardCard = min(size.width * 0.12, wide ? size.height * 0.13 : 56.0).clamp(36.0, 56.0);
+        // A full table leaves a little room beside the board for the low
+        // side seats' cards.
+        final boardCard = min(
+          size.width * (seats >= 5 && !wide ? 0.105 : 0.12),
+          wide ? size.height * 0.13 : 56.0,
+        ).clamp(36.0, 56.0);
         final potAt = wide ? px(center) - Offset(0, boardCard * 0.7 + 16) : px(_potSpot);
         final children = <Widget>[Positioned.fill(child: CustomPaint(painter: _FeltPainter()))];
 
@@ -132,6 +147,10 @@ class TableView extends StatelessWidget {
                       // middle), on screen and clear of the board.
                       cards: wide && spots[s].dy < 0.5
                           ? (spots[s].dx > 0.5 ? _CardsAt.left : _CardsAt.right)
+                          : spots[s].dy > 0.5 && !wide
+                          // Low down the sides: above, out towards the
+                          // edge (below would run into your hand).
+                          ? (spots[s].dx > 0.5 ? _CardsAt.lowLeft : _CardsAt.lowRight)
                           : (_cardsAbove(spots[s]) ? _CardsAt.above : _CardsAt.below),
                     ),
             ),
@@ -163,7 +182,7 @@ class TableView extends StatelessWidget {
           for (var s = 0; s < seats; s++) {
             final p = c.handPlayer(s);
             if (p == null || p.bet == 0 || c.phase == TablePhase.payout) continue;
-            final from = px(betSpot(s));
+            final from = betAt(s);
             if (c.phase == TablePhase.collecting) {
               children.add(
                 _Fly(
@@ -198,9 +217,9 @@ class TableView extends StatelessWidget {
                   _Fly(
                     key: ValueKey('pay${c.handNumber}-$k-$w'),
                     from: potAt,
-                    // Into the winner's stack (which counts up), then gone.
-                    // (onto the avatar: your seat's middle is your cards).
-                    to: px(spots[seat]) + (seat == 0 ? const Offset(-91, -25) : const Offset(0, -18)),
+                    // In front of the winner (where their bets go, clear of
+                    // their face and name), then gone into their stack.
+                    to: betAt(seat),
                     amount: share,
                     duration: 1100,
                     stacks: 2,
@@ -301,8 +320,9 @@ class TableView extends StatelessWidget {
 bool _cardsAbove(Offset spot) => spot.dy > 0.2 && spot.dy < 0.5;
 
 /// Where a bot's turned-up cards go: above / below it upright, beside it
-/// (towards the middle) in landscape.
-enum _CardsAt { above, below, left, right }
+/// (towards the middle) in landscape; low down the sides, above it and out
+/// towards the edge (`lowLeft`: a seat on the right).
+enum _CardsAt { above, below, left, right, lowLeft, lowRight }
 
 /// Centres [child] on [at].
 class _At extends StatelessWidget {
@@ -766,6 +786,7 @@ class _BotSeat extends StatelessWidget {
                     ? switch (cards) {
                         _CardsAt.above => -40,
                         _CardsAt.below => 112,
+                        _CardsAt.lowLeft || _CardsAt.lowRight => -34,
                         _ => 22,
                       }
                     : 26,
@@ -773,13 +794,16 @@ class _BotSeat extends StatelessWidget {
                     ? switch (cards) {
                         _CardsAt.left => -66,
                         _CardsAt.right => 86,
+                        // Out towards the edge, clear of the board.
+                        _CardsAt.lowLeft => 26,
+                        _CardsAt.lowRight => 8,
                         _ => 10,
                       }
                     : 60,
                 child: _HoleCards(
                   cards: p.hole,
                   faceUp: faceUp,
-                  width: faceUp ? 34 : 22,
+                  width: faceUp ? (cards == _CardsAt.lowLeft || cards == _CardsAt.lowRight ? 28 : 34) : 22,
                   winning: winning,
                   deal: deal,
                   seat: seat,
@@ -967,7 +991,11 @@ class _YourSeat extends StatelessWidget {
           if (c.phase == TablePhase.shuffle || (p != null && c.hand!.players[c.hand!.button] == p))
             const Positioned(left: 50, top: 12, child: _DealerButton()),
           if (p?.lastAction != null && c.phase != TablePhase.payout)
-            Positioned(left: 4, top: -8, child: _ActionBubble(p!.lastAction!)),
+            // Upright, beside your avatar: above it would run into the seat
+            // on your left.
+            GameLayout.wide(context)
+                ? Positioned(left: 4, top: -8, child: _ActionBubble(p!.lastAction!))
+                : Positioned(right: 240, top: 34, child: _ActionBubble(p!.lastAction!)),
           if (p != null && p.hole.length == 2)
             Positioned(
               // Keyed so the deal plays once, whatever comes and goes beside.

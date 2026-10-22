@@ -503,6 +503,17 @@ Ships as app version **0.4.1**.
   are already up). Online: a `show` move the referee takes out of turn
   (`OnlineGame.aside`, the clock keeps running); the match carries
   `mucked` / `showed` per hand. Bots still always show. → 0.9.1 · 2026-10-21
+
+### 24. Hold'em overlaps (requested 2026-10-22)
+
+- [x] **24.1 Nothing on faces or names**: pots won land in front of the
+  winner (where their bets sit), not on their avatar; seats low down the
+  sides show their cards above them, out towards the edge (they ran into
+  your hand; a full table's board is a touch smaller to make room); your
+  Call / Raise badge sits beside your avatar (it covered the next seat's
+  name). On its side: your bet sits just above your cards (it was on
+  them), and the top middle seat's bet beside it (it was on its name).
+  Checked on both phones, both ways, 2 to 6 players. → 0.9.1 · 2026-10-22
   → 0.9.0 · 2026-10-21
 
 ### 12. Fixes
