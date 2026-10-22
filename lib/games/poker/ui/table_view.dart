@@ -74,7 +74,11 @@ class TableView extends StatelessWidget {
           wide ? size.height * 0.13 : 56.0,
         ).clamp(36.0, 56.0);
         final potAt = wide ? px(center) - Offset(0, boardCard * 0.7 + 16) : px(_potSpot);
-        final children = <Widget>[Positioned.fill(child: CustomPaint(painter: _FeltPainter()))];
+        final children = <Widget>[
+          Positioned.fill(
+            child: RepaintBoundary(child: CustomPaint(painter: _FeltPainter())),
+          ),
+        ];
 
         // Your deal: the deck to shuffle.
         if (c.phase == TablePhase.shuffle) {
@@ -690,9 +694,12 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
   }
 
   @override
-  Widget build(BuildContext context) => ScaleTransition(
-    scale: Tween(begin: 1.0, end: 1.08).animate(CurvedAnimation(parent: _a, curve: Curves.easeInOut)),
-    child: widget.child,
+  // Looping: on its own layer, so only it redraws each frame.
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: ScaleTransition(
+      scale: Tween(begin: 1.0, end: 1.08).animate(CurvedAnimation(parent: _a, curve: Curves.easeInOut)),
+      child: RepaintBoundary(child: widget.child),
+    ),
   );
 }
 
@@ -1099,25 +1106,27 @@ class _ThinkingDotsState extends State<_ThinkingDots> with SingleTickerProviderS
   }
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-    decoration: Toon.box(Toon.cardFace, radius: 10, shadow: 2),
-    child: AnimatedBuilder(
-      animation: _a,
-      builder: (context, _) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < 3; i++)
-            Transform.translate(
-              offset: Offset(0, -3 * max(0, sin((_a.value - i * 0.18) * 2 * pi))),
-              child: Container(
-                width: 6,
-                height: 6,
-                margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                decoration: const BoxDecoration(color: Toon.inkLight, shape: BoxShape.circle),
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: Toon.box(Toon.cardFace, radius: 10, shadow: 2),
+      child: AnimatedBuilder(
+        animation: _a,
+        builder: (context, _) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < 3; i++)
+              Transform.translate(
+                offset: Offset(0, -3 * max(0, sin((_a.value - i * 0.18) * 2 * pi))),
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                  decoration: const BoxDecoration(color: Toon.inkLight, shape: BoxShape.circle),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     ),
   );
@@ -1142,22 +1151,24 @@ class _AllInBannerState extends State<_AllInBanner> with SingleTickerProviderSta
   }
 
   @override
-  Widget build(BuildContext context) => Pop(
-    child: ScaleTransition(
-      scale: Tween(begin: 0.95, end: 1.06).animate(CurvedAnimation(parent: _a, curve: Curves.easeInOut)),
-      child: ToonBox(
-        color: Toon.red,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 4),
-            Text(
-              'ALL IN!',
-              style: Toon.text(18, weight: FontWeight.w800, color: Colors.white),
-            ),
-          ],
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: Pop(
+      child: ScaleTransition(
+        scale: Tween(begin: 0.95, end: 1.06).animate(CurvedAnimation(parent: _a, curve: Curves.easeInOut)),
+        child: ToonBox(
+          color: Toon.red,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 4),
+              Text(
+                'ALL IN!',
+                style: Toon.text(18, weight: FontWeight.w800, color: Colors.white),
+              ),
+            ],
+          ),
         ),
       ),
     ),

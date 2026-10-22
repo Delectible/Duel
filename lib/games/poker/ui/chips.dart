@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/toon.dart';
@@ -56,7 +57,9 @@ class ChipPile extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CustomPaint(size: Size(width, height), painter: _ChipsPainter(piles)),
+        RepaintBoundary(
+          child: CustomPaint(size: Size(width, height), painter: _ChipsPainter(piles)),
+        ),
         const SizedBox(width: 3),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -148,5 +151,7 @@ class _ChipsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ChipsPainter old) => true;
+  bool shouldRepaint(_ChipsPainter old) =>
+      old.piles.length != piles.length ||
+      Iterable<int>.generate(piles.length).any((i) => !listEquals(old.piles[i], piles[i]));
 }

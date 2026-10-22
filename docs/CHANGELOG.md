@@ -515,6 +515,20 @@ Ships as app version **0.4.1**.
   them), and the top middle seat's bet beside it (it was on its name).
   Checked on both phones, both ways, 2 to 6 players. → 0.9.1 · 2026-10-22
 
+### 26. Frame rate (requested 2026-10-22)
+
+- [x] **26.1 Full refresh rate**: Android now asks for the display's
+  fastest mode at its resolution (`MainActivity.kt`; many phones held
+  Flutter at 60 Hz). iOS already opted into ProMotion
+  (`CADisableMinimumFrameDurationOnPhone`). → 0.9.2 · 2026-10-22
+- [x] **26.2 Less redrawing** (older tablets): no screen had a repaint
+  boundary, so any small animation (thinking dots, a pulse, a card
+  sliding) redrew the whole table every frame. Now faces, cards, chip
+  piles, the felt, game tiles, each part of a game screen and every
+  looping animation draw on their own layer. In 20 s of a 6-player
+  Hold'em hand: felt redrawn 1,217 → 1 times, faces 2,535 → 21, chip
+  piles 172 → 7. → 0.9.2 · 2026-10-22
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

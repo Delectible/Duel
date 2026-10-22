@@ -313,7 +313,11 @@ class Face extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      CustomPaint(size: Size.square(size), painter: FacePainter(avatar, only));
+      // Many paths: on its own layer so it isn't redrawn when things
+      // around it move.
+      RepaintBoundary(
+        child: CustomPaint(size: Size.square(size), painter: FacePainter(avatar, only)),
+      );
 }
 
 abstract final class RRectPath {

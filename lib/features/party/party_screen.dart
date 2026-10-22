@@ -490,29 +490,31 @@ class _WaitingState extends State<_Waiting> with SingleTickerProviderStateMixin 
   }
 
   @override
-  Widget build(BuildContext context) => FadeTransition(
-    opacity: Tween(begin: 0.45, end: 1.0).animate(_pulse),
-    child: Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Toon.muted, width: 2),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            margin: const EdgeInsets.only(left: 4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Toon.muted, width: 2),
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: FadeTransition(
+      opacity: Tween(begin: 0.45, end: 1.0).animate(_pulse),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Toon.muted, width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              margin: const EdgeInsets.only(left: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Toon.muted, width: 2),
+              ),
+              child: Icon(Icons.question_mark_rounded, color: Toon.muted),
             ),
-            child: Icon(Icons.question_mark_rounded, color: Toon.muted),
-          ),
-          const SizedBox(width: 12),
-          Text('Waiting for a friend…', style: Toon.text(17, color: Toon.muted)),
-        ],
+            const SizedBox(width: 12),
+            Text('Waiting for a friend…', style: Toon.text(17, color: Toon.muted)),
+          ],
+        ),
       ),
     ),
   );

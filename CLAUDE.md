@@ -237,6 +237,11 @@ weights cut from the variable font.
   `revisions` (About).
 - `lib/core/session/`: `PlaySetup` (the connection bar: Bots / Friend,
   `Difficulty`, bot count; `party` and `partySize`), shared by every screen.
+- **Performance:** anything that loops or moves on its own goes inside a
+  `RepaintBoundary` (faces, `CardView`, chip piles, felts, `GameLayout`'s
+  parts and tile art already are), or it redraws the whole screen every
+  frame. `MainActivity.kt` asks Android for the fastest refresh rate;
+  iOS opts in via `CADisableMinimumFrameDurationOnPhone`.
 - `lib/core/theme/toon.dart`: the cartoon look (`Toon` colours, `ToonBox`,
   `ToonButton` with hold-to-repeat, `chips()` formatting). Use these, not
   stock Material buttons. **Dark mode:** `Toon.ink/fg/paper/card/muted/grey`

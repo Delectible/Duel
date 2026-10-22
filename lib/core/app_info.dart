@@ -3,16 +3,13 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.9.1';
+  static const version = '0.9.2';
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Sound and music: buttons tick, cards shuffle and deal, chips clink, wins and losses each get a '
-      'jingle, small to big, and showdowns and Blitz wars a drum and a clash. Five kinds of background '
-      "music to pick from (Lounge, Lo-fi, Tavern, Tiki, Arcade) with their own volume in Settings. Hold'em's "
-      'end-of-game board has Improve your game: tips from how you played, and after a hand you can show or '
-      'muck your cards. Small cards show one suit.';
+      'Smoother: games now run at your screen\'s full refresh rate (90 or 120 Hz where it has it), and the '
+      'tables redraw far less each frame, which should help older phones and tablets a lot.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -40,6 +37,7 @@ class AppInfo {
         'Background music: five to pick from',
         "Hold'em: Improve your game tips",
         "Hold'em: show or muck your cards",
+        'Smoother: full refresh rate, less redrawing',
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),

@@ -122,16 +122,18 @@ class FeltPanel extends StatelessWidget {
   const FeltPanel({super.key});
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
-    decoration: BoxDecoration(
-      color: Toon.felt,
-      borderRadius: BorderRadius.circular(28),
-      border: Border.all(color: Toon.wood, width: 10),
-    ),
-    foregroundDecoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(28),
-      border: Border.all(color: Toon.ink, width: 2.5),
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: Container(
+      margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      decoration: BoxDecoration(
+        color: Toon.felt,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Toon.wood, width: 10),
+      ),
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Toon.ink, width: 2.5),
+      ),
     ),
   );
 }
@@ -172,6 +174,12 @@ class GameLayout extends StatelessWidget {
 
   Widget _layout(BoxConstraints box) {
     {
+      // Each part paints on its own layer: a ticking clock in the
+      // controls or a line of commentary doesn't redraw the whole table.
+      final table = RepaintBoundary(child: this.table);
+      final top = RepaintBoundary(child: this.top);
+      final commentary = RepaintBoundary(child: this.commentary);
+      final controls = RepaintBoundary(child: this.controls);
       if (!isWide(box.biggest)) {
         return Column(
           children: [

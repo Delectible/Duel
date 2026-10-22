@@ -35,10 +35,13 @@ Widget _card(String card, double width, {double angle = 0, Offset at = Offset.ze
   ),
 );
 
-Widget _scene(List<Widget> children) => SizedBox(
-  width: _w,
-  height: _h,
-  child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: children),
+// Each scene on its own layer: drawn once, not again as home scrolls.
+Widget _scene(List<Widget> children) => RepaintBoundary(
+  child: SizedBox(
+    width: _w,
+    height: _h,
+    child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: children),
+  ),
 );
 
 Widget _paint(CustomPainter painter, {Size size = const Size(_w, _h)}) => IgnorePointer(

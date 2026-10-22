@@ -657,8 +657,12 @@ class _GlowState extends State<_Glow> with SingleTickerProviderStateMixin {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      ScaleTransition(scale: Tween(begin: 0.92, end: 1.08).animate(_a), child: widget.child);
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: ScaleTransition(
+      scale: Tween(begin: 0.92, end: 1.08).animate(_a),
+      child: RepaintBoundary(child: widget.child),
+    ),
+  );
 }
 
 class _WinLine extends CustomPainter {
