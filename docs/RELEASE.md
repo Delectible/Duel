@@ -51,7 +51,7 @@ upload key on Play.
   "Only releases with status draft may be created on draft app", set
   `PLAY_RELEASE_STATUS` to `draft` until 1.3 is rolled out, then back to
   `completed`.
-- [ ] **1.6 App content** (L). Play Console > Duel > Policy and programs >
+- [x] **1.6 App content** (L; 2026-10-23). Play Console > Duel > Policy and programs >
   App content. Answers for Duel as planned (online play, accounts):
   - **Privacy policy:**
     `https://github.com/Delectible/Duel/blob/main/docs/PRIVACY.md`
@@ -79,13 +79,15 @@ upload key on Play.
     financial info, crash logs, diagnostics. Revisit when email sign-in,
     notifications or the server wallet arrive.
   - **Government apps / Financial features / Health / News:** No / none.
-- [ ] **1.7 Store listing** (L, C). Run Actions > "Play Store listing" >
+- [x] **1.7 Store listing** (L, C; 2026-10-23: 7 phone screenshots from
+  `test/store_shots_test.dart`). Run Actions > "Play Store listing" >
   Run workflow: it uploads the title, descriptions, icon and feature
   graphic from `fastlane/metadata/android/en-AU/`. Store settings: category
   **Games > Card**, contact email. Play needs at least 2 phone screenshots
   before closed testing / production: upload them in Main store listing
   (C can stage them from screen tests later).
-- [ ] **1.8 Closed testing** (L). _Later: internal testing only for now (Luca, 2026-10-10)._ Test and release > Testing > Closed
+- [~] **1.8 Closed testing** (L). Build 28 promoted 2026-10-23; waiting on
+  Play's review. Test and release > Testing > Closed
   testing > the "Closed testing - Alpha" track > Manage track:
   - Testers > Google Groups: `darkroom-closed-testing@googlegroups.com`;
     feedback email or URL > Save.
