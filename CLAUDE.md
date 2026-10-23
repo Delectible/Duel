@@ -67,7 +67,8 @@ together, GamePigeon-easy. Let it guide design and development choices.
   CFBundleVersion = run number. Without the secrets it just says so.
   Firebase's prebuilt frameworks arrive signed by Google: their signatures
   are stripped from the archive before the export, or Apple rejects the
-  upload (90035). Started by hand with `testflight` ticked, a branch build
+  upload (90035); frameworks without a dSYM get one from `dsymutil` (so
+  the symbol upload has no gaps). Started by hand with `testflight` ticked, a branch build
   uploads to TestFlight too.
 - iOS: deployment target 15.0 (patched into the generated Xcode project by
   CI). **No Podfile**: plugins must be Swift Packages; adding a Podfile

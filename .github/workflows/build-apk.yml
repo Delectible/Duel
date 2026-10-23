@@ -152,10 +152,20 @@ jobs:
           # signed by Google, and the export keeps that signature, which the
           # App Store rejects ("Invalid Signature", 90035). Strip them so the
           # export signs them for us like every other framework.
+          # They also come without crash-symbol files (dSYMs): make one from
+          # each binary so the export can upload symbols for every framework
+          # (Google strips the debug info, so they hold little more than the
+          # binary's UUID, but that's what App Store Connect checks).
           for f in "$RUNNER_TEMP/Runner.xcarchive/Products/Applications/Runner.app/Frameworks/"*.framework; do
+            name=$(basename "$f" .framework)
+            dsym="$RUNNER_TEMP/Runner.xcarchive/dSYMs/$name.framework.dSYM"
+            if [ ! -d "$dsym" ]; then
+              xcrun dsymutil "$f/$name" -o "$dsym" 2>&1 | grep -v "no debug symbols" || true
+            fi
             codesign --remove-signature "$f" 2>/dev/null || true
             rm -rf "$f/_CodeSignature"
           done
+          ls "$RUNNER_TEMP/Runner.xcarchive/dSYMs"
           cat > "$RUNNER_TEMP/export.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
