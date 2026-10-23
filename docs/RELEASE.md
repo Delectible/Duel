@@ -60,25 +60,24 @@ upload key on Play.
     access (until sign-in exists; then add a test account here).
   - **Content rating:** start questionnaire > email > category **Game** >
     violence, sex, language, drugs, crude humour: No. Simulated gambling:
-    **No** (change to Yes if casino-style games with betting are added,
-    e.g. poker with chips). Users can interact or exchange content: **Yes**
-    (online play). Shares location: No. Digital purchases: No. Save >
-    Submit.
+    **Yes** (Hold'em with chips and pip stakes). Users can interact or
+    exchange content: **Yes** (online play). Shares location: No. Digital
+    purchases: No. Save > Submit.
   - **Target audience:** 13–15, 16–17, 18 and over (not under 13: that
     brings in the Families policy). Appeals to children: No.
-  - **Data safety:** collects data: Yes; encrypted in transit: Yes;
-    account creation: pick the sign-in method once chosen; delete-account
-    URL:
+  - **Data safety** (what the app sends today, 2026-10-23): collects data:
+    Yes; encrypted in transit: Yes; account creation: **No** (online play
+    signs in anonymously: no sign-up, email or password); deletion
+    requests: Yes,
     `https://github.com/Delectible/Duel/blob/main/docs/PRIVACY.md#deleting-your-account`.
-    Data types (all "Collected", not shared, not ephemeral):
-    - Personal info > **User IDs** (username, account ID): required; App
-      functionality, Account management.
-    - Personal info > **Email address**: optional; App functionality,
-      Account management (drop it if sign-in ends up username-only).
-    - App activity > **App interactions** (matches, moves, results):
-      required; App functionality.
-    - Device or other IDs (notification token): optional; App
-      functionality.
+    Data types, each collected (not shared, not ephemeral), **optional**
+    (bot games send nothing), purpose App functionality:
+    - Personal info > **Name** (the profile name, shown to your party).
+    - Personal info > **User IDs** (the anonymous account ID).
+    - App activity > **App interactions** (parties, moves, results).
+    Not collected: email, device or other IDs, location, contacts, photos,
+    financial info, crash logs, diagnostics. Revisit when email sign-in,
+    notifications or the server wallet arrive.
   - **Government apps / Financial features / Health / News:** No / none.
 - [ ] **1.7 Store listing** (L, C). Run Actions > "Play Store listing" >
   Run workflow: it uploads the title, descriptions, icon and feature
