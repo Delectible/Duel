@@ -1,6 +1,7 @@
 name: Play Store listing
 # Publishes the store listing in fastlane/metadata/android (title, short and
-# full description, icon, feature graphic) to Google Play with the same
+# full description, icon, feature graphic, phone screenshots: made by
+# `STORE=dir flutter test test/store_shots_test.dart`) to Google Play with the same
 # service account the build uploads with. Runs when those files change on
 # main, or by hand from the Actions tab. App builds are not touched.
 on:
@@ -46,5 +47,5 @@ jobs:
             skip_upload_apk:true \
             skip_upload_aab:true \
             skip_upload_changelogs:true \
-            skip_upload_screenshots:true \
+            skip_upload_screenshots:false \
             sync_image_upload:true
