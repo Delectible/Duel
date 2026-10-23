@@ -108,7 +108,9 @@ upload key on Play.
 
 - [ ] First run of the sideloaded .ipa on an iPhone. (L)
 - [x] Apple Developer Program membership. (L)
-- [~] TestFlight from CI, as Darkroom does it: on `main` the ios job
+- [x] TestFlight from CI, as Darkroom does it (first upload: build 27,
+  2026-10-23; Firebase's Google-signed frameworks have their signatures
+  stripped before the export): on `main` the ios job
   archives unsigned and the export signs with Apple's cloud-managed
   certificate (`-allowProvisioningUpdates` + an App Store Connect API key)
   and uploads; CFBundleVersion = run number; iPhone and iPad. (C: done in
