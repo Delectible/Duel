@@ -59,7 +59,12 @@ together, GamePigeon-easy. Let it guide design and development choices.
   message or when started by hand: Mac minutes cost 10x). The .ipa is
   unsigned apart from an ad-hoc signature (Sideloadly's signer fails on
   never-signed binaries); Luca signs and installs it with Sideloadly + a
-  free Apple ID (expires every 7 days).
+  free Apple ID (expires every 7 days). On `main`, once the App Store
+  Connect secrets exist (APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY =
+  the .p8 text, Admin role; APPLE_TEAM_ID), the same job archives unsigned
+  and the export signs for the App Store (`-allowProvisioningUpdates` + the
+  API key, cloud-managed cert; iPhone and iPad) and uploads to TestFlight;
+  CFBundleVersion = run number. Without the secrets it just says so.
 - iOS: deployment target 15.0 (patched into the generated Xcode project by
   CI). **No Podfile**: plugins must be Swift Packages; adding a Podfile
   makes Flutter run CocoaPods and the build dies with "sandbox is not in

@@ -107,9 +107,17 @@ upload key on Play.
 ## 3. App Store (iPhone)
 
 - [ ] First run of the sideloaded .ipa on an iPhone. (L)
-- [ ] Apple Developer Program membership, App ID `com.dingo.duel`, CI
-  signing + TestFlight upload from the macOS runner. (L creates the key,
-  C wires CI)
+- [x] Apple Developer Program membership. (L)
+- [~] TestFlight from CI, as Darkroom does it: on `main` the ios job
+  archives unsigned and the export signs with Apple's cloud-managed
+  certificate (`-allowProvisioningUpdates` + an App Store Connect API key)
+  and uploads; CFBundleVersion = run number; iPhone and iPad. (C: done in
+  build-apk.yml.) L: App ID `com.dingo.duel`, the app in App Store
+  Connect, and the repo secrets APPSTORE_KEY_ID / APPSTORE_ISSUER_ID /
+  APPSTORE_KEY (the .p8 text, Admin role) / APPLE_TEAM_ID (the same key
+  as Darkroom's works).
+- [ ] TestFlight testers: internal first, then external (needs a light
+  beta review). (L)
 - [ ] App Store Connect listing, privacy labels matching
   `docs/PRIVACY.md`, App Review. (L / C)
 
