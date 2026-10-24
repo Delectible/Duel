@@ -554,6 +554,17 @@ Ships as app version **0.4.1**.
   the other games played a shuffle and then started 0.7 s late, with no
   shuffle on screen). → 0.9.2 · 2026-10-22
 
+### 27. Newer version in the party (requested 2026-10-24)
+
+- [x] **27.1 Update prompt**: every phone tells the referee its version
+  when it makes or joins a party (`versions` per member). If someone has a
+  newer x.Y than you, you're told once per version: "Update Duel?" with
+  Update (Google Play / TestFlight) or Ignore. Nothing is blocked.
+  → 0.9.3 · 2026-10-24
+- [x] **27.2 The rule**: bump the middle number (x.Y.0) when old and new
+  apps may not play well together online; the last number for anything
+  else (CLAUDE.md). → 0.9.3 · 2026-10-24
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

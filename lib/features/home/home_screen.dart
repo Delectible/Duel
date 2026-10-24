@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
@@ -8,6 +10,7 @@ import '../../core/session/play_setup.dart';
 import '../../core/sound/sound.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
+import '../party/version_notice.dart';
 import '../preview/game_preview_screen.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
@@ -299,6 +302,14 @@ class _MatchWatcherState extends State<_MatchWatcher> {
 
   void _check() {
     final party = _party;
+    // Someone in the party has a newer Duel: say so, once per version.
+    final newer = party?.newerVersion;
+    if (party != null && newer != null && newer != party.versionNoticeSeen) {
+      party.versionNoticeSeen = newer;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(showVersionNotice(context, party, newer));
+      });
+    }
     // Open the game for everyone playing it (not for someone who left it:
     // they come back through Game In Progress).
     if (party == null || !party.inGame || party.onScreen) return;

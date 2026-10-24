@@ -1,7 +1,9 @@
 import 'package:duel/core/account/account.dart';
+import 'package:duel/core/app_info.dart';
 import 'package:duel/core/avatars/faces.dart';
 import 'package:duel/core/online/party.dart';
 import 'package:duel/games/four_in_a_row/ui/online_row.dart';
+import 'package:duel_server/duel_server.dart' show Player;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_server.dart';
@@ -83,6 +85,20 @@ void main() {
     expect(sam.match!['result'], containsPair('reason', 'forfeit'));
     expect(sam.size, 1);
     expect(sam.isHost, isTrue);
+  });
+
+  test('a newer x.Y in the party is noticed (to tell this player to update)', () async {
+    expect(await luca.create(), isNull);
+    expect(await sam.join(luca.code!), isNull);
+    await settle();
+    expect(luca.party!['versions'], {'luca': AppInfo.version, 'sam': AppInfo.version});
+    expect(luca.newerVersion, isNull);
+    final parts = AppInfo.version.split('.').map(int.parse).toList();
+    final newer = '${parts[0]}.${parts[1] + 1}.0';
+    await server.referee.joinParty(Player(uid: 'kit', name: 'Kit', version: newer), luca.code!);
+    await settle();
+    expect(luca.newerVersion, newer);
+    expect(sam.newerVersion, newer);
   });
 
   test('reopening the app goes back to the party', () async {

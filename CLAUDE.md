@@ -30,6 +30,13 @@ together, GamePigeon-easy. Let it guide design and development choices.
   (PushNotification) that the build is on Google Play: version, build
   number, one-line what's new. If the build or the upload fails, notify
   that instead.
+- **Versions:** bump the middle number (x.**Y**.0) when a change would
+  hinder playing online between the old and new app (rules, online
+  protocol, what phones replay); the last number for anything else. A
+  newer x.Y in your party makes the app say "Update Duel?" (Update /
+  Ignore; never blocks): `AppInfo.behind`, the party's `versions`,
+  `PartyService.newerVersion`, `features/party/version_notice.dart`
+  (shown from home's `_MatchWatcher`).
 - Every batch with user-visible changes: bump `version` in `pubspec.yaml`
   once per batch (raise the `+build` number too) and `AppInfo.version` to
   match (a test checks), set `AppInfo.latest` in `lib/core/app_info.dart`
@@ -120,7 +127,7 @@ together, GamePigeon-easy. Let it guide design and development choices.
 ## Stack
 
 Flutter stable (≥ 3.47, Dart ≥ 3.12), Material 3. Packages: `shared_preferences`
-(saves the account), `audioplayers` (sounds) and Firebase (`firebase_core`, `firebase_auth`, `cloud_firestore`), all SPM on iOS.
+(saves the account), `audioplayers` (sounds), `url_launcher` (the store) and Firebase (`firebase_core`, `firebase_auth`, `cloud_firestore`), all SPM on iOS.
 State is ChangeNotifier + InheritedNotifier. Font: Fredoka (assets/fonts, OFL), static
 weights cut from the variable font.
 

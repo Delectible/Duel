@@ -4,6 +4,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/widgets.dart';
 
 import '../account/account.dart';
+import '../app_info.dart';
 import '../avatars/faces.dart';
 
 typedef Doc = Map<String, Object?>;
@@ -123,6 +124,28 @@ class PartyService extends ChangeNotifier {
     return list;
   }
 
+  /// The newest app version in the party when it's a newer x.Y than yours
+  /// (playing old against new may go wrong), else null.
+  String? get newerVersion {
+    String? newest;
+    for (final v in ((party?['versions'] as Map?) ?? const {}).values) {
+      if (v is String && AppInfo.behind(v) && (newest == null || !_atLeast(newest, v))) newest = v;
+    }
+    return newest;
+  }
+
+  static bool _atLeast(String a, String b) {
+    final x = a.split('.').map(int.tryParse).toList(), y = b.split('.').map(int.tryParse).toList();
+    for (var i = 0; i < 3; i++) {
+      final p = i < x.length ? x[i] ?? 0 : 0, q = i < y.length ? y[i] ?? 0 : 0;
+      if (p != q) return p > q;
+    }
+    return true;
+  }
+
+  /// The newer version you've already been told about (Ignore).
+  String? versionNoticeSeen;
+
   /// Bots sitting in with the party.
   List<PartyBot> get bots => [
     for (final b in ((party?['bots'] as List?) ?? const [])) PartyBot.fromJson(b as Map),
@@ -184,7 +207,11 @@ class PartyService extends ChangeNotifier {
   /// The name at server [seat] of the current match.
   String nameAt(int seat) => '${((match?['names'] as List?) ?? const [])[seat] ?? 'Player'}';
 
-  Doc get _me => {'name': account.name == 'You' ? 'Player' : account.name, 'avatar': account.avatar.toJson()};
+  Doc get _me => {
+    'name': account.name == 'You' ? 'Player' : account.name,
+    'avatar': account.avatar.toJson(),
+    'version': AppInfo.version,
+  };
 
   // --- Party -----------------------------------------------------------------
 

@@ -10,8 +10,8 @@ import 'store.dart';
 /// The referee over HTTP. Every call but /health needs a Firebase ID
 /// token (`Authorization: Bearer …`); bodies and answers are JSON.
 ///
-/// - POST /v1/parties                {name, avatar}          -> party
-/// - POST /v1/parties/join           {code, name, avatar}    -> party
+/// - POST /v1/parties                {name, avatar, version} -> party
+/// - POST /v1/parties/join           {code, name, avatar, version} -> party
 /// - POST /v1/parties/<id>/bots      {bots: [{name, look, difficulty}]} -> party
 /// - POST /v1/parties/<id>/leave                             -> {}
 /// - POST /v1/parties/<id>/start     {game, stake}           -> match
@@ -41,6 +41,7 @@ Handler api(Referee referee, TokenVerifier verifier) {
       uid: uid,
       name: json['name'] is String ? json['name']! as String : 'Player',
       avatar: avatar is Map ? avatar.cast<String, Object?>() : const {},
+      version: json['version'] is String ? (json['version']! as String) : '',
     );
     try {
       return _json(200, await body(player, json) ?? {});

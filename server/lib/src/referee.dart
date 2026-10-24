@@ -16,10 +16,14 @@ class RefereeError implements Exception {
 /// Who's asking: a signed-in player (Firebase uid) with their display name
 /// and face (as the app sends them).
 class Player {
-  const Player({required this.uid, required this.name, this.avatar = const {}});
+  const Player({required this.uid, required this.name, this.avatar = const {}, this.version = ''});
   final String uid;
   final String name;
   final Doc avatar;
+
+  /// The app's version ("0.9.3"; empty from apps older than this): kept
+  /// per member so an older app can tell its player to update.
+  final String version;
 }
 
 /// The online referee: parties (friends connected together) and matches
@@ -86,6 +90,7 @@ class Referee {
       'members': [host.uid],
       'names': {host.uid: cleanName(host.name)},
       'avatars': {host.uid: host.avatar},
+      'versions': {if (host.version.isNotEmpty) host.uid: host.version},
       'bots': <Doc>[],
       'mode': modes.contains(mode) ? mode : 'host',
       'votes': <String, Object?>{},
@@ -110,6 +115,9 @@ class Referee {
     }
     (party['names']! as Map)[p.uid] = cleanName(p.name);
     (party['avatars']! as Map)[p.uid] = p.avatar;
+    if (p.version.isNotEmpty) {
+      party['versions'] = {...((party['versions'] as Map?) ?? const {}), p.uid: p.version};
+    }
     party['members'] = members;
     _put(tx, 'parties/$id', party);
     return party;

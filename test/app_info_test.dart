@@ -14,4 +14,14 @@ void main() {
   test("Play's What's new fits (500 characters with the version)", () {
     expect('${AppInfo.version}: ${AppInfo.latest}'.length, lessThanOrEqualTo(500));
   });
+
+  test('behind: only a newer x.Y counts (the last number never does)', () {
+    final parts = AppInfo.version.split('.').map(int.parse).toList();
+    expect(AppInfo.behind(AppInfo.version), isFalse);
+    expect(AppInfo.behind('${parts[0]}.${parts[1]}.${parts[2] + 5}'), isFalse);
+    expect(AppInfo.behind('${parts[0]}.${parts[1] + 1}.0'), isTrue);
+    expect(AppInfo.behind('${parts[0] + 1}.0.0'), isTrue);
+    expect(AppInfo.behind('0.0.1'), isFalse);
+    expect(AppInfo.behind('junk'), isFalse);
+  });
 }

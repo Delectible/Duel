@@ -3,15 +3,29 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.9.2';
+  static const version = '0.9.3';
+
+  /// Whether [other] (another app's version) is a newer x.Y than ours: the
+  /// middle number goes up when old and new apps may not play well together
+  /// online (the last one for anything else).
+  static bool behind(String other) {
+    (int, int)? major(String v) {
+      final parts = v.split('.');
+      if (parts.length < 2) return null;
+      final a = int.tryParse(parts[0]), b = int.tryParse(parts[1]);
+      return a == null || b == null ? null : (a, b);
+    }
+
+    final mine = major(version)!, theirs = major(other);
+    if (theirs == null) return false;
+    return theirs.$1 > mine.$1 || (theirs.$1 == mine.$1 && theirs.$2 > mine.$2);
+  }
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Smoother: games now run at your screen\'s full refresh rate (90 or 120 Hz where it has it), and the '
-      'tables redraw far less each frame, which should help older phones and tablets a lot. Changing the '
-      'music is quick now too, sounds keep in step with the cards (a single riffle per shuffle), and on '
-      'Android sound follows the media volume instead of the ringer.';
+      'If someone in your party has a newer Duel than you, the app now says so and offers to update (or '
+      'ignore it: nothing is blocked). Playing online on an older version may cause problems.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -40,6 +54,7 @@ class AppInfo {
         "Hold'em: Improve your game tips",
         "Hold'em: show or muck your cards",
         'Smoother: full refresh rate, less redrawing',
+        'Tells you when your party has a newer Duel',
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),
