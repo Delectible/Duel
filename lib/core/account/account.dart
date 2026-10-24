@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 
@@ -97,7 +98,18 @@ class Account extends ChangeNotifier {
 
   String _name = 'You';
   Avatar _avatar = const Avatar();
-  int _balance = startingBalance;
+
+  /// The server's balance as last heard (never synced: the phone's own).
+  int _base = startingBalance;
+
+  /// Pips won or lost here (bot games) since, not yet sent to the server.
+  int _unsynced = 0;
+
+  /// The report on its way to the server (sent again until it's heard).
+  ({String id, int delta})? _sending;
+
+  /// The server keeps this account's pips (they were carried over).
+  bool _synced = false;
   CurrencyChoice _currency = CurrencyChoice.pips;
   ThemeChoice _theme = ThemeChoice.system;
   bool _pokerOdds = true;
@@ -110,7 +122,7 @@ class Account extends ChangeNotifier {
 
   String get name => _name;
   Avatar get avatar => _avatar;
-  int get balance => _balance;
+  int get balance => _base + (_sending?.delta ?? 0) + _unsynced;
   CurrencyChoice get currency => _currency;
   ThemeChoice get theme => _theme;
 
@@ -133,8 +145,8 @@ class Account extends ChangeNotifier {
   String? get partyId => _partyId;
 
   /// Online games you left (match id -> the stake that went with it), so
-  /// coming back ([takeBack]) returns it: leaving and rejoining costs
-  /// nothing; leaving for good loses the stake.
+  /// coming back ([takeBack]) undoes the loss in your stats (the pips
+  /// themselves are the server's: it pays out when the game ends).
   final Map<String, ({String game, int stake})> _leftGames = {};
 
   /// You left online match [matchId] of [game], losing [stake].
@@ -153,17 +165,52 @@ class Account extends ChangeNotifier {
     final left = _leftGames.remove(matchId);
     if (left == null) return;
     final st = stats(left.game);
-    if (st.played > 0) st.played--;
-    if (st.lost > 0) st.lost--;
-    st.net += left.stake;
-    _change(() => _balance += left.stake);
+    _change(() {
+      if (st.played > 0) st.played--;
+      if (st.lost > 0) st.lost--;
+      st.net += left.stake;
+    });
+  }
+
+  // --- The wallet on the server ----------------------------------------------
+
+  /// Something the server hasn't heard yet: the first carry-over, or bot
+  /// games since the last report.
+  bool get walletDue => !_synced || _sending != null || _unsynced != 0;
+
+  /// The next report for the server's wallet: {carry (the phone's balance,
+  /// used only the first time), id, delta (bot games since)}. The same one
+  /// is sent again until [walletHeard] says it landed.
+  Map<String, Object> walletReport() {
+    if (_sending == null) {
+      _sending = (
+        id: '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(1 << 30)}',
+        delta: _unsynced,
+      );
+      _unsynced = 0;
+      _save();
+    }
+    final s = _sending!;
+    return {'carry': _base + s.delta, 'id': s.id, 'delta': s.delta};
+  }
+
+  /// The server's wallet ({balance, applied}): its balance is yours now.
+  void walletHeard(Map<String, Object?> wallet) {
+    final balance = wallet['balance'];
+    if (balance is! int) return;
+    final applied = (wallet['applied'] as List?) ?? const [];
+    _change(() {
+      if (_sending != null && applied.contains(_sending!.id)) _sending = null;
+      _base = balance;
+      _synced = true;
+    });
   }
 
   set partyId(String? v) {
     if (v != _partyId) _change(() => _partyId = v);
   }
 
-  bool get inDebt => _balance < 0;
+  bool get inDebt => balance < 0;
 
   GameStats stats(String gameId) => _stats.putIfAbsent(gameId, GameStats.new);
 
@@ -179,7 +226,7 @@ class Account extends ChangeNotifier {
   String money(int amount) => _currency.format(amount);
 
   /// Most you can stake now: your balance, or 1 on credit when you're out.
-  int get maxStake => _balance > 0 ? _balance : 1;
+  int get maxStake => balance > 0 ? balance : 1;
 
   /// Win for [stake] against [opponents] at [difficulty] (the profit; the
   /// stake comes back on top).
@@ -197,18 +244,21 @@ class Account extends ChangeNotifier {
   /// (capped at [maxStake]).
   int placeStake(int stake) {
     final s = stake.clamp(0, maxStake);
-    if (s > 0) _change(() => _balance -= s);
+    if (s > 0) _change(() => _unsynced -= s);
     return s;
   }
 
   /// Settles a finished game. Returns what changed your balance compared
-  /// to before the stake: +winnings, 0 (tie / free), or -stake.
+  /// to before the stake: +winnings, 0 (tie / free), or -stake. Online,
+  /// [paid] is that change as the server made it (it moves the pips; this
+  /// only keeps the stats).
   int settle({
     required String gameId,
     required int stake,
     required Outcome outcome,
     required int opponents,
     required Difficulty difficulty,
+    int? paid,
   }) {
     final st = stats(gameId);
     st.played++;
@@ -216,14 +266,15 @@ class Account extends ChangeNotifier {
     switch (outcome) {
       case Outcome.win:
         st.won++;
-        delta = winnings(stake, opponents, difficulty);
-        _balance += stake + delta;
+        delta = paid ?? winnings(stake, opponents, difficulty);
+        if (paid == null) _unsynced += stake + delta;
       case Outcome.tie:
         st.tied++;
-        _balance += stake;
+        delta = paid ?? 0;
+        if (paid == null) _unsynced += stake;
       case Outcome.loss:
         st.lost++;
-        delta = -stake;
+        delta = paid ?? -stake;
     }
     st.net += delta;
     _save();
@@ -245,7 +296,13 @@ class Account extends ChangeNotifier {
       _name = j['name'] as String? ?? _name;
       final face = j['face'];
       if (face is Map<String, dynamic>) _avatar = Avatar.fromJson(face);
-      _balance = j['balance'] as int? ?? startingBalance;
+      _base = j['balance'] as int? ?? startingBalance;
+      _unsynced = j['unsynced'] as int? ?? 0;
+      _synced = j['wallet'] as bool? ?? false;
+      final sending = j['sending'];
+      if (sending is Map && sending['id'] is String && sending['d'] is int) {
+        _sending = (id: sending['id'] as String, delta: sending['d'] as int);
+      }
       _currency = CurrencyChoice.values.asNameMap()[j['currency']] ?? CurrencyChoice.pips;
       _theme = ThemeChoice.values.asNameMap()[j['theme']] ?? ThemeChoice.system;
       _partyId = j['party'] as String?;
@@ -271,7 +328,10 @@ class Account extends ChangeNotifier {
     jsonEncode({
       'name': _name,
       'face': _avatar.toJson(),
-      'balance': _balance,
+      'balance': _base,
+      if (_unsynced != 0) 'unsynced': _unsynced,
+      if (_synced) 'wallet': true,
+      if (_sending case final s?) 'sending': {'id': s.id, 'd': s.delta},
       'currency': _currency.name,
       'theme': _theme.name,
       'stats': {for (final e in _stats.entries) e.key: e.value.toJson()},

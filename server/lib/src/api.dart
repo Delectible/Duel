@@ -19,6 +19,7 @@ import 'store.dart';
 /// - POST /v1/matches/<id>/timeout                           -> match
 /// - POST /v1/matches/<id>/forfeit                           -> match
 /// - POST /v1/matches/<id>/rematch                           -> match
+/// - POST /v1/wallet                 {carry, id, delta}      -> wallet
 ///
 /// Errors: {error: "…"} with 400 (bad move), 401 (sign in), 403, 404, 409.
 Handler api(Referee referee, TokenVerifier verifier) {
@@ -108,6 +109,18 @@ Handler api(Referee referee, TokenVerifier verifier) {
     ..post('/v1/matches/<id>/rematch', (Request q, String id) => call(q, (p, _) => referee.rematch(p, id)))
     ..post('/v1/matches/<id>/rejoin', (Request q, String id) => call(q, (p, _) => referee.rejoin(p, id)))
     ..post('/v1/matches/<id>/end', (Request q, String id) => call(q, (p, _) => referee.endMatch(p, id)))
+    ..post(
+      '/v1/wallet',
+      (Request q) => call(
+        q,
+        (p, b) => referee.wallet(
+          p,
+          carry: b['carry'] is int ? b['carry']! as int : null,
+          id: b['id'] is String ? b['id']! as String : null,
+          delta: b['delta'] is int ? b['delta']! as int : 0,
+        ),
+      ),
+    )
     ..post(
       '/v1/matches/<id>/decide',
       (Request q, String id) => call(q, (p, b) => referee.decide(p, id, '${b['choice'] ?? ''}')),

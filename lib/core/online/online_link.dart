@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/material.dart';
 
 import '../../features/party/lobby.dart';
@@ -217,15 +216,7 @@ class _OnlineGameFrameState extends State<OnlineGameFrame> {
       _matchId = m['id'] as String?;
       _link?.dispose();
       _link = OnlineLink(party)..onReset = _reset;
-      final account = AccountScope.maybeRead(context) ?? Account();
-      final stake = m['stake'] as int? ?? 0;
-      _ticket = StakeTicket(
-        account: account,
-        gameId: widget.gameId,
-        stake: stake > 0 ? account.placeStake(stake) : 0,
-        opponents: (m['seats']! as List).length - 1,
-        difficulty: Difficulty.normal,
-      );
+      _ticket = party.ticket(AccountScope.maybeRead(context) ?? Account(), m);
     }
     // Stopped early (someone left, the host ended it): settle the stake.
     final r = (m['result'] as Map?) ?? const {};

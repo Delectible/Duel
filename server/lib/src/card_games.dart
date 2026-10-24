@@ -36,6 +36,9 @@ abstract class SeededCardGame<G> extends OnlineGame {
   int? winner(G g);
   bool isOver(G g);
 
+  /// Every engine position that shares [winner]'s win (Spades partners).
+  List<int> team(G g, int winner) => [winner];
+
   Doc bot(G g, int pos, Difficulty difficulty, Random rng);
 
   /// Anything to do before the next move (Spades: deal the next hand).
@@ -103,7 +106,13 @@ abstract class SeededCardGame<G> extends OnlineGame {
     final g = replay(state);
     if (g == null || !isOver(g)) return null;
     final w = winner(g);
-    return w == null ? const Result(draw: true) : Result(winner: order(state)![w]);
+    if (w == null) return const Result(draw: true);
+    final seats = order(state)!;
+    final team = this.team(g, w);
+    return Result(
+      winner: seats[team.first],
+      winners: team.length > 1 ? [for (final p in team) seats[p]] : null,
+    );
   }
 
   @override
@@ -363,6 +372,10 @@ class SpadesGame extends SeededCardGame<Spades> {
   bool isOver(Spades g) => g.isOver;
   @override
   int? winner(Spades g) => g.winner;
+
+  /// The winning team: one player two-handed, partners at 0 & 2 or 1 & 3.
+  @override
+  List<int> team(Spades g, int winner) => g.players == 4 ? [winner, winner + 2] : [winner];
 
   @override
   Doc bot(Spades g, int pos, Difficulty difficulty, Random rng) {

@@ -152,6 +152,9 @@ void main() {
 
   test('the stake rides along, capped, into the rematch', () async {
     final party = await ref.createParty(luca);
+    for (final p in [luca, sam]) {
+      await ref.wallet(p, carry: 10000);
+    }
     await ref.joinParty(sam, party['code']! as String);
     var m = await ref.startMatch(luca, party['id']! as String, 'connect4', stake: 5000);
     expect(m['stake'], Referee.maxStake);

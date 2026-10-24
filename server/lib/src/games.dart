@@ -16,13 +16,17 @@ class MoveError implements Exception {
   String toString() => 'MoveError: $message';
 }
 
-/// The result of a finished game: [winner] seat, or a [draw].
+/// The result of a finished game: [winner] seat, or a [draw]. [winners]
+/// is everyone who shares the win (Spades partners); else just [winner].
 class Result {
-  const Result({this.winner, this.draw = false});
+  const Result({this.winner, this.draw = false, List<int>? winners}) : _winners = winners;
   final int? winner;
   final bool draw;
+  final List<int>? _winners;
 
-  Doc toJson() => {'winner': winner, 'draw': draw};
+  List<int> get winners => _winners ?? [?winner];
+
+  Doc toJson() => {'winner': winner, 'draw': draw, if (_winners != null) 'winners': _winners};
 }
 
 /// One game's rules as the referee sees them: state is plain JSON, rebuilt

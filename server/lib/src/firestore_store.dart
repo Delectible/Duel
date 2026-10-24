@@ -145,6 +145,8 @@ class _FirestoreTx implements Tx {
   @override
   void set(String path, Doc doc) {
     _pending[path] = doc;
+    // One write per document in a commit: the last one wins.
+    _drop(path);
     writes.add(
       fs.Write(
         update: fs.Document(name: _store._name(path), fields: FirestoreStore.toFields(doc)),
@@ -155,6 +157,12 @@ class _FirestoreTx implements Tx {
   @override
   void delete(String path) {
     _pending[path] = null;
+    _drop(path);
     writes.add(fs.Write(delete: _store._name(path)));
+  }
+
+  void _drop(String path) {
+    final name = _store._name(path);
+    writes.removeWhere((w) => w.update?.name == name || w.delete == name);
   }
 }

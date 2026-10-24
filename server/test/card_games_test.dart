@@ -11,6 +11,9 @@ void main() {
   Future<(Referee, String)> party({String mode = 'host', List<Map<String, Object?>> bots = const []}) async {
     final ref = Referee(MemoryStore(), rng: Random(3));
     final p = await ref.createParty(luca, mode: mode);
+    for (final p in [luca, sam]) {
+      await ref.wallet(p, carry: 10000);
+    }
     await ref.joinParty(sam, p['code']! as String);
     if (bots.isNotEmpty) await ref.setBots(luca, p['id']! as String, bots);
     return (ref, p['id']! as String);

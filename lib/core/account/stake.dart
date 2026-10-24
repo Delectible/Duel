@@ -12,8 +12,11 @@ const stakeRules = [
       'Easy bots pay half of that, Hard bots one and a half times.',
   'A tie gives your stake back.',
   'Lose, or leave a game early, and the stake is gone.',
-  'Out of money? You can always stake 1 on credit. It goes on your debt, '
-      'which your winnings pay off first. No time limit.',
+  'Out of money? You can always stake 1 on credit against bots. It goes on '
+      'your debt, which your winnings pay off first. No time limit.',
+  'Online, everyone puts in the same stake and the winner takes the pot '
+      '(partners split it). Bots put theirs in too. Your pips are kept online, '
+      'so you need enough for the stake.',
 ];
 
 /// The rules as a bulleted list.
@@ -81,6 +84,7 @@ class StakeTicket {
     required this.stake,
     required this.opponents,
     required this.difficulty,
+    this.paid,
   });
 
   final Account account;
@@ -90,6 +94,10 @@ class StakeTicket {
   final int stake;
   final int opponents;
   final Difficulty difficulty;
+
+  /// Online: what the server paid out for an outcome, as a balance change
+  /// (it moves the pips; the ticket only keeps the stats and the result).
+  final int Function(Outcome outcome)? paid;
 
   /// The balance change once settled: +winnings, 0, or -stake.
   int? result;
@@ -106,6 +114,7 @@ class StakeTicket {
     outcome: outcome,
     opponents: opponents,
     difficulty: difficulty,
+    paid: paid?.call(outcome),
   );
 
   /// Leaving before the end counts as a loss.

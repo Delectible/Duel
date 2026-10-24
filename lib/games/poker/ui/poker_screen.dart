@@ -156,32 +156,9 @@ class _PokerScreenState extends State<PokerScreen> {
       if (online != null) {
         final m = party.match!;
         if (m['id'] != _matchId) {
-          // A new match: put in its stake (after this frame: taking pips
-          // redraws everything that shows your balance).
+          // A new match: its stake (the referee takes it and pays out).
           _matchId = m['id'] as String?;
-          final stake = m['stake'] as int? ?? 0;
-          final opponents = (m['seats']! as List).length - 1;
-          _ticket = StakeTicket(
-            account: _account,
-            gameId: 'holdem',
-            stake: 0,
-            opponents: opponents,
-            difficulty: Difficulty.normal,
-          );
-          if (stake > 0) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted || _ticket.settled) return;
-              setState(
-                () => _ticket = StakeTicket(
-                  account: _account,
-                  gameId: 'holdem',
-                  stake: _account.placeStake(stake),
-                  opponents: opponents,
-                  difficulty: Difficulty.normal,
-                ),
-              );
-            });
-          }
+          _ticket = party.ticket(_account, m);
         }
         _c = online;
         online

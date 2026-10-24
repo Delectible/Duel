@@ -35,9 +35,10 @@ class FakeServer {
         continue;
       }
       final doc = await store.get(w.path);
-      // Rules: parties to members, games to players, hands to their owner.
+      // Rules: parties to members, games to players, hands and wallets to
+      // their owner.
       final bool visible;
-      if (w.path.contains('/hands/')) {
+      if (w.path.contains('/hands/') || w.path.startsWith('wallets/')) {
         visible = doc != null && w.path.endsWith('/${w.uid}');
       } else {
         final key = w.path.startsWith('parties/') ? 'members' : 'seats';

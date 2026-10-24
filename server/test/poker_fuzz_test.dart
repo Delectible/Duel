@@ -19,6 +19,9 @@ void main() {
       final ref = Referee(store, rng: Random(seed), clock: () => now);
       final rng = Random(seed * 7 + 1);
       final party = await ref.createParty(luca);
+      for (final p in [luca, sam]) {
+        await ref.wallet(p, carry: 10000);
+      }
       await ref.joinParty(sam, party['code']! as String);
       await ref.setBots(luca, party['id']! as String, bots);
       var m = await ref.startMatch(luca, party['id']! as String, 'holdem', stake: 10);

@@ -135,7 +135,7 @@ class Referee {
       final seat = (match['seats']! as List).indexOf(p.uid);
       if (seat >= 0 && !_left(match).contains(seat)) {
         final game = onlineGames[match['game']]!;
-        _leave(
+        await _leave(
           tx,
           match,
           game,
@@ -194,11 +194,11 @@ class Referee {
 
   // --- Matches -------------------------------------------------------------
 
-  /// Biggest stake the host can set (each phone settles its own pips).
+  /// Biggest stake the host can set.
   static const maxStake = 1000;
 
   /// Starts [gameId] for everyone in the party and its bots (host only).
-  /// [stake] is what every player puts in; each phone takes and settles it.
+  /// [stake] is what every player puts in (from their wallet; see [_save]).
   Future<Doc> startMatch(Player p, String partyId, String gameId, {int stake = 0, Doc options = const {}}) =>
       store.transaction((tx) async {
         final party = await tx.get('parties/$partyId');
@@ -268,7 +268,7 @@ class Referee {
         throw const RefereeError(409, 'A game is still going. Finish it, or end it from the party screen.');
       }
       _end(current);
-      _put(tx, 'matches/$currentId', current);
+      await _save(tx, current);
     }
     final game = onlineGames[gameId];
     if (game == null) throw RefereeError(400, "$gameId can't be played online yet");
@@ -315,6 +315,19 @@ class Referee {
       for (final (i, b) in bots.indexed)
         if (b == null) i,
     };
+    // Everyone puts the stake in now (bots' come from the bank).
+    if (stake > 0) {
+      for (final i in humans) {
+        final w = await tx.get('wallets/${seats[i]}');
+        final name = names[seats[i]] ?? 'Player';
+        if (w == null) throw RefereeError(409, '$name needs the latest Duel to play for pips');
+        final balance = w['balance']! as int;
+        if (balance < stake) {
+          throw RefereeError(409, "$name has ${max(balance, 0)} pips: that's not enough for this stake");
+        }
+        _setWallet(tx, seats[i], {...w, 'balance': balance - stake});
+      }
+    }
     final state = game.start(seats.length, _rng, first: first, humans: humans, options: options);
     final match = <String, Object?>{
       'id': _id(),
@@ -338,11 +351,12 @@ class Referee {
       'turnAt': null,
       'timeouts': List.filled(seats.length, 0),
       'result': null,
+      'paid': stake <= 0,
       'rematch': <String>[],
       'next': null,
       'createdAt': _now,
     };
-    _commit(tx, match, game, state, state);
+    await _commit(tx, match, game, state, state);
     return match;
   }
 
@@ -363,7 +377,7 @@ class Referee {
       throw RefereeError(400, e.message);
     }
     if (!game.aside(move)) (match['timeouts']! as List)[seat] = 0;
-    _commit(tx, match, game, before, state, keepClock: game.aside(move));
+    await _commit(tx, match, game, before, state, keepClock: game.aside(move));
     return match;
   });
 
@@ -387,9 +401,9 @@ class Referee {
     match['timeouts'] = timeouts;
     if (timeouts[seat] >= maxTimeouts) {
       final party = await tx.get('parties/${match['party']}');
-      _leave(tx, match, game, before, seat, reason: 'timeout', party: party);
+      await _leave(tx, match, game, before, seat, reason: 'timeout', party: party);
     } else {
-      _commit(tx, match, game, before, game.play(before, seat, game.autoMove(before, seat, _rng)));
+      await _commit(tx, match, game, before, game.play(before, seat, game.autoMove(before, seat, _rng)));
     }
     return match;
   });
@@ -401,7 +415,7 @@ class Referee {
     if (match['status'] != 'live' || _left(match).contains(seat)) return match;
     final game = onlineGames[match['game']]!;
     final party = await tx.get('parties/${match['party']}');
-    _leave(tx, match, game, await _state(tx, id), seat, reason: 'forfeit', party: party);
+    await _leave(tx, match, game, await _state(tx, id), seat, reason: 'forfeit', party: party);
     return match;
   });
 
@@ -415,7 +429,7 @@ class Referee {
   /// - two or more people still in: the game pauses for the host to bring
   ///   in a bot for them or end the game ([decide]); the leaver can come
   ///   back ([rejoin]) until then, or later in place of the bot.
-  void _leave(
+  Future<void> _leave(
     Tx tx,
     Doc match,
     OnlineGame game,
@@ -424,7 +438,7 @@ class Referee {
     required String reason,
     Doc? party,
     String? leaving,
-  }) {
+  }) async {
     final left = ({..._left(match), seat}.toList()..sort());
     match['left'] = left;
     final seats = (match['seats']! as List).cast<String>();
@@ -437,12 +451,12 @@ class Referee {
     final after = game.leave(before, seat);
     if (people.length == 1 && !anyBots && seats.length == 2) {
       _finish(match, Result(winner: people.single), reason: reason);
-      _put(tx, 'matches/${match['id']}', match);
+      await _save(tx, match);
       return;
     }
     if (people.length <= 1 || after == null) {
       _end(match);
-      _put(tx, 'matches/${match['id']}', match);
+      await _save(tx, match);
       return;
     }
     // Pause for the host. If the host is the one who left, the next person
@@ -470,7 +484,7 @@ class Referee {
     match['state'] = game.public(after);
     match['version'] = (match['version']! as int) + 1;
     _put(tx, 'secrets/${match['id']}', {'state': after});
-    _put(tx, 'matches/${match['id']}', match);
+    await _save(tx, match);
   }
 
   /// The host's call on the seats waiting in [Doc] `paused`: `bot` (a bot
@@ -486,7 +500,7 @@ class Referee {
     if (choice == 'end') {
       if (!isDecider) throw const RefereeError(403, 'The host decides');
       _end(match);
-      _put(tx, 'matches/$id', match);
+      await _save(tx, match);
       return match;
     }
     if (choice != 'bot') throw const RefereeError(400, 'Choose bot or end');
@@ -504,7 +518,7 @@ class Referee {
     match['paused'] = null;
     final game = onlineGames[match['game']]!;
     final state = await _state(tx, id);
-    _commit(tx, match, game, state, state);
+    await _commit(tx, match, game, state, state);
     return match;
   });
 
@@ -530,12 +544,12 @@ class Referee {
         match['state'] = game.public(state);
         match['version'] = (match['version']! as int) + 1;
         _put(tx, 'secrets/$id', {'state': state});
-        _put(tx, 'matches/$id', match);
+        await _save(tx, match);
         return match;
       }
       match['paused'] = null;
     }
-    _commit(tx, match, game, state, state);
+    await _commit(tx, match, game, state, state);
     return match;
   });
 
@@ -547,7 +561,7 @@ class Referee {
     if (party?['host'] != p.uid) throw const RefereeError(403, 'Only the host can end the game');
     if (match['status'] != 'live') return match;
     _end(match);
-    _put(tx, 'matches/$id', match);
+    await _save(tx, match);
     return match;
   });
 
@@ -601,9 +615,85 @@ class Referee {
       }
     }
     match['version'] = (match['version']! as int) + 1;
-    _put(tx, 'matches/$id', match);
+    await _save(tx, match);
     return match;
   });
+
+  // --- Wallets -------------------------------------------------------------
+
+  /// Most a phone can bring over (or report from bot games in one go): a
+  /// sanity limit, not a rule anyone meets playing.
+  static const maxCarry = 10000000;
+
+  /// Your pips, kept here (`wallets/{uid}`: balance, the last report ids
+  /// applied). The first call makes it with the phone's own balance
+  /// ([carry], debt and all); later ones add what bot games won or lost
+  /// since ([delta], once per [id], so a resend can't count twice).
+  Future<Doc> wallet(Player p, {int? carry, String? id, int delta = 0}) => store.transaction((tx) async {
+    final w = await tx.get('wallets/${p.uid}');
+    final Doc next;
+    if (w == null) {
+      next = {
+        'balance': (carry ?? startingBalance).clamp(-maxCarry, maxCarry),
+        'applied': [?id],
+        'createdAt': _now,
+      };
+    } else {
+      final applied = ((w['applied'] as List?) ?? const []).cast<String>();
+      if (id == null || applied.contains(id)) return w;
+      next = {
+        ...w,
+        'balance': (w['balance']! as int) + delta.clamp(-maxCarry, maxCarry),
+        'applied': [...applied.skip(max(0, applied.length - 19)), id],
+      };
+    }
+    _setWallet(tx, p.uid, next);
+    return next;
+  });
+
+  /// What a phone starts with (as the app does).
+  static const startingBalance = 100;
+
+  void _setWallet(Tx tx, String uid, Doc w) => tx.set('wallets/$uid', {...w, 'updatedAt': _now});
+
+  /// Writes the match; once it's over, pays out its pot (once):
+  /// - won: the pot (everyone's stake, bots' too) goes to the winner,
+  ///   split between partners; a bot's (or a leaver's) share stays with
+  ///   the bank;
+  /// - a draw, or ended early: the people still in get their stake back;
+  ///   whoever left lost theirs.
+  /// The payouts go in the result (`payouts`: seat -> pips).
+  Future<void> _save(Tx tx, Doc match) async {
+    final stake = match['stake'] as int? ?? 0;
+    final result = (match['result'] as Map?)?.cast<String, Object?>();
+    if (match['status'] == 'over' && match['paid'] == false && stake > 0 && result != null) {
+      final seats = (match['seats']! as List).cast<String>();
+      final bots = match['bots']! as List;
+      final left = _left(match);
+      bool person(int i) => bots[i] == null && !left.contains(i);
+      final payouts = <String, int>{};
+      final reason = result['reason'];
+      if (reason == 'draw' || reason == 'ended') {
+        for (var i = 0; i < seats.length; i++) {
+          if (person(i)) payouts['$i'] = stake;
+        }
+      } else {
+        final winners = ((result['winners'] as List?) ?? [?result['winner']]).cast<int>();
+        final share = stake * seats.length ~/ max(1, winners.length);
+        for (final i in winners) {
+          if (person(i)) payouts['$i'] = share;
+        }
+      }
+      for (final e in payouts.entries) {
+        final uid = seats[int.parse(e.key)];
+        final w = await tx.get('wallets/$uid');
+        if (w != null) _setWallet(tx, uid, {...w, 'balance': (w['balance']! as int) + e.value});
+      }
+      match['result'] = {...result, 'payouts': payouts};
+      match['paid'] = true;
+    }
+    _put(tx, 'matches/${match['id']}', match);
+  }
 
   // --- Helpers -------------------------------------------------------------
 
@@ -670,7 +760,14 @@ class Referee {
   /// Plays bots (and players who left) until a person is to move, then
   /// writes it all: the secret state, the public match, each person's own
   /// cards. [before] is the state the players last saw.
-  void _commit(Tx tx, Doc match, OnlineGame game, Doc before, Doc state, {bool keepClock = false}) {
+  Future<void> _commit(
+    Tx tx,
+    Doc match,
+    OnlineGame game,
+    Doc before,
+    Doc state, {
+    bool keepClock = false,
+  }) async {
     final bots = match['bots']! as List;
     final gone = (match['gone']! as List).cast<int>();
     final standIns = _standIns(match);
@@ -704,7 +801,7 @@ class Referee {
       final mine = game.private(state, i);
       if (mine != null) _put(tx, 'matches/$id/hands/$uid', mine);
     }
-    _put(tx, 'matches/$id', match);
+    await _save(tx, match);
   }
 
   void _finish(Doc match, Result result, {required String reason}) {

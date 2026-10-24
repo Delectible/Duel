@@ -4,6 +4,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/widgets.dart';
 
 import '../account/account.dart';
+import '../account/stake.dart';
 import '../app_info.dart';
 import '../avatars/faces.dart';
 
@@ -71,8 +72,13 @@ class PartyBot {
 /// the live documents (or the referee's answer, whichever is newer).
 class PartyService extends ChangeNotifier {
   PartyService(this.backend, {required this.account}) {
+    account.addListener(_accountChanged);
     final saved = account.partyId;
-    if (saved != null) unawaited(_resume(saved));
+    if (saved != null) {
+      unawaited(_resume(saved));
+    } else {
+      unawaited(_signIn().then((_) {}, onError: (Object _) {}));
+    }
   }
 
   final OnlineBackend backend;
@@ -312,7 +318,77 @@ class PartyService extends ChangeNotifier {
     }
   }
 
-  Future<void> _signIn() async => uid ??= await backend.signIn();
+  Future<void> _signIn() async {
+    uid ??= await backend.signIn();
+    _watchWallet();
+  }
+
+  // --- Pips ------------------------------------------------------------------
+
+  /// Your pips live on the server (`wallets/{uid}`): the phone's balance is
+  /// carried over the first time, bot games are reported as they settle
+  /// (kept until the server has them, so offline play counts too), and
+  /// online stakes and pots are moved by the referee. The account shows
+  /// the server's number.
+  StreamSubscription<Doc?>? _walletSub;
+  var _syncing = false;
+
+  void _watchWallet() {
+    if (_walletSub != null || uid == null || _disposed) return;
+    _walletSub = backend.watch('wallets/$uid').listen((w) {
+      if (w != null) account.walletHeard(w);
+    }, onError: (Object _) {});
+    unawaited(syncWallet());
+  }
+
+  void _accountChanged() {
+    if (_disposed || !account.walletDue) return;
+    if (uid == null) {
+      unawaited(_signIn().then((_) {}, onError: (Object _) {}));
+    } else {
+      unawaited(syncWallet());
+    }
+  }
+
+  /// Sends what the server hasn't heard (see [Account.walletReport]).
+  /// Offline: it waits for the next change, or the next launch.
+  Future<void> syncWallet() async {
+    if (_syncing || uid == null || _disposed) return;
+    _syncing = true;
+    try {
+      for (var i = 0; i < 3 && account.walletDue && !_disposed; i++) {
+        account.walletHeard(await backend.call('/v1/wallet', account.walletReport()));
+      }
+    } on Object {
+      // Try again later.
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  /// The stake for [m] (online: the referee takes it and pays the pot; the
+  /// ticket keeps your stats and shows the result).
+  StakeTicket ticket(Account account, Doc m) {
+    final id = m['id'], stake = m['stake'] as int? ?? 0;
+    final n = (m['seats']! as List).length;
+    return StakeTicket(
+      account: account,
+      gameId: '${m['game']}',
+      stake: stake,
+      opponents: n - 1,
+      difficulty: Difficulty.normal,
+      paid: (outcome) {
+        final now = match;
+        final payouts = now?['id'] == id ? ((now!['result'] as Map?)?['payouts'] as Map?) : null;
+        if (payouts != null) return ((payouts['$seat'] as int?) ?? 0) - stake;
+        return switch (outcome) {
+          Outcome.win => stake * (n - 1),
+          Outcome.tie => 0,
+          Outcome.loss => -stake,
+        };
+      },
+    );
+  }
 
   void _follow(Doc p) {
     party = p;
@@ -395,7 +471,7 @@ class PartyService extends ChangeNotifier {
   Future<String?> claimTimeout() => _matchCall('timeout');
   Future<String?> rematch() => _matchCall('rematch');
 
-  /// Leaves the game. [stake] went with it (it comes back if you [rejoin]).
+  /// Leaves the game. [stake] went with it (it counts again if you [rejoin]).
   Future<String?> forfeit({int stake = 0}) {
     final m = match;
     if (m != null && stake > 0) account.leftGame(m['id']! as String, '${m['game']}', stake);
@@ -449,6 +525,8 @@ class PartyService extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    account.removeListener(_accountChanged);
+    unawaited(_walletSub?.cancel());
     unawaited(_partySub?.cancel());
     unawaited(_matchSub?.cancel());
     unawaited(_mineSub?.cancel());

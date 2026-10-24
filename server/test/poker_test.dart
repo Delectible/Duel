@@ -23,6 +23,9 @@ void main() {
 
   Future<Map<String, Object?>> table() async {
     final party = await ref.createParty(luca);
+    for (final p in [luca, sam]) {
+      await ref.wallet(p, carry: 10000);
+    }
     await ref.joinParty(sam, party['code']! as String);
     await ref.setBots(luca, party['id']! as String, bots);
     return ref.startMatch(luca, party['id']! as String, 'holdem', stake: 10);
@@ -32,6 +35,9 @@ void main() {
 
   test('bots: host only, each with a difficulty, the table holds six', () async {
     final party = await ref.createParty(luca);
+    for (final p in [luca, sam]) {
+      await ref.wallet(p, carry: 10000);
+    }
     final id = party['id']! as String;
     await ref.joinParty(sam, party['code']! as String);
     await expectLater(ref.setBots(sam, id, bots), throwsA(isA<RefereeError>()));

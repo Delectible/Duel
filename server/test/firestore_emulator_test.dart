@@ -16,6 +16,9 @@ void main() {
     final ref = Referee(store, rng: Random(3));
     const luca = Player(uid: 'luca', name: 'Luca'), sam = Player(uid: 'sam', name: 'Sam');
     final party = await ref.createParty(luca);
+    for (final p in [luca, sam]) {
+      await ref.wallet(p, carry: 10000);
+    }
     await ref.joinParty(sam, party['code']! as String);
     var m = await ref.startMatch(luca, party['id']! as String, 'connect4');
     final id = m['id']! as String;
@@ -44,6 +47,9 @@ void main() {
     final rng = Random(11);
     const luca = Player(uid: 'luca', name: 'Luca'), sam = Player(uid: 'sam', name: 'Sam');
     final party = await ref.createParty(luca);
+    for (final p in [luca, sam]) {
+      await ref.wallet(p, carry: 10000);
+    }
     await ref.joinParty(sam, party['code']! as String);
     await ref.setBots(luca, party['id']! as String, [
       {'name': 'Pip', 'look': 'cap', 'difficulty': 'easy'},
@@ -83,6 +89,9 @@ void main() {
         sam = Player(uid: 'sam', name: 'Sam'),
         kit = Player(uid: 'kit', name: 'Kit');
     final party = await ref.createParty(luca);
+    for (final p in [luca, sam]) {
+      await ref.wallet(p, carry: 10000);
+    }
     await ref.joinParty(sam, party['code']! as String);
     await ref.joinParty(kit, party['code']! as String);
     final id = (await ref.startMatch(luca, party['id']! as String, 'holdem'))['id']! as String;

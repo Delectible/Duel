@@ -77,8 +77,10 @@ void main() {
       await wait(1500);
       expect(find.byType(TableView), findsOneWidget, reason: 'the game opened by itself');
 
-      // Sam leaves (losing the stake): Luca's table pauses and asks.
-      final samBefore = sam.balance;
+      // The referee took everyone's stake from their pips.
+      expect([luca.balance, sam.balance, kit.balance], [90, 90, 90]);
+
+      // Sam leaves (the stake goes with them): Luca's table pauses and asks.
       expect(await run(() => samP.forfeit(stake: 10)), isNull);
       await wait();
       expect(samP.leftGame, isTrue);
@@ -91,15 +93,14 @@ void main() {
       expect(find.byKey(const Key('paused')), findsNothing);
       expect(find.textContaining('Sam (bot)'), findsOneWidget, reason: 'the bot plays as Sam');
 
-      // Sam comes back: the seat as it stands, and the stake back in.
+      // Sam comes back: the seat as it stands, the stake still in.
       expect(await run(() => samP.rejoin()), isNull);
       await wait(800);
       expect(samP.inGame, isTrue);
-      expect(sam.balance, samBefore + 10, reason: 'rejoining undoes the lost stake');
+      expect(sam.balance, 90);
       expect(find.textContaining('Sam (bot)'), findsNothing);
 
       // Kit leaves; this time Luca ends the game: stakes back for those in.
-      final lucaBefore = luca.balance;
       expect(await run(() => kitP.forfeit(stake: 10)), isNull);
       await wait();
       await tester.tap(find.byKey(const Key('end game')));
@@ -107,7 +108,7 @@ void main() {
       expect(host.match!['result'], containsPair('reason', 'ended'));
       expect(find.text('Game ended'), findsOneWidget);
       expect(find.textContaining('Kit left'), findsOneWidget);
-      expect(luca.balance, lucaBefore + 10, reason: 'Luca gets the stake back');
+      expect([luca.balance, sam.balance, kit.balance], [100, 100, 90], reason: 'stakes back for those in');
       await shot(tester, 'lobby_ended_$phone');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

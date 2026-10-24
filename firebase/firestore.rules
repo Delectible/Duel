@@ -20,6 +20,12 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == uid;
     }
 
+    // Your pips: only you see them; only the referee changes them.
+    match /wallets/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // A party: only its members can see it.
     match /parties/{partyId} {
       allow read: if signedIn() && request.auth.uid in resource.data.members;

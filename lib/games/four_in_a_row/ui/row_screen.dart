@@ -113,19 +113,23 @@ class _RowScreenState extends State<RowScreen> {
   void _settle() {
     final online = _online;
     if (online != null) {
-      // Each new match (the first, a rematch): put in its stake.
+      // Each new match (the first, a rematch): its stake (the referee
+      // takes it and pays out).
       final id = online.matchId;
       if (id != null && id != _ticketFor) {
         _ticketFor = id;
         setState(() {
           _showOver = false;
-          _ticket = StakeTicket(
-            account: _account,
-            gameId: 'connect4',
-            stake: _account.placeStake(online.stake),
-            opponents: 1,
-            difficulty: Difficulty.normal,
-          );
+          final m = widget.party!.match;
+          _ticket = m != null && m['id'] == id
+              ? widget.party!.ticket(_account, m)
+              : StakeTicket(
+                  account: _account,
+                  gameId: 'connect4',
+                  stake: online.stake,
+                  opponents: 1,
+                  difficulty: Difficulty.normal,
+                );
         });
       }
       final error = online.error;

@@ -21,6 +21,9 @@ void main() {
 
   Future<(String, Map<String, Object?>)> table({bool bot = true}) async {
     final party = await ref.createParty(luca);
+    for (final p in [luca, sam, kit]) {
+      await ref.wallet(p, carry: 10000);
+    }
     final id = party['id']! as String;
     await ref.joinParty(sam, party['code']! as String);
     await ref.joinParty(kit, party['code']! as String);
@@ -108,7 +111,10 @@ void main() {
       'draw': false,
       'reason': 'ended',
       'left': [seatOf(m, 'sam')],
+      'payouts': {'${seatOf(m, 'luca')}': 10, '${seatOf(m, 'kit')}': 10},
     });
+    Future<int> balance(String uid) async => (await store.get('wallets/$uid'))!['balance']! as int;
+    expect([await balance('luca'), await balance('sam'), await balance('kit')], [10000, 9990, 10000]);
   });
 
   test('the host leaves: the next one still playing becomes host and decides', () async {
