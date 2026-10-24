@@ -85,8 +85,29 @@ class PartyService extends ChangeNotifier {
   /// A call is on its way (buttons wait).
   bool busy = false;
 
-  /// A game screen is showing [match] (so a new one isn't pushed on top).
-  bool onScreen = false;
+  /// A game screen is showing (or being opened), so a new one isn't pushed
+  /// on top. Openers set it; each screen says [showing] / [hidden] itself,
+  /// with [screenGame] the game it's for: if the party moves on to another
+  /// game, the stale screen is closed and the new one opened.
+  bool get onScreen => _opening || _screen != null;
+  set onScreen(bool v) => _opening = v;
+  var _opening = false;
+  Object? _screen;
+  String? screenGame;
+
+  void showing(Object screen, String game) {
+    _screen = screen;
+    screenGame = game;
+    _opening = false;
+  }
+
+  /// [screen] closed (only counts if it's still the one showing: an old
+  /// screen can finish closing after the next has opened).
+  void hidden(Object screen) {
+    if (!identical(_screen, screen)) return;
+    _screen = null;
+    screenGame = null;
+  }
 
   StreamSubscription<Doc?>? _partySub;
   StreamSubscription<Doc?>? _matchSub;

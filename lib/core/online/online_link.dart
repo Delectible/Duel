@@ -27,7 +27,15 @@ class OnlineLink {
   late final Timer _tick;
   var _disposed = false;
 
-  Doc? get _match => party.match?['id'] == _matchId ? party.match : null;
+  /// This link's match: the party's while it's still this one, else as it
+  /// last was (the party moved on and this screen is on its way out).
+  Doc? get _match {
+    final m = party.match;
+    if (m?['id'] == _matchId) _last = m;
+    return _last;
+  }
+
+  Doc? _last;
   Doc get state => ((_match?['state'] as Map?) ?? const {}).cast<String, Object?>();
 
   bool get live => _match?['status'] == 'live';
@@ -197,7 +205,7 @@ class _OnlineGameFrameState extends State<OnlineGameFrame> {
   @override
   void initState() {
     super.initState();
-    party.onScreen = true;
+    party.showing(this, widget.gameId);
     party.addListener(_follow);
     _follow();
   }
@@ -243,7 +251,7 @@ class _OnlineGameFrameState extends State<OnlineGameFrame> {
   @override
   void dispose() {
     party.removeListener(_follow);
-    party.onScreen = false;
+    party.hidden(this);
     _link?.dispose();
     super.dispose();
   }

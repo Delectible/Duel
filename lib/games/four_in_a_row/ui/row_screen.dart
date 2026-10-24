@@ -106,7 +106,7 @@ class _RowScreenState extends State<RowScreen> {
   @override
   void initState() {
     super.initState();
-    widget.party?.onScreen = true;
+    widget.party?.showing(this, 'connect4');
     WidgetsBinding.instance.addPostFrameCallback((_) => _settle());
   }
 
@@ -173,7 +173,7 @@ class _RowScreenState extends State<RowScreen> {
 
   @override
   void dispose() {
-    widget.party?.onScreen = false;
+    widget.party?.hidden(this);
     (_c as ChangeNotifier).dispose();
     super.dispose();
   }

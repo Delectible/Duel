@@ -73,7 +73,7 @@ class _PokerScreenState extends State<PokerScreen> {
     _account = AccountScope.maybeRead(context) ?? Account();
     final party = widget.party;
     if (party != null) {
-      party.onScreen = true;
+      party.showing(this, 'holdem');
       party.addListener(_follow);
     }
     _ticket =
@@ -222,7 +222,7 @@ class _PokerScreenState extends State<PokerScreen> {
   @override
   void dispose() {
     widget.party?.removeListener(_follow);
-    widget.party?.onScreen = false;
+    widget.party?.hidden(this);
     _c.dispose();
     super.dispose();
   }

@@ -312,15 +312,22 @@ class _MatchWatcherState extends State<_MatchWatcher> {
     }
     // Open the game for everyone playing it (not for someone who left it:
     // they come back through Game In Progress).
-    if (party == null || !party.inGame || party.onScreen) return;
+    if (party == null || !party.inGame) return;
     final game = games.where((g) => g.id == party.match!['game']).firstOrNull;
     final open = game?.openOnline;
     if (open == null) return;
+    // Still showing the last game (its result, say) while the party has
+    // moved on to another: close it, then open the new one.
+    final stale = party.screenGame != null && party.screenGame != game!.id;
+    if (party.onScreen && !stale) return;
+    party.screenGame = null;
     party.onScreen = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       PlaySetupScope.read(context)?.mode = PlayMode.friends;
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => open(party)));
+      final nav = Navigator.of(context);
+      if (stale) nav.popUntil((r) => r.isFirst);
+      nav.push(MaterialPageRoute<void>(builder: (_) => open(party)));
     });
   }
 
