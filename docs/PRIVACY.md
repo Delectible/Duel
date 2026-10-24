@@ -1,22 +1,24 @@
 # Duel privacy policy
 
-_Last updated: 16 October 2026_
+_Last updated: 24 October 2026_
 
 Duel is an app for playing card games against other people online or
 against a bot. To run online games it keeps a small amount of data about
 you. It does not sell your data, show ads, or use advertising or analytics
 trackers.
 
-**Games against the bot** run entirely on your phone. Nothing about them
-is sent anywhere. Your profile (name and face), your pips balance, your
-game record and your settings are saved on your phone only.
+**Games against the bot** run on your phone. Your profile (name and
+face), your game record and your settings are saved on your phone only.
 
-**Your account.** To play with friends online, Duel signs you in
-anonymously the first time you start or join a party: no email, no
-password. We keep:
+**Your account.** Duel signs you in anonymously when it starts (no email,
+no password), so your pips can be kept online and you can play with
+friends. We keep:
 
 - an **account ID** (random, made by the sign-in service), so the server
   knows which phone is which;
+- your **pips balance** (the game's play money, which can't be bought or
+  cashed out) and how it changed: what you won or lost against bots, and
+  the stakes and pots of online games;
 - the **name and face** you chose in your profile, shown to the people in
   your party.
 

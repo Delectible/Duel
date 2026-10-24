@@ -565,6 +565,27 @@ Ships as app version **0.4.1**.
   apps may not play well together online; the last number for anything
   else (CLAUDE.md). → 0.9.3 · 2026-10-24
 
+### 28. Online: Blitz, pips, continuity (requested 2026-10-24)
+
+- [x] **28.1 Never stranded on an old game**: when the party starts a new
+  game while you're still on the last one's screen (someone left, it
+  ended), the old screen closes and the new game opens; screens say which
+  game they show (`showing` / `hidden`). Tested: a forfeit, then Crazy
+  Eights, the host ending it, Hold'em, the host leaving the party.
+  → 0.10.0 · 2026-10-24
+- [x] **28.2 Blitz online**, 2–6 with bots, Wars on or off: the referee
+  deals and checks every move; each phone turns the table round so you
+  sit at the bottom (the engine's `origin`, so deals and wars come out the
+  same). → 0.10.0 · 2026-10-24
+- [x] **28.3 Pips online**: the referee keeps your balance
+  (`wallets/{uid}`). The phone's balance (debt too) carries over the first
+  time; bot games are reported as they settle (kept until the server has
+  them, so offline play counts). Online stakes come out of everyone's
+  pips at the start and the winner takes the pot (partners split it;
+  bots put theirs in from the bank; ended early: stakes back for those
+  still in, leavers lose theirs). You need the pips to play for them.
+  → 0.10.0 · 2026-10-24
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public
@@ -577,11 +598,8 @@ Ships as app version **0.4.1**.
   No cut: it's among friends, not a casino.
 - [ ] **25.3 Unlocks**: bigger tables open up as you go (e.g. by balance
   or by what you've won).
-- Needs a server-side wallet first: today each phone keeps its own pips,
-  and in a cash game pips pass between people, so the referee must hold
-  balances (move the balance there once). Then public tables (not party
-  matches) with seats people join and leave mid-session.
-  → 0.9.0 · 2026-10-21
+- The server-side wallet it needed is in (28.3). Next: public tables
+  (not party matches) with seats people join and leave mid-session.
 
 ### 12. Fixes
 

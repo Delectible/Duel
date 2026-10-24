@@ -146,8 +146,22 @@ weights cut from the variable font.
   members, crown on the host). The host's Play! in the preview calls
   `party.start`; home's `_MatchWatcher` opens `GameInfo.openOnline` on
   every phone. `blocked()` greys games without `openOnline` ("Online
-  soon") and, for guests, says the host picks. Each phone puts in and
-  settles the match's `stake` locally (server wallet: later).
+  soon") and, for guests, says the host picks. Online screens say
+  `party.showing(this, gameId)` / `hidden(this)`; when the party moves on
+  to another game the watcher closes a stale screen and opens the new one
+  (`test/online/continuity_test.dart`).
+- Pips (wallet): the referee keeps each balance in `wallets/{uid}`
+  (`Referee.wallet`, `POST /v1/wallet {carry, id, delta}`; only the owner
+  reads it). `PartyService` signs in at launch, carries the phone's
+  balance over once, then reports bot games (`Account.walletReport` /
+  `walletHeard`: `_base` = the server's, `_unsynced` = changes since, one
+  report in flight resent by id) and follows the live wallet. Online
+  stakes: `_newMatch` takes them (refuses if someone lacks the pips or
+  never synced); `_save` pays the pot once the match is over (`payouts` in
+  the result: winner takes all, partners split via `Result.winners`, bots'
+  shares are the bank's, `ended` / draw = stakes back for those in).
+  Online tickets come from `party.ticket(account, match)` (`paid`: stats
+  only; the pips move on the server).
 - Leaving and coming back (`features/party/lobby.dart`, all from the
   server's match: `left`, `standIns`, `paused`): one person left among
   bots → the game ends (`reason: ended`, stakes back for those in); a
@@ -158,10 +172,12 @@ weights cut from the variable font.
   stake they lost comes back (`Account.leftGame` / `takeBack`). One live
   game per party; the host can end it (`endMatch`). The watcher only opens
   a game for `party.inGame`.
-- Card games online (Crazy Eights, Go Fish, Spades): server
+- Card games online (Crazy Eights, Go Fish, Spades, Blitz): server
   `card_games.dart` (`SeededCardGame`: seed + dealer + `order` + move log
   `{p, kind, …}`, replayed through the engine; Spades: `wants` → `pairUp`
-  → `order`, next hand dealt by itself). App: `core/online/online_link.dart`
+  → `order`, next hand dealt by itself; Blitz: `blitzMoveToJson` /
+  `FromJson`, and the phone's engine gets `origin` (its turned-round
+  seat 0) so deals, wars and knockouts run in the server's seat order). App: `core/online/online_link.dart`
   (`OnlineLink`: rotation `local`/`pos`, `next()` / `send()`, clock claim;
   `OnlineGameFrame`: stake, pause card, ended card, fresh table per match)
   and each controller's `link` (plays the next logged move where a bot
@@ -180,7 +196,7 @@ weights cut from the variable font.
   seat 0, seats turned round). Your cards: `party.mine`.
 - Referee: `server/` (own Dart package, excluded from the app's analyze):
   `Referee` (parties, matches, moves with a `version` check, timeouts,
-  forfeit, rematch) over a `Store` (`MemoryStore` in tests,
+  forfeit, rematch, wallets) over a `Store` (`MemoryStore` in tests,
   `FirestoreStore` on Firestore REST), `api.dart` (shelf routes, Firebase
   ID token check), `games.dart` (`OnlineGame` per game: Four in a Row,
   `poker_game.dart` Hold'em: `replay` rebuilds the hand and `TableReads`;
@@ -194,6 +210,8 @@ weights cut from the variable font.
   read Firestore; only the referee writes.
   Every write goes through `_put`, which stamps `expireAt` (games a day
   after the last move, parties 30 days); Firestore TTL deletes them.
+  Matches are written with `_save` (pays out the pot); wallets never
+  expire.
 - `firebase/`: `firestore.rules` (+ emulator config). Test locally from
   `firebase/`: `firebase emulators:exec --only firestore --project
   demo-duel "cd ../server && dart test"`.
@@ -214,7 +232,7 @@ weights cut from the variable font.
 - `lib/main.dart`: `DuelApp` (loads the `Account`, applies light / dark,
   `AccountScope` + `PlaySetupScope`).
 - `lib/core/account/`: `Account` (name, avatar, pips balance (may go
-  negative: debt), currency display, theme, per-game stats; saved by
+  negative: debt; synced with the server's wallet, see Online), currency display, theme, per-game stats; saved by
   `PrefsStore`), `stake.dart` (`StakeTicket`: the stake is taken at Play!
   and settled once per game; `StakeBadge`, `StakeResult`, `confirmLeave`
   forfeits). Win = stake back + stake x opponents x difficulty rate.

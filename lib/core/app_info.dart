@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.9.3';
+  static const version = '0.10.0';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,25 +24,13 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'If someone in your party has a newer Duel than you, the app now says so and offers to update (or '
-      'ignore it: nothing is blocked). Playing online on an older version may cause problems.';
+      'Blitz online with your party. Your pips are now kept online: online stakes come out of everyone\'s '
+      'pips and the winner takes the pot. Fix: when your party starts a new game, it opens on every phone, '
+      'even one still on the last game.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
-    (
-      '0.8',
-      [
-        'Blitz: a house game vs bots, with wars',
-        "Hold'em: table talk, all-in odds, big-win splashes",
-        'Chips with depth; cards dealt from the dealer',
-        'New game pictures',
-        'Leave and rejoin: the host brings in a bot or ends it',
-        "Hold'em: bots that read you; 9 hidden personalities",
-        'Read cards, hand history, pot odds, game summary',
-        'New faces: 7 parts, 100+ options, Surprise me',
-        "Online Hold'em bots read you and give tells too",
-      ],
-    ),
+    ('0.10', ['Blitz online', 'Pips kept online: winner takes the pot']),
     (
       '0.9',
       [
@@ -55,6 +43,20 @@ class AppInfo {
         "Hold'em: show or muck your cards",
         'Smoother: full refresh rate, less redrawing',
         'Tells you when your party has a newer Duel',
+      ],
+    ),
+    (
+      '0.8',
+      [
+        'Blitz: a house game vs bots, with wars',
+        "Hold'em: table talk, all-in odds, big-win splashes",
+        'Chips with depth; cards dealt from the dealer',
+        'New game pictures',
+        'Leave and rejoin: the host brings in a bot or ends it',
+        "Hold'em: bots that read you; 9 hidden personalities",
+        'Read cards, hand history, pot odds, game summary',
+        'New faces: 7 parts, 100+ options, Surprise me',
+        "Online Hold'em bots read you and give tells too",
       ],
     ),
     ('0.7', ["Hold'em online, with bots in the party"]),
