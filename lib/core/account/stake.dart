@@ -14,9 +14,9 @@ const stakeRules = [
   'Lose, or leave a game early, and the stake is gone.',
   'Out of money? You can always stake 1 on credit against bots. It goes on '
       'your debt, which your winnings pay off first. No time limit.',
-  'Online, everyone puts in the same stake and the winner takes the pot '
-      '(partners split it). Bots put theirs in too. Your pips are kept online, '
-      'so you need enough for the stake.',
+  'Online, everyone puts in the same stake, bots too, and the winner takes '
+      'the whole pot (partners split it). Difficulty doesn\'t count online. If a '
+      'bot wins, the pot goes to the bank. You need enough pips for the stake.',
 ];
 
 /// The rules as a bulleted list.
