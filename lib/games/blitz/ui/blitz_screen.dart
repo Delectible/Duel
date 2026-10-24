@@ -7,6 +7,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/online/online_link.dart';
 import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
@@ -104,7 +105,17 @@ class BlitzScreen extends StatefulWidget {
     this.pace = 1,
     this.seed,
     this.stake,
-  });
+  }) : link = null;
+
+  /// With your party, online (inside an [OnlineGameFrame]).
+  BlitzScreen.online({super.key, required OnlineLink this.link, required StakeTicket this.stake})
+    : bots = link.n - 1,
+      difficulty = Difficulty.normal,
+      wars = const [true, 1].contains(link.options['wars']),
+      pace = 1,
+      seed = null;
+
+  final OnlineLink? link;
 
   final int bots;
   final Difficulty difficulty;
@@ -137,6 +148,7 @@ class _BlitzScreenState extends State<BlitzScreen> {
     pace: widget.pace,
     rng: widget.seed == null ? null : Random(widget.seed),
     you: _account.persona,
+    link: widget.link,
   )..addListener(_settle);
 
   /// Win only for the last castle standing.
@@ -170,6 +182,8 @@ class _BlitzScreenState extends State<BlitzScreen> {
   }
 
   Future<void> _leave() async {
+    final link = widget.link;
+    if (link != null) return link.leave(context, _ticket, over: _c.phase == BlitzPhase.over);
     if (_c.phase == BlitzPhase.over || await confirmLeave(context, _ticket)) {
       if (mounted) Navigator.of(context).pop();
     }
@@ -193,7 +207,7 @@ class _BlitzScreenState extends State<BlitzScreen> {
                   top: GameTopBar(
                     title: 'Blitz',
                     subtitle:
-                        'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}'
+                        '${widget.link != null ? 'With your party${_c.yourTurn ? ' · ${widget.link!.secondsLeft}s' : ''}' : 'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}'}'
                         ' · $decks deck${decks == 1 ? '' : 's'}${widget.wars ? ' · Wars' : ''}',
                     onLeave: _leave,
                     ticket: _ticket,
@@ -234,8 +248,10 @@ class _BlitzScreenState extends State<BlitzScreen> {
       ].join('  ·  '),
       ticket: _ticket,
       won: won,
-      onAgain: _playAgain,
-      onLeave: () => Navigator.of(context).pop(),
+      onAgain: widget.link == null ? _playAgain : widget.link!.rematch,
+      againLabel: widget.link?.rematchLabel ?? 'Play again',
+      leaveLabel: widget.link == null ? 'Games' : 'Back to party',
+      onLeave: widget.link == null ? () => Navigator.of(context).pop() : _leave,
     );
   }
 }

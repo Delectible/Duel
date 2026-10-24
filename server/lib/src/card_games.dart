@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:duel_engine/blitz/blitz.dart' hide PassTurn;
+import 'package:duel_engine/blitz/blitz_bot.dart';
 import 'package:duel_engine/cards.dart';
 import 'package:duel_engine/crazy_eights/crazy_eights.dart';
 import 'package:duel_engine/crazy_eights/eights_bot.dart';
@@ -383,4 +385,52 @@ class SpadesGame extends SeededCardGame<Spades> {
     int hands(Doc s) => (s['moves'] as List?)?.where((m) => (m as Map)['kind'] == 'play').length ?? 0;
     return base + Duration(milliseconds: (hands(after) ~/ 52 - hands(before) ~/ 52) * 8000);
   }
+}
+
+/// Blitz (the house game): moves as `blitzMoveToJson` makes them; targets
+/// are engine positions. Option `wars` (on / off). The engine counts from
+/// seat 0 (`origin`), so phones turned round deal and fight the same.
+class BlitzGame extends SeededCardGame<Blitz> {
+  const BlitzGame();
+
+  @override
+  String get id => 'blitz';
+  @override
+  int get minPlayers => 2;
+  @override
+  int get maxPlayers => 6;
+
+  @override
+  Blitz deal(Doc state, Random rng) {
+    final n = state['n']! as int;
+    return Blitz(
+      players: n,
+      rng: rng,
+      wars: const [true, 1].contains((state['options'] as Map?)?['wars']),
+      first: ((state['dealer']! as int) + 1) % n,
+    );
+  }
+
+  @override
+  void apply(Blitz g, int pos, Doc move) {
+    final BlitzMove m;
+    try {
+      m = blitzMoveFromJson(move);
+    } on Object {
+      throw const MoveError('No such move');
+    }
+    if (!g.moves(pos).contains(m)) throw const MoveError("That move isn't allowed now");
+    SeededCardGame.check(() => g.apply(m));
+  }
+
+  @override
+  int? toMove(Blitz g) => g.turn;
+  @override
+  bool isOver(Blitz g) => g.isOver;
+  @override
+  int? winner(Blitz g) => g.winner;
+
+  @override
+  Doc bot(Blitz g, int pos, Difficulty difficulty, Random rng) =>
+      blitzMoveToJson(BlitzBot(difficulty: difficulty, rng: rng).decide(g, pos));
 }

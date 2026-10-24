@@ -119,6 +119,48 @@ class PassTurn extends BlitzMove {
   int get hashCode => 0;
 }
 
+/// [m] as JSON for online play; [seat] maps the player numbers in it
+/// (targets) to the other side's numbering.
+Map<String, Object?> blitzMoveToJson(BlitzMove m, [int Function(int)? seat]) {
+  int s(int p) => seat == null ? p : seat(p);
+  return switch (m) {
+    Strike(:final card, :final target, :final index) => {
+      'kind': 'strike',
+      'card': '$card',
+      'target': s(target),
+      'index': index,
+    },
+    Scout(:final card, :final target, :final index) => {
+      'kind': 'scout',
+      'card': '$card',
+      'target': s(target),
+      'index': index,
+    },
+    Fortify(:final card, :final index) => {'kind': 'fortify', 'card': '$card', 'index': index},
+    Pair(:final rank) => {'kind': 'pair', 'rank': rank},
+    BlitzAttack(:final red, :final target) => {'kind': 'blitz', 'red': red, 'target': s(target)},
+    Discard(:final card) => {'kind': 'discard', 'card': '$card'},
+    PassTurn() => {'kind': 'pass'},
+  };
+}
+
+/// The move in [j] (see [blitzMoveToJson]); throws [FormatException] if
+/// it isn't one.
+BlitzMove blitzMoveFromJson(Map<Object?, Object?> j, [int Function(int)? seat]) {
+  int s(Object? p) => seat == null ? p! as int : seat(p! as int);
+  PlayingCard c() => PlayingCard.parse('${j['card']}');
+  return switch (j['kind']) {
+    'strike' => Strike(c(), s(j['target']), j['index']! as int),
+    'scout' => Scout(c(), s(j['target']), j['index']! as int),
+    'fortify' => Fortify(c(), j['index']! as int),
+    'pair' => Pair(j['rank']! as int),
+    'blitz' => BlitzAttack(red: j['red'] == true, target: s(j['target'])),
+    'discard' => Discard(c()),
+    'pass' => const PassTurn(),
+    _ => throw const FormatException('No such move'),
+  };
+}
+
 // --- Events ------------------------------------------------------------------
 
 /// Something that happened, for the commentary line and animations.
@@ -249,12 +291,13 @@ class Blitz {
     this.castleSize = 7,
     this.handSize = 4,
     int? first,
+    this.origin = 0,
   }) : assert(players >= 2 && players <= 6) {
     final deck = [for (var d = 0; d < decksFor(players); d++) ...PlayingCard.fullDeck]..shuffle(rng);
     castles = [for (var p = 0; p < players; p++) <CastleCard>[]];
     hands = [for (var p = 0; p < players; p++) <PlayingCard>[]];
     for (var k = 0; k < castleSize; k++) {
-      for (var p = 0; p < players; p++) {
+      for (final p in _seats) {
         castles[p].add(CastleCard(deck.removeLast()));
       }
     }
@@ -262,7 +305,7 @@ class Blitz {
       c.last.faceUp = true;
     }
     for (var k = 0; k < handSize; k++) {
-      for (var p = 0; p < players; p++) {
+      for (final p in _seats) {
         hands[p].add(deck.removeLast());
       }
     }
@@ -280,6 +323,14 @@ class Blitz {
 
   final int players;
   final Random rng;
+
+  /// The seat everything is counted from (dealing, wars, knock-outs, ties):
+  /// online, each phone turns the table so its player is 0, and counting
+  /// from the same real seat keeps every phone's game identical.
+  final int origin;
+
+  /// Every seat, counting round from [origin].
+  List<int> get _seats => [for (var k = 0; k < players; k++) (origin + k) % players];
   final bool wars;
   final int castleSize;
   final int handSize;
@@ -304,7 +355,7 @@ class Blitz {
   bool get isOver => winner != null;
   bool isOut(int p) => places.containsKey(p);
   List<int> get alive => [
-    for (var p = 0; p < players; p++)
+    for (final p in _seats)
       if (!isOut(p)) p,
   ];
 

@@ -153,4 +153,5 @@ const onlineGames = <String, OnlineGame>{
   'crazy8': EightsGame(),
   'gofish': FishGame(),
   'spades': SpadesGame(),
+  'blitz': BlitzGame(),
 };

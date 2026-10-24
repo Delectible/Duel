@@ -13,11 +13,11 @@ import 'package:flutter_test/flutter_test.dart';
 import '../screens.dart';
 import 'fake_server.dart';
 
-/// Crazy Eights, Go Fish and Spades with the party: Luca's phone on screen
+/// Crazy Eights, Go Fish, Spades and Blitz with the party: Luca's phone on screen
 /// rebuilds the table from the server's log while both people's moves are
 /// made on the server (as a timed-out turn would be), to the end.
 void main() {
-  for (final (game, bots) in [('crazy8', 0), ('gofish', 1), ('spades', 2)]) {
+  for (final (game, bots) in [('crazy8', 0), ('gofish', 1), ('spades', 2), ('blitz', 1)]) {
     testWidgets(timeout: const Timeout(Duration(seconds: 120)), '$game online plays to the end', (
       tester,
     ) async {
@@ -68,7 +68,7 @@ void main() {
           ]),
         );
       }
-      expect(await run(() => party.start(game, options: const {'target': 150})), isNull);
+      expect(await run(() => party.start(game, options: const {'target': 150, 'wars': 1})), isNull);
       await wait(1500);
       final id = party.match!['id']! as String;
       final rng = Random(1);

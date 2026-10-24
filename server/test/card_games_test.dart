@@ -38,10 +38,12 @@ void main() {
     ('gofish', [bot, bot2]),
     ('spades', [bot, bot2]),
     ('spades', <Map<String, Object?>>[]),
+    ('blitz', [bot]),
+    ('blitz', [bot, bot2]),
   ]) {
     test('$game with ${bots.length} bots plays to the end', () async {
       final (ref, id) = await party(bots: bots);
-      var m = await ref.startMatch(luca, id, game, options: const {'target': 150});
+      var m = await ref.startMatch(luca, id, game, options: const {'target': 150, 'wars': true});
       expect(m['status'], 'live');
       m = await playOut(ref, m);
       expect(m['status'], 'over');

@@ -8,6 +8,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/avatars/faces.dart';
+import '../../../core/online/online_link.dart';
 import '../../../core/sound/sound.dart';
 
 enum BlitzPhase {
@@ -33,17 +34,22 @@ class BlitzController extends ChangeNotifier {
   BlitzController({
     required int bots,
     required this.difficulty,
-    this.wars = false,
+    this._wars = false,
     Random? rng,
     this.pace = 1,
     this.you = const Persona.you(),
+    this.link,
   }) : _rng = rng ?? Random(),
        assert(bots >= 1 && bots <= 5) {
     _start(bots);
   }
 
+  /// Online: the party's game (the others' moves come from the server).
+  final OnlineLink? link;
+
   final Difficulty difficulty;
-  final bool wars;
+  final bool _wars;
+  bool get wars => link == null ? _wars : const [true, 1].contains(link!.options['wars']);
   final Persona you;
 
   /// Multiplies every delay (tests).
@@ -149,15 +155,38 @@ class BlitzController extends ChangeNotifier {
   }
 
   void _start(int bots) {
-    personas = [you, ...Persona.bots(bots, _rng)];
-    game = Blitz(players: bots + 1, rng: _rng, wars: wars);
-    _bots = [for (var p = 0; p <= bots; p++) p == 0 ? null : BlitzBot(difficulty: difficulty, rng: _rng)];
     selected = null;
     lastAction = null;
     lastWars = const [];
     fighting = false;
     round++;
     phase = BlitzPhase.dealing;
+    final link = this.link;
+    if (link != null) {
+      // The server's table turned round so you're 0, counting from the
+      // server's seat 0 (so the deal and every war come out the same).
+      final n = link.n;
+      personas = link.personas(you);
+      game = Blitz(
+        players: n,
+        rng: link.rng,
+        wars: wars,
+        first: (link.localDealer + 1) % n,
+        origin: link.local(0),
+      );
+      _bots = List.filled(n, null);
+      // Coming back to it: everything so far, at once.
+      final caughtUp = link.cursor < link.moves.length;
+      for (var m = link.next(); m != null; m = link.next()) {
+        link.cursor++;
+        game.apply(blitzMoveFromJson(m, link.local));
+      }
+      _after(caughtUp ? 300 : 1300, _step);
+      return;
+    }
+    personas = [you, ...Persona.bots(bots, _rng)];
+    game = Blitz(players: bots + 1, rng: _rng, wars: wars);
+    _bots = [for (var p = 0; p <= bots; p++) p == 0 ? null : BlitzBot(difficulty: difficulty, rng: _rng)];
     _after(1300, _step);
   }
 
@@ -180,7 +209,7 @@ class BlitzController extends ChangeNotifier {
 
   void _step() {
     fighting = false;
-    if (game.isOut(0) && !game.isOver) {
+    if (this.link == null && game.isOut(0) && !game.isOver) {
       // You're out: the bots settle the rest at once (for the final order).
       while (!game.isOver) {
         final p = game.turn;
@@ -196,6 +225,21 @@ class BlitzController extends ChangeNotifier {
     phase = BlitzPhase.playing;
     _notify();
     final p = game.turn;
+    final link = this.link;
+    if (link != null) {
+      // The server's next move (yours too, if it played for you).
+      final m = link.next();
+      if (m == null) {
+        if (p != 0) link.waiting = _step;
+        return;
+      }
+      _after(p == 0 ? 0 : 800 + _rng.nextInt(400), () {
+        link.cursor++;
+        _play(blitzMoveFromJson(m, link.local));
+        _after((game.isOver ? 900 : 1100) + _warPause, _step);
+      });
+      return;
+    }
     final bot = _bots[p];
     if (bot == null) return; // your turn
     _after(800 + _rng.nextInt(700), () {
@@ -306,6 +350,7 @@ class BlitzController extends ChangeNotifier {
   void _you(BlitzMove m) {
     if (game.turn != 0 || game.isOver) return;
     selected = null;
+    link?.send(blitzMoveToJson(m, link!.pos));
     _play(m);
     _after((game.turn == 0 && !game.isOver ? 300 : 700) + _warPause, _step);
   }

@@ -227,7 +227,7 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
                             ? () async {
                                 // Starts on every phone; each takes the stake.
                                 // A party that votes: this is your vote.
-                                final options = {'target': ?_choice};
+                                final options = {game.choice?.online ?? 'target': ?_choice};
                                 final error = party.mode == 'vote'
                                     ? await party.vote(game.id, stake: _stake, options: options)
                                     : await party.start(game.id, stake: _stake, options: options);

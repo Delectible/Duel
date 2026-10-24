@@ -176,7 +176,11 @@ class GameChoice {
     this.initial = 0,
     this.info,
     this.showValues = true,
+    this.online = 'target',
   });
+
+  /// The option it's sent as online ({target: 250}, {wars: 1}).
+  final String online;
 
   /// Explained behind an (i) next to the choice.
   final String? info;
@@ -344,8 +348,14 @@ final games = <GameInfo>[
       names: ['Off', 'On'],
       info: blitzWarsInfo,
       showValues: false,
+      online: 'wars',
     ),
     open: (setup, stake, wars) =>
         BlitzScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, wars: wars == 1),
+    openOnline: (party) => OnlineGameFrame(
+      party: party,
+      gameId: 'blitz',
+      builder: (link, ticket) => BlitzScreen.online(link: link, stake: ticket),
+    ),
   ),
 ];

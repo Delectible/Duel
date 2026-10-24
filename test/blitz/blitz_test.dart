@@ -213,4 +213,43 @@ void main() {
       expect(cards, Blitz.decksFor(players) * 52, reason: 'seed $seed');
     }
   });
+
+  test('online: a turned-round table (origin) plays out exactly the same', () {
+    for (final players in [2, 3, 4, 6]) {
+      for (final wars in [false, true]) {
+        for (var r = 1; r < players; r++) {
+          // The server's table, and a phone whose player sits at seat r,
+          // turned so they're 0: seat s there is (s - r) % n.
+          int local(int s) => (s - r) % players;
+          int server(int l) => (l + r) % players;
+          final seed = players * 31 + r;
+          final base = Blitz(players: players, rng: Random(seed), wars: wars, first: 1 % players);
+          final turned = Blitz(
+            players: players,
+            rng: Random(seed),
+            wars: wars,
+            first: local(1 % players),
+            origin: local(0),
+          );
+          final bots = BlitzBot(difficulty: Difficulty.normal, rng: Random(seed));
+          for (var i = 0; i < 2000 && !base.isOver; i++) {
+            final m = bots.decide(base, base.turn);
+            final json = blitzMoveToJson(m);
+            base.apply(blitzMoveFromJson(json));
+            turned.apply(blitzMoveFromJson(json, local));
+            expect(turned.turn, local(base.turn));
+          }
+          expect(base.isOver, isTrue);
+          expect(local(base.winner!), turned.winner);
+          for (var s = 0; s < players; s++) {
+            expect(turned.castles[local(s)].map((c) => '$c'), base.castles[s].map((c) => '$c'));
+            expect(turned.hands[local(s)], base.hands[s]);
+            expect(turned.places[local(s)], base.places[s]);
+          }
+          expect(turned.discard, base.discard);
+          expect(server(local(2 % players)), 2 % players);
+        }
+      }
+    }
+  });
 }
