@@ -586,6 +586,12 @@ Ships as app version **0.4.1**.
   still in, leavers lose theirs). You need the pips to play for them.
   → 0.10.0 · 2026-10-24
 
+### 29. Hand order (requested 2026-10-25)
+
+- [x] **29.1 Spades: suits alternate colour** in your hand: spades first,
+  then red and black take turns wherever your cards allow (was black,
+  red, red, black). → next batch · 2026-10-25
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public
