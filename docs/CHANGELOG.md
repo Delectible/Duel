@@ -590,7 +590,7 @@ Ships as app version **0.4.1**.
 
 - [x] **29.1 Spades: suits alternate colour** in your hand: spades first,
   then red and black take turns wherever your cards allow (was black,
-  red, red, black). → next batch · 2026-10-25
+  red, red, black). → 0.10.1 · 2026-10-25
 
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 

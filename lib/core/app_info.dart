@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.10.0';
+  static const version = '0.10.1';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,13 +24,13 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Blitz online with your party. Your pips are now kept online: online stakes come out of everyone\'s '
-      'pips and the winner takes the pot. Fix: when your party starts a new game, it opens on every phone, '
-      'even one still on the last game.';
+      'Spades: your hand now alternates red and black suits (spades first), so suits are easy to tell '
+      'apart. The staking rules now explain online pots: everyone puts in the same stake, bots too, and '
+      'the winner takes it all.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
-    ('0.10', ['Blitz online', 'Pips kept online: winner takes the pot']),
+    ('0.10', ['Blitz online', 'Pips kept online: winner takes the pot', 'Spades: suits alternate colour']),
     (
       '0.9',
       [
