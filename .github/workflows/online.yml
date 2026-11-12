@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { channel: stable, flutter-version: 3.47.8, cache: true }
       - uses: actions/setup-java@v4   # the Firestore emulator runs on Java
         with: { distribution: temurin, java-version: '21' }
       - run: dart pub get

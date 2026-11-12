@@ -120,6 +120,10 @@ together, GamePigeon-easy. Let it guide design and development choices.
   a private-key build. versionCode = CI run number (the `+N` in pubspec is
   only for local builds). Play App Signing: once installed from Play, the
   phone only takes updates from Play.
+- CI pins Flutter to 3.47.8 (`flutter-version` in every workflow): 3.50
+  deprecates `package:flutter/material.dart` and won't resolve our
+  lockfile, so moving up is its own change (bump the pin, `pub get`,
+  migrate imports).
 - Checks: `flutter analyze` and `flutter test`. If the session has no
   Flutter SDK, just push and read the GitHub Actions result.
   `pubspec.lock` is committed.
