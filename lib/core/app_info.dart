@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.10.1';
+  static const version = '0.10.2';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,9 +24,8 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Spades: your hand now alternates red and black suits (spades first), so suits are easy to tell '
-      'apart. The staking rules now explain online pots: everyone puts in the same stake, bots too, and '
-      'the winner takes it all.';
+      'Smoother on phones with fast screens: Duel now asks Android not to slow it down to save power, so it can '
+      'run at 90 or 120 Hz. For testers: hold About in Settings for a debug menu with a frame-rate counter.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

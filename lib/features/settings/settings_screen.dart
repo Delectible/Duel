@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/account/account.dart';
 import '../../core/account/stake.dart';
 import '../../core/app_info.dart';
+import '../../core/debug/perf.dart';
 import '../../core/theme/split_page.dart';
 import '../../core/theme/toon.dart';
 import '../home/home_screen.dart';
@@ -258,6 +259,8 @@ class SettingsScreen extends StatelessWidget {
             key: const Key('about'),
             color: Toon.card,
             onPressed: () => showAboutSheet(context),
+            // Hidden: the debug menu.
+            onLongPress: () => showDebugSheet(context),
             child: const Text('About ${AppInfo.name} ${AppInfo.version}'),
           ),
           const SizedBox(height: 24),

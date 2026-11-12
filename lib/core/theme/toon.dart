@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../sound/sound.dart';
 
 /// Duel's cartoon look: flat colours, thick dark outlines, chunky drop
@@ -145,6 +146,7 @@ class ToonButton extends StatefulWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
     this.repeat = false,
     this.tooltip,
+    this.onLongPress,
   });
 
   final Widget child;
@@ -154,6 +156,9 @@ class ToonButton extends StatefulWidget {
   final EdgeInsetsGeometry padding;
   final bool repeat;
   final String? tooltip;
+
+  /// Holding it instead of tapping (no tap then).
+  final VoidCallback? onLongPress;
 
   @override
   State<ToonButton> createState() => _ToonButtonState();
@@ -223,6 +228,13 @@ class _ToonButtonState extends State<ToonButton> {
         }
       },
       onTapCancel: () => _press(false),
+      onLongPress: widget.onLongPress == null
+          ? null
+          : () {
+              _press(false);
+              HapticFeedback.heavyImpact();
+              widget.onLongPress!();
+            },
       child: Padding(
         padding: const EdgeInsets.only(bottom: _depth),
         child: AnimatedContainer(

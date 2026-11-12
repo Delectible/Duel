@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/account/account.dart';
 import 'core/account/prefs_store.dart';
 import 'core/app_info.dart';
+import 'core/debug/perf.dart';
 import 'core/online/firebase_backend.dart';
 import 'core/online/firebase_config.dart';
 import 'core/online/online.dart';
@@ -137,12 +138,21 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
         party: _party,
         child: PlaySetupScope(
           setup: widget.setup,
-          child: MaterialApp(
-            title: AppInfo.name,
-            debugShowCheckedModeBanner: false,
-            theme: Toon.theme(),
-            builder: (context, child) => SystemBars(child: RotationFade(child: child!)),
-            home: const HomeScreen(),
+          // The debug menu's graphs and layer checkerboard (Settings,
+          // long-press About).
+          child: ListenableBuilder(
+            listenable: Perf.instance,
+            builder: (context, _) => MaterialApp(
+              title: AppInfo.name,
+              debugShowCheckedModeBanner: false,
+              theme: Toon.theme(),
+              showPerformanceOverlay: Perf.instance.graphs,
+              checkerboardOffscreenLayers: Perf.instance.layers,
+              builder: (context, child) => PerfOverlay(
+                child: SystemBars(child: RotationFade(child: child!)),
+              ),
+              home: const HomeScreen(),
+            ),
           ),
         ),
       ),

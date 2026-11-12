@@ -280,8 +280,13 @@ weights cut from the variable font.
 - **Performance:** anything that loops or moves on its own goes inside a
   `RepaintBoundary` (faces, `CardView`, chip piles, felts, `GameLayout`'s
   parts and tile art already are), or it redraws the whole screen every
-  frame. `MainActivity.kt` asks Android for the fastest refresh rate;
-  iOS opts in via `CADisableMinimumFrameDurationOnPhone`.
+  frame. `MainActivity.kt` asks Android for the fastest refresh rate
+  (mode id + rate, on create and resume; opts out of Android 15's
+  power-saving rate cap) and answers `duel/display` `info`; iOS opts in
+  via `CADisableMinimumFrameDurationOnPhone`. Debug menu: hold About in
+  Settings (`core/debug/perf.dart`: `Perf` switches, `PerfOverlay`
+  frame-rate badge, frame graphs, offscreen-layer checkerboard, screen
+  info, smoothness test).
 - `lib/core/theme/toon.dart`: the cartoon look (`Toon` colours, `ToonBox`,
   `ToonButton` with hold-to-repeat, `chips()` formatting). Use these, not
   stock Material buttons. **Dark mode:** `Toon.ink/fg/paper/card/muted/grey`

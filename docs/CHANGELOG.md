@@ -592,6 +592,19 @@ Ships as app version **0.4.1**.
   then red and black take turns wherever your cards allow (was black,
   red, red, black). → 0.10.1 · 2026-10-25
 
+### 30. Frame rate on a 90 Hz Pixel (requested 2026-11-12)
+
+- [x] **30.1 Full refresh rate, again**: Android 15+ may hold an app below
+  the screen's rate to save power (Pixels with Smooth Display); Duel now
+  opts out (`setFrameRatePowerSavingsBalanced(false)`), asks for the
+  fastest mode by id and by rate, and asks again on every resume.
+  → 0.10.2 · 2026-11-12
+- [x] **30.2 Debug menu** (hold About in Settings): frame-rate counter
+  (fps, slowest UI / GPU frame, slow frames), Flutter's frame graphs, a
+  checkerboard of offscreen layers, what the screen runs at (from Android:
+  current rate, the rates on offer, what Duel asked for, battery saver),
+  and a 5-second smoothness test. → 0.10.2 · 2026-11-12
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public
