@@ -12,6 +12,7 @@ import '../../../features/preview/game_preview_screen.dart';
 import '../../catalog.dart';
 import '../ui/hand_chart.dart';
 import '../ui/rivals.dart';
+import 'cash_lobby.dart';
 import 'lounge_modes.dart';
 
 /// The Poker Lounge: Duel's back room. The ways to play poker (Sit & Go
@@ -205,12 +206,16 @@ class _Modes extends StatelessWidget {
               width: w,
               child: _ModeCard(
                 mode: m,
-                badge: m.open ? holdem.blocked(setup)?.$1 : 'Soon',
+                badge: m.id == 'sitgo' ? holdem.blocked(setup)?.$1 : (m.open ? null : 'Soon'),
                 onTap: () {
                   Sound.play(Sfx.tap, gain: 0.6);
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => m.open ? GamePreviewScreen(game: holdem) : LoungeModeScreen(mode: m),
+                      builder: (_) => switch (m.id) {
+                        'sitgo' => GamePreviewScreen(game: holdem),
+                        'cash' => const CashLobbyScreen(),
+                        _ => LoungeModeScreen(mode: m),
+                      },
                     ),
                   );
                 },

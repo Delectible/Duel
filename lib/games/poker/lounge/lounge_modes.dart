@@ -67,28 +67,44 @@ class LoungeMode {
     tagline: 'Pull up a chair at a table that never closes.',
     icon: Icons.paid_rounded,
     color: Lounge.gold,
+    open: true,
     how: [
-      'Public Hold\'em tables at different stakes, always running with bots, open to everyone online.',
-      'Sit down any time: you take a bot\'s seat, and a bot takes yours back when you leave. Friends, and '
-          'anyone else, can sit at the same table, so a table can hold any mix of people and bots.',
-      'Your pips are the chips. Buy in with the table\'s full buy-in from your balance: no credit here, so '
-          'earn pips in the other games first.',
-      'Cash out whenever you like and your chips go straight back to your balance. Mid-hand you fold '
-          'first, then leave.',
+      'One table at each stake, always running with bots, shared by everyone with Duel: anyone can sit '
+          'down at any time, so you can join your friends (the lobby shows who\'s at each table).',
+      'Sit down in an open seat, or a bot gets up for you. Bots come and go, and keep playing while you\'re '
+          'away: come back later and the table has moved on.',
+      'Your pips are the chips. Sit down with 50 to 100 big blinds from your balance (no credit here), and '
+          'top up between hands.',
+      'Cash out whenever you like and your chips go straight back to your balance. Mid-hand, what you\'ve '
+          'already bet stays in the pot.',
       'No house cut: every pip you win comes from another player or a bot, and every pip you lose goes to '
           'one.',
-      'Bigger tables unlock as you go.',
+      'A table unlocks once your balance covers its full buy-in. The bots get tougher as the stakes rise.',
+      'No connection? The tables play on this phone instead (marked Local): everything works, but friends '
+          'can\'t join you there.',
     ],
     tableTitle: 'The tables',
     table: [
-      (name: 'Kitchen Table', detail: 'Blinds 5 / 10 · buy-in 1,000', note: 'Open to everyone'),
-      (name: 'Back Room', detail: 'Blinds 25 / 50 · buy-in 5,000', note: 'Unlocks at 5,000 pips'),
-      (name: 'High Rollers', detail: 'Blinds 100 / 200 · buy-in 20,000', note: 'Unlocks at 20,000 pips'),
-      (name: 'The Penthouse', detail: 'Blinds 500 / 1,000 · buy-in 100,000', note: 'Unlocks at 100,000 pips'),
-    ],
-    notes: [
-      'Stakes, buy-ins and unlocks are first guesses: change them freely.',
-      'Unlock by balance (as above) or by pips won at the table below: your call.',
+      (
+        name: 'Kitchen Table',
+        detail: 'Blinds 5 / 10 · buy in 500–1,000 · easy bots',
+        note: 'Open to everyone',
+      ),
+      (
+        name: 'Back Room',
+        detail: 'Blinds 25 / 50 · buy in 2,500–5,000 · normal bots',
+        note: 'Unlocks at 5,000 pips',
+      ),
+      (
+        name: 'High Rollers',
+        detail: 'Blinds 100 / 200 · buy in 10,000–20,000 · hard bots',
+        note: 'Unlocks at 20,000 pips',
+      ),
+      (
+        name: 'The Penthouse',
+        detail: 'Blinds 500 / 1,000 · buy in 50,000–100,000 · hard bots',
+        note: 'Unlocks at 100,000 pips',
+      ),
     ],
   );
 
@@ -185,14 +201,18 @@ class LoungeModeScreen extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back_rounded, color: Lounge.cream, size: 28),
                     ),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: Lounge.gold, borderRadius: BorderRadius.circular(10)),
-                      child: Text(
-                        'Coming soon',
-                        style: text(13, weight: FontWeight.w700, color: Lounge.night),
+                    if (!mode.open)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Lounge.gold,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'Coming soon',
+                          style: text(13, weight: FontWeight.w700, color: Lounge.night),
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 6),

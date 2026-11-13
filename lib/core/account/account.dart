@@ -91,6 +91,8 @@ class MemoryStore implements AccountStore {
 class Account extends ChangeNotifier {
   Account({AccountStore? store}) : _store = store ?? MemoryStore() {
     _read();
+    // The app closed at a cash table: those chips come back now.
+    if (_cashChips case final chips?) cashOut(chips);
   }
 
   static const startingBalance = 100;
@@ -242,6 +244,50 @@ class Account extends ChangeNotifier {
     );
   }
 
+  // --- Cash tables (local) ----------------------------------------------------
+
+  /// At a local cash table: the chips in front of you and what you've put
+  /// in so far. Kept on every change, so closing the app mid-session
+  /// still cashes you out next time.
+  int? _cashChips;
+  int _cashIn = 0;
+
+  /// At a local cash table now.
+  bool get atCashTable => _cashChips != null;
+
+  /// Sits down or tops up with [pips] from your balance.
+  void cashIn(int pips) {
+    if (pips <= 0) return;
+    _change(() {
+      _unsynced -= pips;
+      _cashIn += pips;
+      _cashChips = (_cashChips ?? 0) + pips;
+    });
+  }
+
+  /// Your chips at the table after a hand.
+  void cashChips(int stack) {
+    if (_cashChips == null || _cashChips == stack) return;
+    _cashChips = stack;
+    _save();
+  }
+
+  /// Stands up with [stack]: it goes back to your balance. Returns what
+  /// the session won (or lost).
+  int cashOut(int stack) {
+    if (_cashChips == null) return 0;
+    final net = stack - _cashIn;
+    _change(() {
+      _unsynced += stack;
+      stats('cash').net += net;
+      stats('cash').played++;
+      if (net > 0) stats('cash').won++;
+      _cashChips = null;
+      _cashIn = 0;
+    });
+    return net;
+  }
+
   /// Extra pips won in a game (a bounty), on top of the stake's result.
   void bonus(String gameId, int pips) {
     if (pips <= 0) return;
@@ -367,6 +413,8 @@ class Account extends ChangeNotifier {
           _rivals[k] = (wins: v[0] as int, losses: v[1] as int);
         }
       });
+      _cashChips = j['cashChips'] as int?;
+      _cashIn = j['cashIn'] as int? ?? 0;
       final stats = j['stats'] as Map<String, dynamic>? ?? {};
       stats.forEach((k, v) => _stats[k] = GameStats.fromJson(v as Map<String, dynamic>));
     } on Object {
@@ -396,6 +444,8 @@ class Account extends ChangeNotifier {
         'rivals': {
           for (final e in _rivals.entries) e.key: [e.value.wins, e.value.losses],
         },
+      'cashChips': ?_cashChips,
+      if (_cashChips != null) 'cashIn': _cashIn,
       'left': {
         for (final e in _leftGames.entries) e.key: {'g': e.value.game, 's': e.value.stake},
       },

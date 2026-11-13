@@ -7,6 +7,7 @@ import 'package:duel_engine/cards.dart';
 import 'package:duel_engine/difficulty.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/poker/bot.dart';
+import 'package:duel_engine/poker/cash.dart';
 import 'package:duel_engine/poker/hand_eval.dart';
 import 'package:duel_engine/poker/odds.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
@@ -21,6 +22,7 @@ import 'table_talk.dart';
 import '../../../core/sound/sound.dart';
 
 part 'online_poker.dart';
+part 'cash_controller.dart';
 
 enum TablePhase {
   /// Your deal: shuffle the deck, then tap Deal.
@@ -113,6 +115,35 @@ class PokerController extends ChangeNotifier {
     rivalRecord = (theirs: 0, yours: 0);
     bountySeat = null;
   }
+
+  /// A table set up from a cash table ([CashController]).
+  PokerController._cash({
+    required this.difficulty,
+    required this.you,
+    required List<Persona> seats,
+    required SitAndGo table,
+    required List<BotStyle?> styles,
+    required Random rng,
+    this.pace = 1,
+  }) : _rng = rng, // ignore: prefer_initializing_formals
+       resultTimeout = null {
+    personas = seats;
+    game = table;
+    reads = TableReads(seats.length);
+    _styles = styles;
+    _bots = [
+      for (final s in styles) s == null ? null : PokerBot(style: s, difficulty: difficulty, rng: _rng),
+    ];
+    rival = null;
+    rivalRecord = (theirs: 0, yours: 0);
+    bountySeat = null;
+  }
+
+  /// A cash table (no places, chips in and out).
+  bool get isCash => false;
+
+  /// Between two hands (cash tables: comings and goings, top-ups).
+  void _betweenHands() {}
 
   // --- Bot games: rival, bounty, the story, achievements -----------------------
 
@@ -877,6 +908,7 @@ class PokerController extends ChangeNotifier {
     }
     _noteBusts(h);
     _handEnded();
+    _betweenHands();
     if (game.isOver || game.players[0].stack == 0) {
       // The tournament: the big win, or the big loss.
       Sound.play(yourPlace == 1 ? Sfx.winBig : Sfx.loseBig);

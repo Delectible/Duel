@@ -1,0 +1,314 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:duel_engine/poker/cash.dart';
+import 'package:flutter/material.dart';
+
+import '../../../core/account/account.dart';
+import '../../../core/avatars/faces.dart';
+import '../../../core/sound/sound.dart';
+import '../../../core/theme/toon.dart';
+import '../ui/cash_screen.dart';
+import 'lounge_modes.dart';
+
+/// The cash tables as this phone sees them when it can't reach the shared
+/// ones: the same four tables, their bots playing on in their own time
+/// (worked out from the clock, so they've moved on when you come back).
+abstract final class LocalCashTables {
+  /// A fresh table every half hour, played forward to now.
+  static const _window = 30 * 60 * 1000;
+
+  static List<CashTableState> at(int now) => [
+    for (final stake in CashStake.values)
+      () {
+        final w = now ~/ _window;
+        final seed = stake.index * 100003 + w;
+        final t = CashTableState.fresh(stake, Random(seed), w * _window);
+        t.simulate(now, Random(seed ^ 0x5eed));
+        return t;
+      }(),
+  ];
+}
+
+/// Cash Games: one table per stake, always running. Pick one, choose how
+/// much to sit down with, and play. Your pips are the chips.
+class CashLobbyScreen extends StatefulWidget {
+  const CashLobbyScreen({super.key, this.now, this.pace = 1});
+
+  /// The clock (tests).
+  final int Function()? now;
+  final double pace;
+
+  @override
+  State<CashLobbyScreen> createState() => _CashLobbyScreenState();
+}
+
+class _CashLobbyScreenState extends State<CashLobbyScreen> {
+  late List<CashTableState> _tables = LocalCashTables.at(_now());
+  Timer? _refresh;
+
+  int _now() => widget.now?.call() ?? DateTime.now().millisecondsSinceEpoch;
+
+  @override
+  void initState() {
+    super.initState();
+    // The tables move on while you watch.
+    _refresh = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) setState(() => _tables = LocalCashTables.at(_now()));
+    });
+  }
+
+  @override
+  void dispose() {
+    _refresh?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _sit(CashTableState table) async {
+    final account = AccountScope.read(context);
+    final pips = await chooseBuyIn(context, stake: table.stake, balance: account.balance);
+    if (pips == null || !mounted) return;
+    account.cashIn(pips);
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CashScreen(table: table, buyIn: pips, pace: widget.pace),
+      ),
+    );
+    if (mounted) setState(() => _tables = LocalCashTables.at(_now()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final account = AccountScope.of(context);
+    return Scaffold(
+      backgroundColor: Lounge.navy,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: ListView(
+              key: const Key('cash lobby'),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+              children: [
+                Row(
+                  children: [
+                    ToonButton(
+                      key: const Key('lobby back'),
+                      color: Lounge.panel,
+                      padding: const EdgeInsets.all(8),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Icon(Icons.arrow_back_rounded, size: 24, color: Lounge.cream),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Cash Games',
+                            style: Toon.text(28, weight: FontWeight.w700, color: Lounge.gold),
+                          ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'Tables that never close',
+                                  style: Toon.text(14, weight: FontWeight.w500, color: Lounge.dim),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const CashWhere(online: false),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      key: const Key('cash info'),
+                      tooltip: 'How cash games work',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const LoungeModeScreen(mode: LoungeMode.cash),
+                        ),
+                      ),
+                      icon: const Icon(Icons.info_outline_rounded, color: Lounge.cream),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Lounge.night,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Lounge.gold, width: 2),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.account_balance_wallet_rounded, color: Lounge.gold, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Your pips',
+                        style: Toon.text(14, weight: FontWeight.w600, color: Lounge.dim),
+                      ),
+                      const Spacer(),
+                      Text(
+                        account.money(account.balance),
+                        key: const Key('lobby balance'),
+                        style: Toon.text(17, weight: FontWeight.w700, color: Lounge.lamp),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                for (final t in _tables) _TableCard(table: t, balance: account.balance, onSit: () => _sit(t)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TableCard extends StatelessWidget {
+  const _TableCard({required this.table, required this.balance, required this.onSit});
+
+  final CashTableState table;
+  final int balance;
+  final VoidCallback onSit;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = table.stake;
+    final locked = balance < s.unlockAt;
+    final broke = !locked && balance < s.minBuyIn;
+    final people = table.people.toList();
+    final full = table.filled >= cashSeats && table.seats.nonNulls.every((x) => !x.bot);
+    final why = locked
+        ? 'Unlocks at ${chips(s.unlockAt)} pips'
+        : broke
+        ? 'Needs ${chips(s.minBuyIn)} pips to sit'
+        : full
+        ? 'Full'
+        : null;
+    return Opacity(
+      opacity: locked ? 0.55 : 1,
+      child: GestureDetector(
+        key: Key('table ${s.name}'),
+        onTap: why == null
+            ? () {
+                Sound.play(Sfx.tap, gain: 0.6);
+                onSit();
+              }
+            : null,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Lounge.panel,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: locked ? Lounge.dim.withValues(alpha: 0.4) : Lounge.gold, width: 2),
+            boxShadow: const [BoxShadow(color: Lounge.night, offset: Offset(0, 4))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s.label,
+                          style: Toon.text(19, weight: FontWeight.w700, color: Lounge.cream),
+                        ),
+                        Text(
+                          'Blinds ${chips(s.smallBlind)} / ${chips(s.bigBlind)} · '
+                          'buy in ${chips(s.minBuyIn)}–${chips(s.maxBuyIn)}',
+                          style: Toon.text(13, weight: FontWeight.w500, color: Lounge.dim),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (locked)
+                    const Icon(Icons.lock_rounded, color: Lounge.dim)
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: why == null ? Lounge.gold : Lounge.night,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        why ?? 'Sit down',
+                        style: Toon.text(
+                          13,
+                          weight: FontWeight.w700,
+                          color: why == null ? Lounge.night : Lounge.dim,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Who's there: faces round the table, open seats outlined.
+              Row(
+                children: [
+                  for (final seat in table.seats)
+                    Expanded(
+                      child: Center(
+                        child: seat == null
+                            ? Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Lounge.dim.withValues(alpha: 0.4), width: 2),
+                                ),
+                              )
+                            : Container(
+                                decoration: seat.bot
+                                    ? null
+                                    : BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Lounge.gold, width: 2.5),
+                                      ),
+                                child: Face(
+                                  seat.bot
+                                      ? Persona.bot(seat.name, Look.values.asNameMap()[seat.look] ?? Look.cap)
+                                      : Persona(
+                                          name: seat.name,
+                                          look: Look.headband,
+                                          avatar: seat.avatar == null
+                                              ? Avatar.forName(seat.name)
+                                              : Avatar.fromJson(seat.avatar!),
+                                        ),
+                                  size: 34,
+                                ),
+                              ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                people.isEmpty
+                    ? '${table.filled} at the table · all bots'
+                    : '${people.length} ${people.length == 1 ? 'person' : 'people'} here: '
+                          '${people.map((p) => p.name).join(', ')}',
+                key: Key('table ${s.name} people'),
+                style: Toon.text(
+                  13,
+                  weight: FontWeight.w600,
+                  color: people.isEmpty ? Lounge.dim : Lounge.lamp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

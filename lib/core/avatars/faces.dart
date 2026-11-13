@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:duel_engine/names.dart' as names;
+
 import 'package:flutter/material.dart';
 
 import '../theme/toon.dart';
@@ -262,24 +264,8 @@ class Persona {
   /// cap = Rookie, shades = Rock, fin = Shark, spiky = Maniac).
   static const botLooks = [Look.cap, Look.shades, Look.fin, Look.spiky];
 
-  /// Names bots are given at random.
-  static const botNames = [
-    'Pip', 'Bean', 'Tad', 'Dot', 'Boulder', 'Slate', 'Rocky', 'Flint', //
-    'Finn', 'Reef', 'Marlin', 'Gill', 'Blaze', 'Zap', 'Turbo', 'Bonkers', //
-    'Ace', 'Biscuit', 'Bingo', 'Blossom', 'Bramble', 'Buster', 'Button', 'Cactus', //
-    'Clover', 'Cocoa', 'Comet', 'Cosmo', 'Crumpet', 'Dash', 'Dizzy', 'Domino', //
-    'Dusty', 'Echo', 'Ember', 'Fizz', 'Flapjack', 'Fudge', 'Gizmo', 'Goose', //
-    'Gumbo', 'Hazel', 'Honey', 'Iggy', 'Indigo', 'Jazz', 'Jellybean', 'Jinx', //
-    'Juniper', 'Kiwi', 'Koko', 'Lark', 'Lemon', 'Lolly', 'Lucky', 'Mango', //
-    'Maple', 'Marbles', 'Mochi', 'Moxie', 'Muffin', 'Nacho', 'Nugget', 'Noodle', //
-    'Olive', 'Onyx', 'Otto', 'Pebble', 'Pepper', 'Pickle', 'Pixel', 'Plum', //
-    'Pogo', 'Popcorn', 'Pretzel', 'Puddle', 'Quill', 'Rascal', 'Razzle', 'Ripley', //
-    'Rosie', 'Rusty', 'Saffron', 'Sage', 'Scout', 'Shadow', 'Skipper', 'Smudge', //
-    'Sprout', 'Sparky', 'Squid', 'Sunny', 'Taffy', 'Tango', 'Tinsel', 'Toffee', //
-    'Trixie', 'Truffle', 'Tumble', 'Twiggy', 'Velvet', 'Waffles', 'Whisper', 'Widget', //
-    'Willow', 'Wobble', 'Yeti', 'Yoyo', 'Ziggy', 'Zinnia', 'Zest', 'Bubbles', //
-    'Chip', 'Duke', 'Lady Luck', 'Mittens', 'Sly', 'Snapper', 'Doc', 'Lulu', //
-  ];
+  /// Names bots are given at random (shared with the referee).
+  static const botNames = names.botNames;
 
   /// [count] bots with random names and faces, no name twice. Each also
   /// gets a look (a hidden personality some games use), mixed round.

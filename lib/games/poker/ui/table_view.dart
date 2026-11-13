@@ -780,9 +780,32 @@ class _BotSeat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final table = c.game.players[seat];
+    // Cash tables: nobody here (yet).
+    if (table.empty) {
+      return SizedBox(
+        width: 92,
+        height: 118,
+        child: Center(
+          child: Container(
+            key: Key('open seat $seat'),
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Toon.ink.withValues(alpha: 0.25), width: 2.5),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              'Open',
+              style: Toon.text(11, weight: FontWeight.w600, color: Toon.muted),
+            ),
+          ),
+        ),
+      );
+    }
     final persona = c.personas[seat];
     final p = c.handPlayer(seat);
-    final table = c.game.players[seat];
     final out = p == null && table.stack == 0;
     final folded = p?.folded ?? false;
     final r = c.hand?.result;

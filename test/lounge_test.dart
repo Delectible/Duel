@@ -36,12 +36,11 @@ void main() {
       expect(find.byKey(const Key('lounge sitgo')), findsOneWidget);
       await shot(tester, 'lounge_$phone');
 
-      // A mode that's coming: its explanation.
+      // Cash games: the tables.
       await tester.tap(find.byKey(const Key('lounge cash')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('mode cash')), findsOneWidget);
-      await shot(tester, 'lounge_cash_$phone');
-      await tester.tap(find.byKey(const Key('mode back')));
+      expect(find.byKey(const Key('cash lobby')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('lobby back')));
       await tester.pumpAndSettle();
 
       for (final id in ['tournament', 'bosses']) {

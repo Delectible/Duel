@@ -40,6 +40,9 @@ class TablePlayer {
 
   /// 1 = winner. Set when the player busts (or wins).
   int? place;
+
+  /// Nobody sits here (cash tables).
+  bool empty = false;
 }
 
 /// A single-table tournament: everyone buys in once, blinds rise, last one

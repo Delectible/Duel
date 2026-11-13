@@ -55,7 +55,9 @@ class TableInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bb = c.game.blinds.$2;
-    final alive = c.game.players.where((p) => p.stack > 0 || c.handPlayer(p.seat) != null).toList();
+    final alive = c.game.players
+        .where((p) => !p.empty && (p.stack > 0 || c.handPlayer(p.seat) != null))
+        .toList();
     final total =
         c.game.players.fold(0, (s, p) => s + p.stack) + (c.hand?.result == null ? (c.hand?.pot ?? 0) : 0);
     final avg = alive.isEmpty ? 0 : total ~/ alive.length;
@@ -83,7 +85,7 @@ class TableInfo extends StatelessWidget {
       ),
     );
     final pills = [
-      if (mine > 0)
+      if (mine > 0 && !c.isCash)
         pill(
           '${_ordinal(rank)} of ${alive.length}',
           key: const Key('your place'),
