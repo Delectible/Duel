@@ -895,7 +895,7 @@ class _BotSeat extends StatelessWidget {
               child: _NamePlate(
                 name: persona.name,
                 stack: p?.stack ?? table.stack,
-                note: out ? 'Out · ${_ordinal(table.place ?? 0)}' : null,
+                note: out ? (c.isCash ? 'Next hand' : 'Out · ${_ordinal(table.place ?? 0)}') : null,
                 bounty: c.bountySeat == seat && !out,
                 rival: c.rival != null && seat == 1,
               ),
@@ -1042,7 +1042,11 @@ class _YourSeat extends StatelessWidget {
                   child: _Avatar(persona: c.personas[0], size: 54, acting: c.yourTurn, winner: winner),
                 ),
                 const SizedBox(height: 4),
-                _NamePlate(name: c.personas[0].name, stack: p?.stack ?? table.stack),
+                _NamePlate(
+                  name: c.personas[0].name,
+                  stack: p?.stack ?? table.stack,
+                  note: c.isCash && p == null && table.stack == 0 ? 'Next hand' : null,
+                ),
               ],
             ),
           ),

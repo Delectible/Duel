@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:duel_engine/poker/cash.dart';
 import 'package:duel_server/duel_server.dart';
 import 'package:test/test.dart';
 
@@ -100,5 +101,29 @@ void main() {
     expect((t['seats']! as List).whereType<Map<Object?, Object?>>().any((s) => s['id'] == 'luca'), isFalse);
     expect(t['hand'], isNull, reason: 'back to the bots');
     expect(await balance('luca'), greaterThan(0));
+  });
+
+  test('everyone closed the app: looking at the lobby later stands them up, chips back', () async {
+    await ref.cashSit(luca, 'kitchen', 1000);
+    expect(await balance('luca'), 2000);
+    for (var i = 0; i < 30; i++) {
+      now = now.add(const Duration(minutes: 3));
+      await ref.cashLobby(sam);
+    }
+    final t = (await store.get('cash/kitchen'))!;
+    expect(CashTableState.fromJson(t).people, isEmpty);
+    expect(t['hand'], isNull);
+    expect(await balance('luca'), greaterThan(2000));
+  });
+
+  test('leaving as the only person, on your turn: cashed out at once', () async {
+    var t = await ref.cashSit(luca, 'kitchen', 1000);
+    for (var i = 0; i < 20 && t['turn'] == null; i++) {
+      now = now.add(const Duration(seconds: 6));
+      t = await ref.cashTick(luca, 'kitchen');
+    }
+    t = await ref.cashLeave(luca, 'kitchen');
+    expect(CashTableState.fromJson(t).people, isEmpty);
+    expect(await balance('luca'), greaterThan(2000));
   });
 }

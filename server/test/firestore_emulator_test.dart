@@ -105,6 +105,35 @@ void main() {
     m = await ref.endMatch(luca, id);
     expect((await store.get('matches/$id'))!['result'], containsPair('reason', 'ended'));
   }, skip: skip);
+
+  test('a cash table on Firestore: the lobby, sitting down, hands, cashing out', () async {
+    final store = FirestoreStore(_Owner(), projectId: 'demo-duel', emulatorHost: host);
+    var now = DateTime.now().toUtc();
+    final ref = Referee(store, rng: Random(9), clock: () => now);
+    const luca = Player(uid: 'cash-luca', name: 'Luca');
+    await ref.wallet(luca, carry: 3000);
+    final lobby = await ref.cashLobby(luca);
+    expect(lobby['tables'], hasLength(4));
+    var t = await ref.cashSit(luca, 'kitchen', 1000);
+    for (var i = 0; i < 60; i++) {
+      final turn = t['turn'] as int?;
+      if (turn != null && ((t['seats']! as List)[turn] as Map)['id'] == luca.uid) {
+        t = await ref.cashMove(luca, 'kitchen', t['version']! as int, {'kind': i.isEven ? 'call' : 'fold'});
+      } else {
+        now = now.add(const Duration(minutes: 1));
+        t = await ref.cashTick(luca, 'kitchen');
+      }
+    }
+    expect((await store.get('cash/kitchen'))!['hands'], greaterThan(1));
+    await ref.cashLeave(luca, 'kitchen');
+    for (var i = 0; i < 20; i++) {
+      now = now.add(const Duration(minutes: 1));
+      t = await ref.cashTick(luca, 'kitchen');
+    }
+    final seats = ((await store.get('cash/kitchen'))!['seats']! as List).whereType<Map<Object?, Object?>>();
+    expect(seats.any((s) => s['id'] == luca.uid), isFalse);
+    expect((await store.get('wallets/${luca.uid}'))!['balance'], isA<int>());
+  }, skip: skip);
 }
 
 /// The emulator's full-access token.

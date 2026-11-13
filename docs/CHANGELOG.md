@@ -643,6 +643,26 @@ Ships as app version **0.4.1**.
   top 3 paid), **Boss Tables** (5 bosses, a ladder): to build once the
   explanation screens are agreed.
 
+### 33. Cash games (requested 2026-11-13)
+
+- [x] **33.1 Shared tables online**: one table per stake (Kitchen Table,
+  Back Room, High Rollers, Penthouse), shared by everyone with the app;
+  sit in an open seat or a bot's, see who's at each table (your party
+  starred), buy in with 50–100 big blinds of your pips, top up, cash out
+  any time (mid-hand: what you've bet stays). The referee deals and plays
+  the bots; with nobody seated the bots "play on" in quick sums, so the
+  tables have moved on when you come back. Two missed turns and you're
+  stood up (chips back); a table everyone abandoned is tidied up when
+  someone opens the lobby. → 0.11.0 · 2026-11-13
+- [x] **33.2 Local tables**: no connection (or the server down), the same
+  four tables run on the phone, their bots playing on by the clock; a
+  small Local / Online marker in the lobby and at the table. Local chips
+  are kept, so closing the app cashes you out next launch.
+  → 0.11.0 · 2026-11-13
+- [x] **33.3 Unlocks and bots**: a table unlocks once your balance covers
+  its full buy-in; easy bots at the Kitchen Table, normal in the Back
+  Room, hard above. → 0.11.0 · 2026-11-13
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

@@ -323,6 +323,12 @@ class PartyService extends ChangeNotifier {
     _watchWallet();
   }
 
+  /// Signed in (anonymously) for the other online parts (cash tables).
+  Future<String> signedIn() async {
+    await _signIn();
+    return uid!;
+  }
+
   // --- Pips ------------------------------------------------------------------
 
   /// Your pips live on the server (`wallets/{uid}`): the phone's balance is

@@ -1,6 +1,6 @@
 # Duel privacy policy
 
-_Last updated: 24 October 2026_
+_Last updated: 13 November 2026_
 
 Duel is an app for playing card games against other people online or
 against a bot. To run online games it keeps a small amount of data about
@@ -20,7 +20,8 @@ friends. We keep:
   cashed out) and how it changed: what you won or lost against bots, and
   the stakes and pots of online games;
 - the **name and face** you chose in your profile, shown to the people in
-  your party.
+  your party, and to anyone looking at a cash table while you sit at it
+  (cash tables are shared by everyone with the app);
 
 If sign-in with email or with a Google or Apple account arrives later,
 your **email address** would be kept only to sign you in and recover your

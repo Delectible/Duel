@@ -40,6 +40,8 @@ class FakeServer {
       final bool visible;
       if (w.path.contains('/hands/') || w.path.startsWith('wallets/')) {
         visible = doc != null && w.path.endsWith('/${w.uid}');
+      } else if (w.path.startsWith('cash/')) {
+        visible = doc != null;
       } else {
         final key = w.path.startsWith('parties/') ? 'members' : 'seats';
         visible = doc != null && (doc[key]! as List).contains(w.uid);

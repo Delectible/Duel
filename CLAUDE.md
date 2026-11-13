@@ -309,6 +309,22 @@ weights cut from the variable font.
   work it waits for). Native launch screens are Duel's yellow
   (`android/.../res/values*/styles.xml`, `launch_colors.xml`,
   `drawable*/launch_background.xml`; `ios/Runner/Base.lproj/LaunchScreen.storyboard`).
+- **Cash games**: engine `duel_engine/poker/cash.dart` (`CashStake`
+  (blinds, 50–100 BB buy-ins, unlock = full buy-in, bot difficulty),
+  `CashTableState` (six `CashSeat`s, JSON; `simulate` plays bots on in
+  quick sums while no person sits), `CashGame` (a `SitAndGo` with fixed
+  blinds, empty seats, `nextButton`)). Referee `server/lib/src/
+  cash_tables.dart` (part of referee.dart, `CashTables` extension:
+  `cash/{stake}` docs never expire, `cashSecrets/{stake}` seed,
+  `cash/{stake}/hands/{uid}`; lobby / sit / move / tick / leave / topup;
+  real hands while a person sits, `_cashStep` / `_cashCatchUp` stand up
+  people who've gone). App: `CashService` (`core/online/cash_service.dart`),
+  `CashLobbyScreen` (tries the shared tables, quietly falls back to
+  `LocalCashTables`, `CashWhere` Online / Local marker), `CashScreen`
+  (local: `CashController`, chips via `Account.cashIn` / `cashChips` /
+  `cashOut`, cashed out on next launch if the app closed; online:
+  `OnlineCashController`, replays the referee's hands like the online
+  Sit & Go).
 - **Poker Lounge** (`lib/games/poker/lounge/`): home's first tile opens
   `LoungeScreen` (its own evening colours, `Lounge`; connection bar; the
   modes in `LoungeMode`: Sit & Go = the `holdem` game's preview, the rest

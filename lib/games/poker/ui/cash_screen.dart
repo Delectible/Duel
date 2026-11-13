@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:duel_engine/poker/cash.dart';
@@ -5,6 +6,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
 import '../../../core/help/game_guide.dart';
+import '../../../core/online/cash_service.dart';
+import '../../../core/online/party.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'action_bar.dart';
@@ -91,10 +94,20 @@ Future<int?> chooseBuyIn(
 /// A cash table on this phone. Your chips come from your balance and go
 /// back to it when you leave.
 class CashScreen extends StatefulWidget {
-  const CashScreen({super.key, required this.table, required this.buyIn, this.pace = 1, this.seed});
+  const CashScreen({super.key, required this.table, required this.buyIn, this.pace = 1, this.seed})
+    : service = null,
+      doc = null;
+
+  /// At a shared table online (already seated: [doc] is the table).
+  CashScreen.online({super.key, required CashService this.service, required Doc this.doc, this.pace = 1})
+    : table = CashTableState.fromJson(doc),
+      buyIn = 0,
+      seed = null;
 
   final CashTableState table;
   final int buyIn;
+  final CashService? service;
+  final Doc? doc;
   final double pace;
   final int? seed;
 
@@ -104,16 +117,36 @@ class CashScreen extends StatefulWidget {
 
 class _CashScreenState extends State<CashScreen> {
   late final Account _account = AccountScope.maybeRead(context) ?? Account();
-  late final CashController _c = CashController.sit(
-    table: widget.table,
-    buyIn: widget.buyIn,
-    you: _account.persona,
-    pace: widget.pace,
-    rng: widget.seed == null ? null : Random(widget.seed),
-    onChips: _account.cashChips,
-  )..start();
+  late final PokerController _c =
+      (widget.service == null
+            ? CashController.sit(
+                table: widget.table,
+                buyIn: widget.buyIn,
+                you: _account.persona,
+                pace: widget.pace,
+                rng: widget.seed == null ? null : Random(widget.seed),
+                onChips: _account.cashChips,
+              )
+            : OnlineCashController.forTable(
+                widget.service!,
+                widget.doc!,
+                you: _account.persona,
+                pace: widget.pace,
+              ))
+        ..start();
 
   CashStake get stake => widget.table.stake;
+
+  bool get _onlineTable => widget.service != null;
+  CashController? get _local => _c is CashController ? _c : null;
+  OnlineCashController? get _online => _c is OnlineCashController ? _c : null;
+  int get _chips => _local?.yourChips ?? _online!.yourChips;
+  int get _maxTopUp => _local?.maxTopUp ?? _online!.maxTopUp;
+  int get _pendingTopUp => _local?.pendingTopUp ?? _online!.pendingTopUp;
+
+  void _say(String text) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
 
   @override
   void dispose() {
@@ -122,7 +155,7 @@ class _CashScreenState extends State<CashScreen> {
   }
 
   Future<void> _leave() async {
-    final chipsNow = _c.yourChips;
+    final chipsNow = _chips;
     final midHand = _c.youAreIn && _c.hand?.result == null;
     final ok = await showDialog<bool>(
       context: context,
@@ -170,7 +203,17 @@ class _CashScreenState extends State<CashScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    final net = _account.cashOut(_c.yourChips);
+    if (_online case final online?) {
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+      await online.leave();
+      navigator.pop();
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(midHand ? 'Cashing out after this hand.' : 'Cashed out.')));
+      return;
+    }
+    final net = _account.cashOut(_chips);
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     messenger
@@ -195,19 +238,29 @@ class _CashScreenState extends State<CashScreen> {
       balance: _account.balance,
       title: 'Top up',
       action: 'Add chips',
-      most: _c.maxTopUp,
+      most: _maxTopUp,
       least: stake.bigBlind,
     );
     if (pips == null || !mounted) return;
+    if (_online case final online?) {
+      final e = await online.topUp(pips);
+      if (e != null && mounted) _say(e);
+      return;
+    }
     _account.cashIn(pips);
-    _c.topUp(pips);
+    _local!.topUp(pips);
   }
 
   Future<void> _rebuy() async {
     final pips = await chooseBuyIn(context, stake: stake, balance: _account.balance, title: 'Buy back in');
     if (pips == null || !mounted) return;
+    if (_online case final online?) {
+      final e = await online.rebuy(pips);
+      if (e != null && mounted) _say(e);
+      return;
+    }
     _account.cashIn(pips);
-    _c.rebuy(pips);
+    _local!.rebuy(pips);
   }
 
   @override
@@ -225,8 +278,12 @@ class _CashScreenState extends State<CashScreen> {
               GameLayout(
                 top: _CashHud(
                   c: _c,
+                  name: stake.label,
+                  online: _onlineTable,
+                  trouble: _online?.trouble ?? false,
+                  pending: _pendingTopUp,
                   onLeave: _leave,
-                  onTopUp: _account.balance > 0 && _c.maxTopUp > 0 ? _topUp : null,
+                  onTopUp: _account.balance > 0 && _maxTopUp > 0 ? _topUp : null,
                 ),
                 commentary: TableInfo(c: _c),
                 table: TableView(c: _c),
@@ -263,7 +320,11 @@ class _CashScreenState extends State<CashScreen> {
                                       key: const Key('busted leave'),
                                       color: Toon.card,
                                       onPressed: () {
-                                        _account.cashOut(0);
+                                        if (_online case final online?) {
+                                          unawaited(online.leave());
+                                        } else {
+                                          _account.cashOut(0);
+                                        }
                                         Navigator.of(context).pop();
                                       },
                                       child: const Text('Leave'),
@@ -296,9 +357,21 @@ class _CashScreenState extends State<CashScreen> {
 }
 
 class _CashHud extends StatelessWidget {
-  const _CashHud({required this.c, required this.onLeave, this.onTopUp});
+  const _CashHud({
+    required this.c,
+    required this.name,
+    required this.online,
+    required this.trouble,
+    required this.pending,
+    required this.onLeave,
+    this.onTopUp,
+  });
 
-  final CashController c;
+  final PokerController c;
+  final String name;
+  final bool online;
+  final bool trouble;
+  final int pending;
   final VoidCallback onLeave;
   final VoidCallback? onTopUp;
 
@@ -321,7 +394,7 @@ class _CashHud extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                c.tableName,
+                name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Toon.text(20, weight: FontWeight.w700),
@@ -330,15 +403,17 @@ class _CashHud extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      'Blinds ${chips(c.stake.smallBlind)} / ${chips(c.stake.bigBlind)}'
-                      '${c.pendingTopUp > 0 ? ' · +${chips(c.pendingTopUp)} next hand' : ''}',
+                      trouble
+                          ? 'Reconnecting…'
+                          : 'Blinds ${chips(c.game.blinds.$1)} / ${chips(c.game.blinds.$2)}'
+                                '${pending > 0 ? ' · +${chips(pending)} next hand' : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const _Where(online: false),
+                  CashWhere(online: online),
                 ],
               ),
             ],
@@ -356,16 +431,6 @@ class _CashHud extends StatelessWidget {
       ],
     ),
   );
-}
-
-/// "Local" (this phone's tables) or "Online" (the shared ones).
-class _Where extends StatelessWidget {
-  const _Where({required this.online});
-
-  final bool online;
-
-  @override
-  Widget build(BuildContext context) => CashWhere(online: online);
 }
 
 /// The small marker for which tables you're at: the shared online ones, or

@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
 import '../../../core/avatars/faces.dart';
+import '../../../core/online/cash_service.dart';
+import '../../../core/online/party.dart';
+import '../../../core/session/play_setup.dart';
 import '../../../core/sound/sound.dart';
 import '../../../core/theme/toon.dart';
 import '../ui/cash_screen.dart';
@@ -44,17 +47,51 @@ class CashLobbyScreen extends StatefulWidget {
 }
 
 class _CashLobbyScreenState extends State<CashLobbyScreen> {
+  /// The tables shown: the shared ones when the server answers, else this
+  /// phone's (marked Local). Never waits on the network to show something.
   late List<CashTableState> _tables = LocalCashTables.at(_now());
+  var _online = false;
+
+  /// You're seated at this shared table (the app was closed at it).
+  String? _mine;
+  Map<String, Doc> _docs = const {};
   Timer? _refresh;
+  CashService? _service;
 
   int _now() => widget.now?.call() ?? DateTime.now().millisecondsSinceEpoch;
 
   @override
   void initState() {
     super.initState();
-    // The tables move on while you watch.
-    _refresh = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (mounted) setState(() => _tables = LocalCashTables.at(_now()));
+    final party = PlaySetupScope.read(context)?.party;
+    if (party != null) _service = CashService(party);
+    unawaited(_load());
+    // The tables move on while you watch; offline, it keeps trying.
+    _refresh = Timer.periodic(const Duration(seconds: 15), (_) => unawaited(_load()));
+  }
+
+  Future<void> _load() async {
+    final service = _service;
+    if (service != null) {
+      try {
+        final r = await service.lobby();
+        if (!mounted) return;
+        setState(() {
+          _online = true;
+          _mine = r.mine;
+          _docs = {for (final d in r.tables) '${d['stake']}': d};
+          _tables = [for (final d in r.tables) CashTableState.fromJson(d)];
+        });
+        return;
+      } on Object {
+        // No connection, or the server's down: this phone's tables.
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _online = false;
+      _mine = null;
+      _tables = LocalCashTables.at(_now());
     });
   }
 
@@ -64,17 +101,47 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
     super.dispose();
   }
 
+  Future<void> _open(Doc doc) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CashScreen.online(service: _service!, doc: doc, pace: widget.pace),
+      ),
+    );
+    if (mounted) unawaited(_load());
+  }
+
   Future<void> _sit(CashTableState table) async {
     final account = AccountScope.read(context);
+    // Back at your seat (the app was closed at this table).
+    if (_online && _mine == table.stake.name) return _open(_docs[_mine]!);
     final pips = await chooseBuyIn(context, stake: table.stake, balance: account.balance);
     if (pips == null || !mounted) return;
+    if (_online) {
+      try {
+        final doc = await _service!.sit(table.stake, pips);
+        if (mounted) await _open(doc);
+        return;
+      } on OnlineError catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(e.message)));
+        }
+        return;
+      } on Object {
+        // Lost the connection just now: play here instead.
+        if (!mounted) return;
+        setState(() => _online = false);
+      }
+    }
+    if (!mounted) return;
     account.cashIn(pips);
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => CashScreen(table: table, buyIn: pips, pace: widget.pace),
       ),
     );
-    if (mounted) setState(() => _tables = LocalCashTables.at(_now()));
+    if (mounted) unawaited(_load());
   }
 
   @override
@@ -117,7 +184,7 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              const CashWhere(online: false),
+                              CashWhere(online: _online),
                             ],
                           ),
                         ],
@@ -161,7 +228,17 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                for (final t in _tables) _TableCard(table: t, balance: account.balance, onSit: () => _sit(t)),
+                for (final t in _tables)
+                  _TableCard(
+                    table: t,
+                    balance: account.balance,
+                    yours: _online && _mine == t.stake.name,
+                    friends: {
+                      for (final m in PlaySetupScope.of(context).party?.members ?? const <PartyMember>[])
+                        if (!m.you) m.uid,
+                    },
+                    onSit: () => _sit(t),
+                  ),
               ],
             ),
           ),
@@ -172,11 +249,23 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
 }
 
 class _TableCard extends StatelessWidget {
-  const _TableCard({required this.table, required this.balance, required this.onSit});
+  const _TableCard({
+    required this.table,
+    required this.balance,
+    required this.onSit,
+    this.yours = false,
+    this.friends = const {},
+  });
 
   final CashTableState table;
   final int balance;
   final VoidCallback onSit;
+
+  /// You're seated here (shared tables).
+  final bool yours;
+
+  /// Your party's people: marked at the table.
+  final Set<String> friends;
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +274,9 @@ class _TableCard extends StatelessWidget {
     final broke = !locked && balance < s.minBuyIn;
     final people = table.people.toList();
     final full = table.filled >= cashSeats && table.seats.nonNulls.every((x) => !x.bot);
-    final why = locked
+    final why = yours
+        ? null
+        : locked
         ? 'Unlocks at ${chips(s.unlockAt)} pips'
         : broke
         ? 'Needs ${chips(s.minBuyIn)} pips to sit'
@@ -242,7 +333,7 @@ class _TableCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        why ?? 'Sit down',
+                        yours ? 'Back to your seat' : (why ?? 'Sit down'),
                         style: Toon.text(
                           13,
                           weight: FontWeight.w700,
@@ -297,7 +388,7 @@ class _TableCard extends StatelessWidget {
                 people.isEmpty
                     ? '${table.filled} at the table · all bots'
                     : '${people.length} ${people.length == 1 ? 'person' : 'people'} here: '
-                          '${people.map((p) => p.name).join(', ')}',
+                          '${people.map((p) => friends.contains(p.id) ? '★ ${p.name}' : p.name).join(', ')}',
                 key: Key('table ${s.name} people'),
                 style: Toon.text(
                   13,

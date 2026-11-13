@@ -270,6 +270,13 @@ class CashGame extends SitAndGo {
 
   final CashStake stake;
 
+  /// Where the button goes next, when it's decided elsewhere (online: the
+  /// referee's hand).
+  int? nextButton;
+
+  @override
+  int get nextButtonSeat => nextButton ?? super.nextButtonSeat;
+
   @override
   (int, int) get blinds => (stake.smallBlind, stake.bigBlind);
 

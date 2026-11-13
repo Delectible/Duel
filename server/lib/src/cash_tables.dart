@@ -27,6 +27,12 @@ extension CashTables on Referee {
     for (final stake in CashStake.values) {
       final doc = await _cashTable(tx, stake);
       final t = CashTableState.fromJson(doc);
+      // Everyone at it closed the app: their turns run out, they're stood
+      // up (chips back), and the bots carry on alone.
+      if (t.people.isNotEmpty && await _cashCatchUp(tx, stake, doc, t, grace: const Duration(seconds: 60))) {
+        _bump(doc);
+        _putCash(tx, stake, doc);
+      }
       if (t.people.isEmpty && doc['hand'] == null) {
         t.simulate(_now, _rng);
         doc.addAll(t.toJson());
@@ -115,26 +121,56 @@ extension CashTables on Referee {
     final doc = await _cashTable(tx, stake);
     final t = CashTableState.fromJson(doc);
     if (!t.people.any((s) => s.id == p.uid)) return doc;
-    final ended = doc['endedAt'] as int?;
-    if (!_handLive(doc)) {
-      if (ended != null && _now < ended + cashPause.inMilliseconds) return doc;
-      await _cashNextHand(tx, stake, doc, t);
-    } else {
-      final deadline = doc['deadline'] as int?;
-      final turn = doc['turn'] as int?;
-      if (deadline == null || turn == null || _now < deadline) return doc;
-      final secret = await tx.get('cashSecrets/${stake.name}');
-      final (_, h) = _replay(stake, doc, secret!['seed']! as int);
-      final s = t.seats[turn]!;
-      if (++s.timeouts >= 2) s.leaving = true;
-      _append(doc, h.legalMoves().canCheck ? const Move.check() : const Move.fold());
-      doc.addAll(t.toJson());
-      await _cashPlayOn(tx, stake, doc, t, secret['seed']! as int);
-    }
+    if (!await _cashStep(tx, stake, doc, t)) return doc;
     _bump(doc);
     _putCash(tx, stake, doc);
     return doc;
   });
+
+  /// One step on, if one is due: the next hand (the last has been up
+  /// [cashPause] + [grace]), or a turn that ran out ([grace] past the
+  /// deadline). Returns whether anything changed.
+  Future<bool> _cashStep(
+    Tx tx,
+    CashStake stake,
+    Doc doc,
+    CashTableState t, {
+    Duration grace = Duration.zero,
+  }) async {
+    if (!_handLive(doc)) {
+      final ended = doc['endedAt'] as int?;
+      if (ended != null && _now < ended + (cashPause + grace).inMilliseconds) return false;
+      await _cashNextHand(tx, stake, doc, t);
+      return true;
+    }
+    final deadline = doc['deadline'] as int?;
+    final turn = doc['turn'] as int?;
+    if (deadline == null || turn == null || _now < deadline + grace.inMilliseconds) return false;
+    final secret = await tx.get('cashSecrets/${stake.name}');
+    final (_, h) = _replay(stake, doc, secret!['seed']! as int);
+    final s = t.seats[turn]!;
+    if (++s.timeouts >= 2) s.leaving = true;
+    _append(doc, h.legalMoves().canCheck ? const Move.check() : const Move.fold());
+    doc.addAll(t.toJson());
+    await _cashPlayOn(tx, stake, doc, t, secret['seed']! as int);
+    return true;
+  }
+
+  /// Steps an abandoned table along (at most a few hands' worth).
+  Future<bool> _cashCatchUp(
+    Tx tx,
+    CashStake stake,
+    Doc doc,
+    CashTableState t, {
+    required Duration grace,
+  }) async {
+    var changed = false;
+    for (var i = 0; i < 12 && t.people.isNotEmpty; i++) {
+      if (!await _cashStep(tx, stake, doc, t, grace: grace)) break;
+      changed = true;
+    }
+    return changed;
+  }
 
   /// Stands [p] up: their chips go back to their pips now, or (in the
   /// middle of a hand they're still in) once they've folded and it's
@@ -154,6 +190,8 @@ extension CashTables on Referee {
         _append(doc, const Move.fold());
         await _cashPlayOn(tx, stake, doc, t, secret!['seed']! as int);
       }
+      // Nobody else here to move it along: settle up now.
+      if (!_handLive(doc) && t.people.every((s) => s.leaving)) await _cashNextHand(tx, stake, doc, t);
     } else {
       await _cashOut(tx, t.seats[seat]!);
       t.seats[seat] = null;

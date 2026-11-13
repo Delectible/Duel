@@ -92,7 +92,8 @@ class TableInfo extends StatelessWidget {
           icon: rank == 1 ? Icons.emoji_events_rounded : null,
           color: rank == 1 ? Toon.yellow : null,
         ),
-      pill('You ${(mine / bb).toStringAsFixed(mine >= bb * 10 ? 0 : 1)} BB', key: const Key('your bb')),
+      if (mine > 0 || !c.isCash)
+        pill('You ${(mine / bb).toStringAsFixed(mine >= bb * 10 ? 0 : 1)} BB', key: const Key('your bb')),
       pill('Avg ${chips(avg)}', key: const Key('average')),
     ];
     final history = ToonButton(

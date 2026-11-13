@@ -16,6 +16,7 @@ import 'package:duel_engine/poker/sit_and_go.dart';
 import 'package:duel_engine/poker/story.dart';
 import '../../../core/account/achievements.dart';
 import '../../../core/avatars/faces.dart';
+import '../../../core/online/cash_service.dart';
 import '../../../core/online/party.dart';
 import 'rivals.dart';
 import 'table_talk.dart';
@@ -23,6 +24,7 @@ import '../../../core/sound/sound.dart';
 
 part 'online_poker.dart';
 part 'cash_controller.dart';
+part 'online_cash.dart';
 
 enum TablePhase {
   /// Your deal: shuffle the deck, then tap Deal.
@@ -125,8 +127,9 @@ class PokerController extends ChangeNotifier {
     required List<BotStyle?> styles,
     required Random rng,
     this.pace = 1,
-  }) : _rng = rng, // ignore: prefer_initializing_formals
-       resultTimeout = null {
+    this.resultTimeout,
+    // ignore: prefer_initializing_formals
+  }) : _rng = rng {
     personas = seats;
     game = table;
     reads = TableReads(seats.length);
@@ -144,6 +147,9 @@ class PokerController extends ChangeNotifier {
 
   /// Between two hands (cash tables: comings and goings, top-ups).
   void _betweenHands() {}
+
+  /// Out of chips: your game's over (cash tables: buy back in or leave).
+  bool get _youBusted => game.players[0].stack == 0;
 
   // --- Bot games: rival, bounty, the story, achievements -----------------------
 
@@ -909,7 +915,7 @@ class PokerController extends ChangeNotifier {
     _noteBusts(h);
     _handEnded();
     _betweenHands();
-    if (game.isOver || game.players[0].stack == 0) {
+    if (game.isOver || _youBusted) {
       // The tournament: the big win, or the big loss.
       Sound.play(yourPlace == 1 ? Sfx.winBig : Sfx.loseBig);
       phase = TablePhase.finished;
