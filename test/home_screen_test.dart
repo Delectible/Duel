@@ -15,7 +15,7 @@ void main() {
       await tester.pumpWidget(DuelApp(setup: setup));
       await tester.pumpAndSettle();
       expect(find.text('Pick a game'), findsOneWidget);
-      expect(find.text("Texas Hold'em"), findsOneWidget);
+      expect(find.text('Poker Lounge'), findsOneWidget);
       expect(find.text('You + 1 bot · 2 players'), findsOneWidget);
       await shot(tester, 'home_$phone');
 

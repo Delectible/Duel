@@ -304,6 +304,18 @@ weights cut from the variable font.
   black taking turns where the cards allow; never black, red, red, black):
   sort your hand with `sortBySuit` / `sortByRank` (`suitOrder`) from
   `duel_engine/cards.dart`, in every game, new ones too.
+- **Launch:** `core/startup/launch_curtain.dart` (`LaunchCurtain` over the
+  app from `DuelApp(curtain: true)` in main; `Startup.track` the start-up
+  work it waits for). Native launch screens are Duel's yellow
+  (`android/.../res/values*/styles.xml`, `launch_colors.xml`,
+  `drawable*/launch_background.xml`; `ios/Runner/Base.lproj/LaunchScreen.storyboard`).
+- **Poker Lounge** (`lib/games/poker/lounge/`): home's first tile opens
+  `LoungeScreen` (its own evening colours, `Lounge`; connection bar; the
+  modes in `LoungeMode`: Sit & Go = the `holdem` game's preview, the rest
+  `LoungeModeScreen` explanations until built; record, rivals,
+  achievements, tips). The `holdem` `GameInfo` ("Hold'em Sit & Go") stays
+  in `games` (party lookups, online) but isn't on home's grid. Tests open
+  games with `openFromHome` (`test/screens.dart`).
 - `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player
   range, tile art (`tile_art.dart`: a small painted scene per game, about
   84 x 64, scaled to the tile), sample `board` (`previews.dart`), `rules`, `minutes`

@@ -34,3 +34,24 @@ Future<void> shot(WidgetTester tester, String name) async {
 /// next card covers the rest).
 Future<void> tapCard(WidgetTester tester, Finder card) =>
     tester.tapAt(tester.getTopLeft(card.first) + const Offset(10, 26));
+
+/// Opens [game]'s preview from home: from its tile, or (Hold'em) through
+/// the Poker Lounge. [settle] waits for the screen (default pumpAndSettle).
+Future<void> openFromHome(
+  WidgetTester tester,
+  String gameId,
+  String name, [
+  Future<void> Function()? settle,
+]) async {
+  final wait = settle ?? () => tester.pumpAndSettle();
+  final tile = gameId == 'holdem' ? find.byKey(const Key('poker lounge')) : find.text(name);
+  await tester.scrollUntilVisible(tile, 150, scrollable: find.byType(Scrollable).last);
+  await wait();
+  await tester.tap(tile);
+  await wait();
+  if (gameId != 'holdem') return;
+  await tester.ensureVisible(find.byKey(const Key('lounge sitgo')));
+  await wait();
+  await tester.tap(find.byKey(const Key('lounge sitgo')));
+  await wait();
+}

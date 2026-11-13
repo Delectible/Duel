@@ -135,8 +135,7 @@ void main() {
       expect(find.byType(TableView), findsNothing, reason: "the game doesn't pull Sam back in");
 
       // Another game can't be started; this one says Game In Progress.
-      await tester.tap(find.text("Texas Hold'em"));
-      await wait(600);
+      await openFromHome(tester, 'holdem', '', () => wait(600));
       expect(find.text('Game In Progress'), findsOneWidget);
       await shot(tester, 'lobby_in_progress_$phone');
       await tester.tap(find.byKey(const Key('rejoin')));

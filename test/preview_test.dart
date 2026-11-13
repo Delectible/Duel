@@ -16,10 +16,7 @@ bool playOn(WidgetTester tester) =>
 Future<void> openPreview(WidgetTester tester, GameInfo game) async {
   // The games grid scrolls (last scrollable: on its side the menu column
   // comes first).
-  await tester.scrollUntilVisible(find.text(game.name), 150, scrollable: find.byType(Scrollable).last);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(game.name));
-  await tester.pumpAndSettle();
+  await openFromHome(tester, game.id, game.name);
   expect(find.byType(GamePreviewScreen), findsOneWidget);
 }
 
@@ -50,7 +47,11 @@ void main() {
         // Nevermind: back to the games, nothing started.
         await tester.tap(find.byKey(const Key('nevermind')));
         await tester.pumpAndSettle();
-        expect(find.text('Pick a game'), findsOneWidget);
+        // Back where it came from: home, or the Poker Lounge for Hold'em.
+        expect(
+          game.id == 'holdem' ? find.byKey(const Key('lounge sitgo')) : find.text('Pick a game'),
+          findsOneWidget,
+        );
       });
     }
   }

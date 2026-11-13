@@ -10,6 +10,8 @@ import '../../core/session/play_setup.dart';
 import '../../core/sound/sound.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
+import '../../games/poker/lounge/lounge_screen.dart';
+import '../../games/tile_art.dart';
 import '../party/version_notice.dart';
 import '../preview/game_preview_screen.dart';
 import '../profile/profile_screen.dart';
@@ -52,7 +54,11 @@ class HomeScreen extends StatelessWidget {
         mainAxisSpacing: 14,
         crossAxisSpacing: 14,
         childAspectRatio: wide ? 1.0 : 0.82,
-        children: [for (final g in games) _GameTile(game: g, setup: setup)],
+        children: [
+          const _LoungeTile(),
+          for (final g in games)
+            if (g.id != 'holdem') _GameTile(game: g, setup: setup),
+        ],
       ),
     );
     return _MatchWatcher(
@@ -166,6 +172,60 @@ class _TopBar extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The way into the Poker Lounge (Hold'em in all its forms): a tile in the
+/// lounge's own night colours.
+class _LoungeTile extends StatelessWidget {
+  const _LoungeTile();
+
+  static const _navy = Color(0xFF14213D), _gold = Color(0xFFF2C14E);
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Poker Lounge',
+    child: GestureDetector(
+      key: const Key('poker lounge'),
+      onTap: () {
+        Sound.play(Sfx.tap, gain: 0.6);
+        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LoungeScreen()));
+      },
+      child: ToonBox(
+        color: _navy,
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Toon.green,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _gold, width: 2),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: FittedBox(child: HoldemArt()),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Poker Lounge',
+              style: Toon.text(17, weight: FontWeight.w700, color: _gold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              "Hold'em, every way",
+              style: Toon.text(13, weight: FontWeight.w500, color: const Color(0xFFF7F1E3)),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _GameTile extends StatelessWidget {

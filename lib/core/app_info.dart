@@ -24,9 +24,9 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Hold'em against bots: meet three rivals who remember you, hunt the bounty bot for bonus pips, "
-      'earn achievements (see your profile), and read the story of each game with your best and worst '
-      'decision at the end.';
+      "New: the Poker Lounge, home of Hold'em, with Sit & Go now and cash games, tournaments and boss tables on the "
+      'way. Meet rivals who remember you, hunt the bounty bot, earn achievements and read the story of each game. '
+      'A bright launch screen, and every hand now alternates red and black suits.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

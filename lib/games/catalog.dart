@@ -200,7 +200,8 @@ class GameChoice {
 final games = <GameInfo>[
   GameInfo(
     id: 'holdem',
-    name: "Texas Hold'em",
+    // Lives in the Poker Lounge (not on home's grid).
+    name: "Hold'em Sit & Go",
     blurb: 'Sit & Go poker',
     minPlayers: 2,
     maxPlayers: 6,

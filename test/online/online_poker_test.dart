@@ -88,8 +88,7 @@ void main() {
       await tester.ensureVisible(find.byKey(const Key('pick game')));
       await tester.tap(find.byKey(const Key('pick game')));
       await wait(600);
-      await tester.tap(find.text("Texas Hold'em"));
-      await wait(600);
+      await openFromHome(tester, 'holdem', '', () => wait(600));
       await tester.tap(find.byKey(const Key('play')));
       await wait(1500);
       expect(find.byType(TableView), findsOneWidget);

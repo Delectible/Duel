@@ -34,10 +34,7 @@ void main() {
       testWidgets('${game.name}: Play at home on $phone', (tester) async {
         usePhone(tester, size);
         await tester.pumpWidget(DuelApp(setup: PlaySetup()..botCount = 1));
-        await tester.scrollUntilVisible(find.text(game.name), 150, scrollable: find.byType(Scrollable).last);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text(game.name));
-        await tester.pumpAndSettle();
+        await openFromHome(tester, game.id, game.name);
         await tester.tap(find.byKey(const Key('play at home')));
         await tester.pumpAndSettle();
         expect(find.text('Play at home'), findsOneWidget);

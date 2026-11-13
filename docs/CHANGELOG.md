@@ -623,6 +623,26 @@ Ships as app version **0.4.1**.
 - [ ] **31.6 Boss tables and mini-tournaments**: tabled for the bigger
   poker expansion (with cash tables, 25).
 
+### 32. Launch screen, suits, Poker Lounge (requested 2026-11-13)
+
+- [x] **32.1 Launch screen**: Android and iOS open on Duel's yellow (no
+  white flash), then the app's curtain: five cards fan out (red / black
+  taking turns), "Duel" bounces in, a loading line ("Teaching the bots to
+  bluff"); taps wait until start-up is done (sound, online; at least
+  1.3 s, at most 5 s). → 0.10.3 · 2026-11-13
+- [x] **32.2 Suits alternate in every game**: Crazy Eights, Go Fish (within
+  a rank), Blitz and Spades sort with `sortBySuit` / `sortByRank`; noted in
+  CLAUDE.md for future games. Blitz used to group reds then blacks.
+  → 0.10.3 · 2026-11-13
+- [x] **32.3 Poker Lounge**: the Hold'em tile becomes the Poker Lounge (an
+  evening look: navy, felt, gold). Inside: the connection bar, Sit & Go
+  (the game we have), Cash Games, Tournament and Boss Tables (explanation
+  screens for now), your poker record, the rivals' board, achievements,
+  tip of the day, the hands, Play at home. → 0.10.3 · 2026-11-13
+- [ ] **32.4 Cash Games** (25), **Tournament** (18 players, 3 tables,
+  top 3 paid), **Boss Tables** (5 bosses, a ladder): to build once the
+  explanation screens are agreed.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public
