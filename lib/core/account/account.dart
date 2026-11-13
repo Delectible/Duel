@@ -23,6 +23,10 @@ enum CurrencyChoice {
   final String label;
   final String symbol;
 
+  /// What your balance is called in a sentence: "pips", or "money" for a
+  /// real currency ("Not enough money to sit here").
+  String get noun => this == pips ? 'pips' : 'money';
+
   /// 1240 -> "1,240 pips", "$1,240"; negatives with a minus.
   String format(int amount) {
     final n = chips(amount.abs());

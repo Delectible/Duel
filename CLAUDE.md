@@ -292,7 +292,11 @@ weights cut from the variable font.
   frame-rate badge, frame graphs, offscreen-layer checkerboard, screen
   info, smoothness test).
 - `lib/core/theme/toon.dart`: the cartoon look (`Toon` colours, `ToonBox`,
-  `ToonButton` with hold-to-repeat, `chips()` formatting). Use these, not
+  `ToonButton` with hold-to-repeat, `chips()` formatting).
+  **Money words follow the player's currency** (`Account.money(n)` for
+  amounts, `CurrencyChoice.noun` for the word: "pips" or "money"; lounge
+  texts write amounts as `{5000}`, `LoungeModeScreen.inCurrency`); the
+  referee's messages stay currency-neutral. Use these, not
   stock Material buttons. **Dark mode:** `Toon.ink/fg/paper/card/muted/grey`
   are getters that follow `Toon.dark`, so never put them in `const`;
   `Toon.text` inherits its colour (ToonBox / ToonButton pick a readable

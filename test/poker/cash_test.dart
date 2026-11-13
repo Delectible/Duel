@@ -120,4 +120,28 @@ void main() {
       await tester.pump(const Duration(seconds: 20));
     });
   }
+
+  testWidgets('in dollars, the lobby and the explanation talk money, not pips', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    final account = Account()..currency = CurrencyChoice.usd;
+    await tester.pumpWidget(
+      AccountScope(
+        account: account,
+        child: PlaySetupScope(
+          setup: PlaySetup(),
+          child: MaterialApp(theme: Toon.theme(), home: const CashLobbyScreen(pace: 0.05)),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.textContaining('Unlocks at \$5,000'), findsOneWidget);
+    expect(find.text('Your money'), findsOneWidget);
+    expect(find.textContaining('pips'), findsNothing);
+    await tester.tap(find.byKey(const Key('cash info')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('\$500–\$1,000'), findsOneWidget);
+    expect(find.textContaining('pip'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 20));
+  });
 }

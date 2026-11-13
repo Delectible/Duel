@@ -328,10 +328,10 @@ class Referee {
       for (final i in humans) {
         final w = await tx.get('wallets/${seats[i]}');
         final name = names[seats[i]] ?? 'Player';
-        if (w == null) throw RefereeError(409, '$name needs the latest Duel to play for pips');
+        if (w == null) throw RefereeError(409, '$name needs the latest Duel to play for a stake');
         final balance = w['balance']! as int;
         if (balance < stake) {
-          throw RefereeError(409, "$name has ${max(balance, 0)} pips: that's not enough for this stake");
+          throw RefereeError(409, "$name has ${max(balance, 0)}: that's not enough for this stake");
         }
         _setWallet(tx, seats[i], {...w, 'balance': balance - stake});
       }

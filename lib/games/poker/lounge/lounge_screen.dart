@@ -346,7 +346,7 @@ class _Record extends StatelessWidget {
               number(rate, 'win rate'),
               number(
                 s.net == 0 ? '–' : '${s.net > 0 ? '+' : '−'}${chips(s.net.abs())}',
-                'pips won',
+                account.currency == CurrencyChoice.pips ? 'pips won' : 'won',
                 color: s.net > 0 ? Toon.green : (s.net < 0 ? Lounge.ruby : Lounge.cream),
               ),
             ],

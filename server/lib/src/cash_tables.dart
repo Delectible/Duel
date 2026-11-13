@@ -59,13 +59,15 @@ extension CashTables on Referee {
     final t = CashTableState.fromJson(doc);
     if (t.people.any((s) => s.id == p.uid)) return doc;
     final w = await tx.get('wallets/${p.uid}');
-    if (w == null) throw const RefereeError(409, 'Your pips are still being set up: try again in a moment');
+    if (w == null) throw const RefereeError(409, 'Your balance is still being set up: try again in a moment');
     final balance = w['balance']! as int;
-    if (balance < stake.unlockAt) throw RefereeError(409, '${stake.label} unlocks at ${stake.unlockAt} pips');
+    if (balance < stake.unlockAt) {
+      throw RefereeError(409, '${stake.label} unlocks once your balance reaches ${stake.unlockAt}');
+    }
     if (buyIn < stake.minBuyIn || buyIn > stake.maxBuyIn) {
       throw RefereeError(400, 'Buy in with ${stake.minBuyIn} to ${stake.maxBuyIn}');
     }
-    if (balance < buyIn) throw const RefereeError(409, "You don't have enough pips for that");
+    if (balance < buyIn) throw const RefereeError(409, "Your balance doesn't cover that");
     // The bots have been playing: catch up before anyone sits.
     if (t.people.isEmpty && doc['hand'] == null) t.simulate(_now, _rng);
     var seat = t.seats.indexOf(null);
@@ -216,7 +218,7 @@ extension CashTables on Referee {
     final room = stake.maxBuyIn - s.stack - (s.topUp);
     final add = min(pips, room);
     if (add <= 0) throw RefereeError(409, 'You already have the most you can bring (${stake.maxBuyIn})');
-    if (balance < add) throw const RefereeError(409, "You don't have enough pips for that");
+    if (balance < add) throw const RefereeError(409, "Your balance doesn't cover that");
     _setWallet(tx, p.uid, {...w, 'balance': balance - add});
     final seat = t.seats.indexOf(s);
     if (_inHand(doc, seat) && _handLive(doc)) {

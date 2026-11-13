@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/account/account.dart';
+import '../../../core/theme/toon.dart';
+
 /// The Poker Lounge's own look: the back room of Duel. Deep navy and felt
 /// green under a warm lamp, gold trim; the same chunky buttons and font.
 abstract final class Lounge {
@@ -73,11 +76,11 @@ class LoungeMode {
           'down at any time, so you can join your friends (the lobby shows who\'s at each table).',
       'Sit down in an open seat, or a bot gets up for you. Bots come and go, and keep playing while you\'re '
           'away: come back later and the table has moved on.',
-      'Your pips are the chips. Sit down with 50 to 100 big blinds from your balance (no credit here), and '
+      'Your balance is your chips. Sit down with 50 to 100 big blinds from it (no credit here), and '
           'top up between hands.',
       'Cash out whenever you like and your chips go straight back to your balance. Mid-hand, what you\'ve '
           'already bet stays in the pot.',
-      'No house cut: every pip you win comes from another player or a bot, and every pip you lose goes to '
+      'No house cut: everything you win comes from another player or a bot, and everything you lose goes to '
           'one.',
       'A table unlocks once your balance covers its full buy-in. The bots get tougher as the stakes rise.',
       'No connection? The tables play on this phone instead (marked Local): everything works, but friends '
@@ -87,23 +90,23 @@ class LoungeMode {
     table: [
       (
         name: 'Kitchen Table',
-        detail: 'Blinds 5 / 10 · buy in 500–1,000 · easy bots',
+        detail: 'Blinds 5 / 10 · buy in {500}–{1000} · easy bots',
         note: 'Open to everyone',
       ),
       (
         name: 'Back Room',
-        detail: 'Blinds 25 / 50 · buy in 2,500–5,000 · normal bots',
-        note: 'Unlocks at 5,000 pips',
+        detail: 'Blinds 25 / 50 · buy in {2500}–{5000} · normal bots',
+        note: 'Unlocks at {5000}',
       ),
       (
         name: 'High Rollers',
-        detail: 'Blinds 100 / 200 · buy in 10,000–20,000 · hard bots',
-        note: 'Unlocks at 20,000 pips',
+        detail: 'Blinds 100 / 200 · buy in {10000}–{20000} · hard bots',
+        note: 'Unlocks at {20000}',
       ),
       (
         name: 'The Penthouse',
-        detail: 'Blinds 500 / 1,000 · buy in 50,000–100,000 · hard bots',
-        note: 'Unlocks at 100,000 pips',
+        detail: 'Blinds 500 / 1,000 · buy in {50000}–{100000} · hard bots',
+        note: 'Unlocks at {100000}',
       ),
     ],
   );
@@ -128,8 +131,8 @@ class LoungeMode {
     tableTitle: 'Buy-ins',
     table: [
       (name: 'Daily Freeroll', detail: 'Free · prize pool from the bank', note: 'Once a day'),
-      (name: 'Regular', detail: 'Buy-in 500 · pool 9,000', note: 'Any time'),
-      (name: 'Main Event', detail: 'Buy-in 5,000 · pool 90,000', note: 'Unlocks after a Regular cash'),
+      (name: 'Regular', detail: 'Buy-in {500} · pool {9000}', note: 'Any time'),
+      (name: 'Main Event', detail: 'Buy-in {5000} · pool {90000}', note: 'Unlocks after a Regular cash'),
     ],
     notes: ['Later: the same with friends, everyone in the party at the tables.'],
   );
@@ -168,8 +171,21 @@ class LoungeModeScreen extends StatelessWidget {
 
   final LoungeMode mode;
 
+  /// Amounts written {5000} in the text, in your currency ("5,000 pips",
+  /// "\$5,000"); a range {500}–{1000} says the unit once for pips.
+  static String inCurrency(String text, Account account) => text
+      .replaceAllMapped(
+        RegExp(r'\{(\d+)\}–\{(\d+)\}'),
+        (m) => account.currency == CurrencyChoice.pips
+            ? '${chips(int.parse(m[1]!))}–${chips(int.parse(m[2]!))} pips'
+            : '${account.money(int.parse(m[1]!))}–${account.money(int.parse(m[2]!))}',
+      )
+      .replaceAllMapped(RegExp(r'\{(\d+)\}'), (m) => account.money(int.parse(m[1]!)));
+
   @override
   Widget build(BuildContext context) {
+    final account = AccountScope.maybeRead(context) ?? Account();
+    String m(String t) => inCurrency(t, account);
     TextStyle text(double size, {FontWeight weight = FontWeight.w600, Color color = Lounge.cream}) =>
         TextStyle(fontFamily: 'Fredoka', fontSize: size, fontWeight: weight, color: color, height: 1.3);
     Widget panel({required List<Widget> children}) => Container(
@@ -261,7 +277,7 @@ class LoungeModeScreen extends StatelessWidget {
                               decoration: BoxDecoration(color: mode.color, shape: BoxShape.circle),
                             ),
                             Expanded(
-                              child: Text(line, style: text(15, weight: FontWeight.w500)),
+                              child: Text(m(line), style: text(15, weight: FontWeight.w500)),
                             ),
                           ],
                         ),
@@ -292,7 +308,7 @@ class LoungeModeScreen extends StatelessWidget {
                                       style: text(16, weight: FontWeight.w700, color: Lounge.lamp),
                                     ),
                                     Text(
-                                      row.detail,
+                                      m(row.detail),
                                       style: text(13, weight: FontWeight.w500, color: Lounge.dim),
                                     ),
                                   ],
@@ -300,7 +316,7 @@ class LoungeModeScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                row.note,
+                                m(row.note),
                                 textAlign: TextAlign.right,
                                 style: text(12, color: mode.color),
                               ),

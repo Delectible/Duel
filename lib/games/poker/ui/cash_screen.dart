@@ -308,7 +308,7 @@ class _CashScreenState extends State<CashScreen> {
                               Text(
                                 _account.balance >= stake.bigBlind
                                     ? 'Buy back in, or call it a night.'
-                                    : 'Not enough pips to buy back in here.',
+                                    : 'Not enough ${_account.currency.noun} to buy back in here.',
                                 textAlign: TextAlign.center,
                                 style: Toon.text(15, weight: FontWeight.w500),
                               ),

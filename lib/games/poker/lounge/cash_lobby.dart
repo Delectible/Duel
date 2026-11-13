@@ -215,7 +215,7 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
                       const Icon(Icons.account_balance_wallet_rounded, color: Lounge.gold, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        'Your pips',
+                        account.currency == CurrencyChoice.pips ? 'Your pips' : 'Your money',
                         style: Toon.text(14, weight: FontWeight.w600, color: Lounge.dim),
                       ),
                       const Spacer(),
@@ -269,6 +269,7 @@ class _TableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final money = (AccountScope.maybeRead(context) ?? Account()).money;
     final s = table.stake;
     final locked = balance < s.unlockAt;
     final broke = !locked && balance < s.minBuyIn;
@@ -277,9 +278,9 @@ class _TableCard extends StatelessWidget {
     final why = yours
         ? null
         : locked
-        ? 'Unlocks at ${chips(s.unlockAt)} pips'
+        ? 'Unlocks at ${money(s.unlockAt)}'
         : broke
-        ? 'Needs ${chips(s.minBuyIn)} pips to sit'
+        ? 'Needs ${money(s.minBuyIn)} to sit'
         : full
         ? 'Full'
         : null;
@@ -396,6 +397,19 @@ class _TableCard extends StatelessWidget {
                   color: people.isEmpty ? Lounge.dim : Lounge.lamp,
                 ),
               ),
+              if (locked) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.lock_rounded, size: 14, color: Lounge.gold),
+                    const SizedBox(width: 4),
+                    Text(
+                      why!,
+                      style: Toon.text(13, weight: FontWeight.w700, color: Lounge.gold),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

@@ -5,7 +5,8 @@ import '../theme/toon.dart';
 import 'account.dart';
 
 /// The staking rules, in plain words (the preview's (i) and Settings).
-const stakeRules = [
+/// The rules, in your currency's words.
+List<String> stakeRules(CurrencyChoice currency) => [
   'Free games cost nothing and win nothing.',
   'Your stake is taken when the game starts.',
   'Win: you get your stake back plus stake × the number of opponents. '
@@ -16,7 +17,7 @@ const stakeRules = [
       'your debt, which your winnings pay off first. No time limit.',
   'Online, everyone puts in the same stake, bots too, and the winner takes '
       'the whole pot (partners split it). Difficulty doesn\'t count online. If a '
-      'bot wins, the pot goes to the bank. You need enough pips for the stake.',
+      'bot wins, the pot goes to the bank. You need enough ${currency.noun} for the stake.',
 ];
 
 /// The rules as a bulleted list.
@@ -27,7 +28,7 @@ class StakeRules extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      for (final rule in stakeRules)
+      for (final rule in stakeRules((AccountScope.maybeRead(context) ?? Account()).currency))
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(

@@ -663,6 +663,15 @@ Ships as app version **0.4.1**.
   its full buy-in; easy bots at the Kitchen Table, normal in the Back
   Room, hard above. → 0.11.0 · 2026-11-13
 
+### 34. Say the right currency (requested 2026-11-13)
+
+- [x] **34.1** Every description follows the currency picked in Settings:
+  amounts in it ("$5,000"), and "money" where pips was a word ("Not
+  enough money to buy back in", "Your money"); the staking rules, the
+  cash lobby (locked tables now say what unlocks them), the lounge's
+  explanations and the referee's messages (now currency-neutral).
+  → 0.11.0 · 2026-11-13
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public
