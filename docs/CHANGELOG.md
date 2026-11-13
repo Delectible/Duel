@@ -605,6 +605,24 @@ Ships as app version **0.4.1**.
   current rate, the rates on offer, what Duel asked for, battery saver),
   and a 5-second smoothness test. → 0.10.2 · 2026-11-12
 
+### 31. More fun against bots (requested 2026-11-13)
+
+- [x] **31.1 Bounty bot**: one bot each game has a price on its head
+  (target icon); knock it out for half your stake in bonus pips.
+  → 0.10.3 · 2026-11-13
+- [x] **31.2 Rivals**: Vinnie (Shark), Roxy (Maniac) and The Professor
+  (Rock) take turns sitting in, play a level harder, greet you with your
+  record, gloat or sulk; records in the profile. → 0.10.3 · 2026-11-13
+- [x] **31.3 Achievements**: 11 to earn (7-2 win, bluffing the Rock,
+  underdog all-in, comeback, bounty, rival, quads, royal, first / full /
+  Hard wins); pop-up when earned, list in the profile. → 0.10.3 · 2026-11-13
+- [x] **31.4 The story** of each game at the end (winner, biggest pot, bad
+  beat, knockouts, comeback, best bluff, tilts). → 0.10.3 · 2026-11-13
+- [x] **31.5 Hand of the game**: your best and worst decision, judged by
+  your chances, the price and how it turned out. → 0.10.3 · 2026-11-13
+- [ ] **31.6 Boss tables and mini-tournaments**: tabled for the bigger
+  poker expansion (with cash tables, 25).
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

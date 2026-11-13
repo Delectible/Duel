@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.10.2';
+  static const version = '0.10.3';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,12 +24,22 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Smoother on phones with fast screens: Duel now asks Android not to slow it down to save power, so it can '
-      'run at 90 or 120 Hz. For testers: hold About in Settings for a debug menu with a frame-rate counter.';
+      "Hold'em against bots: meet three rivals who remember you, hunt the bounty bot for bonus pips, "
+      'earn achievements (see your profile), and read the story of each game with your best and worst '
+      'decision at the end.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
-    ('0.10', ['Blitz online', 'Pips kept online: winner takes the pot', 'Spades: suits alternate colour']),
+    (
+      '0.10',
+      [
+        'Blitz online',
+        'Pips kept online: winner takes the pot',
+        'Spades: suits alternate colour',
+        "Hold'em: rivals, bounties, achievements",
+        'Game story and hand of the game',
+      ],
+    ),
     (
       '0.9',
       [

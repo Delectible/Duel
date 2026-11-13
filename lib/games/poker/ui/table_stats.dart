@@ -617,6 +617,7 @@ class GameSummary extends StatelessWidget {
             ],
           ),
         ),
+        if (c.decisions.isNotEmpty || c.events.isNotEmpty) ...[const SizedBox(height: 10), _StoryBox(c: c)],
         const SizedBox(height: 10),
         Column(
           key: const Key('lineup'),
@@ -686,6 +687,62 @@ class GameSummary extends StatelessWidget {
         ),
         ?footer,
       ],
+    );
+  }
+}
+
+/// Bot games: a few lines on how the game went, and your best and worst
+/// decision.
+class _StoryBox extends StatelessWidget {
+  const _StoryBox({required this.c});
+
+  final PokerController c;
+
+  @override
+  Widget build(BuildContext context) {
+    final story = c.story;
+    final hand = c.handOfGame;
+    Widget line(String text, {Color? dot}) => Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 6, right: 8),
+            decoration: BoxDecoration(color: dot ?? Toon.muted, shape: BoxShape.circle),
+          ),
+          Expanded(
+            child: Text(text, style: Toon.text(13, weight: FontWeight.w500)),
+          ),
+        ],
+      ),
+    );
+    return Container(
+      key: const Key('story'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+      decoration: Toon.box(Toon.card, radius: 12, shadow: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('The story', style: Toon.text(15, weight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          for (final s in story) line(s),
+          if (hand.best != null || hand.worst != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Hand of the game',
+              key: const Key('hand of the game'),
+              style: Toon.text(15, weight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            if (hand.best case final b?) line('Best: $b', dot: Toon.green),
+            if (hand.worst case final w?) line('Worst: $w', dot: Toon.red),
+          ],
+        ],
+      ),
     );
   }
 }

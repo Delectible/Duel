@@ -3,10 +3,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
+import '../../core/account/achievements.dart';
 import '../../core/avatars/faces.dart';
 import '../../core/theme/split_page.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
+import '../../games/poker/ui/rivals.dart';
 
 /// Your name, your face, your money and how each game has gone.
 class ProfileScreen extends StatefulWidget {
@@ -99,6 +101,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           for (final g in games.where((g) => g.available))
             _StatsRow(game: g, stats: account.stats(g.id), account: account),
+          const SizedBox(height: 20),
+          Text(
+            'Achievements  ${account.earned.length} / ${Achievement.values.length}',
+            key: const Key('achievements'),
+            style: Toon.text(20, weight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          for (final a in Achievement.values) _AchievementRow(a: a, earned: account.earned.containsKey(a)),
+          const SizedBox(height: 20),
+          Text("Hold'em rivals", style: Toon.text(20, weight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          for (final r in Rival.all) _RivalRow(rival: r, record: account.rivalRecord(r.name)),
         ],
       ),
     );
@@ -324,6 +338,94 @@ class _StatsRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AchievementRow extends StatelessWidget {
+  const _AchievementRow({required this.a, required this.earned});
+
+  final Achievement a;
+  final bool earned;
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+    opacity: earned ? 1 : 0.55,
+    child: Container(
+      key: Key('achievement ${a.name}'),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: Toon.box(earned ? Toon.yellow : Toon.card, radius: 12, shadow: 2),
+      child: Row(
+        children: [
+          Icon(
+            earned ? Icons.emoji_events_rounded : Icons.lock_rounded,
+            size: 22,
+            color: earned ? Toon.inkLight : Toon.muted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  a.title,
+                  style: Toon.text(15, weight: FontWeight.w700, color: earned ? Toon.inkLight : null),
+                ),
+                Text(
+                  a.text,
+                  style: Toon.text(12, weight: FontWeight.w500, color: earned ? Toon.inkLight : Toon.muted),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _RivalRow extends StatelessWidget {
+  const _RivalRow({required this.rival, required this.record});
+
+  final Rival rival;
+  final ({int wins, int losses}) record;
+
+  @override
+  Widget build(BuildContext context) {
+    final met = record.wins + record.losses > 0;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: Toon.box(Toon.card, radius: 12, shadow: 2),
+      child: Row(
+        children: [
+          Face(rival.persona, size: 34),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(rival.name, style: Toon.text(15, weight: FontWeight.w700)),
+                Text(
+                  met ? 'Plays like a ${rival.style.label}' : 'Not met yet',
+                  style: Toon.text(12, weight: FontWeight.w500, color: Toon.muted),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            met ? '${record.wins}–${record.losses}' : '–',
+            style: Toon.text(
+              17,
+              weight: FontWeight.w800,
+              color: !met || record.wins == record.losses
+                  ? Toon.muted
+                  : (record.wins > record.losses ? Toon.green : Toon.red),
+            ),
+          ),
+        ],
       ),
     );
   }

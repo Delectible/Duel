@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 
 import '../avatars/faces.dart';
+import 'achievements.dart';
 import 'package:duel_engine/difficulty.dart';
 import '../sound/sound.dart';
 import '../theme/toon.dart';
@@ -212,6 +213,44 @@ class Account extends ChangeNotifier {
 
   bool get inDebt => balance < 0;
 
+  // --- Achievements and rivals (Hold'em against bots) -------------------------
+
+  final Map<Achievement, int> _earned = {};
+
+  /// When each achievement was earned (ms since epoch).
+  Map<Achievement, int> get earned => Map.unmodifiable(_earned);
+
+  /// Earns [a]; true the first time (show it off), false after.
+  bool earn(Achievement a) {
+    if (_earned.containsKey(a)) return false;
+    _change(() => _earned[a] = DateTime.now().millisecondsSinceEpoch);
+    return true;
+  }
+
+  final Map<String, ({int wins, int losses})> _rivals = {};
+
+  /// Your record against each rival bot (by name): games you finished
+  /// ahead of them / behind them.
+  ({int wins, int losses}) rivalRecord(String name) => _rivals[name] ?? (wins: 0, losses: 0);
+
+  Map<String, ({int wins, int losses})> get rivals => Map.unmodifiable(_rivals);
+
+  void rivalResult(String name, {required bool won}) {
+    final r = rivalRecord(name);
+    _change(
+      () => _rivals[name] = won ? (wins: r.wins + 1, losses: r.losses) : (wins: r.wins, losses: r.losses + 1),
+    );
+  }
+
+  /// Extra pips won in a game (a bounty), on top of the stake's result.
+  void bonus(String gameId, int pips) {
+    if (pips <= 0) return;
+    _change(() {
+      _unsynced += pips;
+      stats(gameId).net += pips;
+    });
+  }
+
   GameStats stats(String gameId) => _stats.putIfAbsent(gameId, GameStats.new);
 
   /// Your face at the tables.
@@ -317,6 +356,17 @@ class Account extends ChangeNotifier {
           _leftGames[k] = (game: v['g'] as String, stake: v['s'] as int);
         }
       });
+      final earned = j['ach'] as Map<String, dynamic>? ?? {};
+      final byName = Achievement.values.asNameMap();
+      earned.forEach((k, v) {
+        if (byName[k] case final a? when v is int) _earned[a] = v;
+      });
+      final rivals = j['rivals'] as Map<String, dynamic>? ?? {};
+      rivals.forEach((k, v) {
+        if (v is List && v.length == 2 && v[0] is int && v[1] is int) {
+          _rivals[k] = (wins: v[0] as int, losses: v[1] as int);
+        }
+      });
       final stats = j['stats'] as Map<String, dynamic>? ?? {};
       stats.forEach((k, v) => _stats[k] = GameStats.fromJson(v as Map<String, dynamic>));
     } on Object {
@@ -341,6 +391,11 @@ class Account extends ChangeNotifier {
       'volume': _volume,
       'music': _music?.name ?? 'off',
       'musicVolume': _musicVolume,
+      if (_earned.isNotEmpty) 'ach': {for (final e in _earned.entries) e.key.name: e.value},
+      if (_rivals.isNotEmpty)
+        'rivals': {
+          for (final e in _rivals.entries) e.key: [e.value.wins, e.value.losses],
+        },
       'left': {
         for (final e in _leftGames.entries) e.key: {'g': e.value.game, 's': e.value.stake},
       },

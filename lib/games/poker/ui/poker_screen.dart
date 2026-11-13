@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:duel_engine/difficulty.dart';
 import '../../../core/theme/toon.dart';
 import 'action_bar.dart';
 import '../../../core/account/account.dart';
+import '../../../core/account/achievements.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/table/table_bits.dart';
@@ -14,6 +16,7 @@ import '../../../core/online/party.dart';
 import '../../../features/party/lobby.dart';
 import 'poker_guide.dart';
 import 'poker_controller.dart';
+import 'rivals.dart';
 import 'table_stats.dart';
 import 'table_view.dart';
 
@@ -167,6 +170,15 @@ class _PokerScreenState extends State<PokerScreen> {
         return online;
       }
     }
+    // A rival sits in (the one you've played least) and one bot carries a
+    // bounty.
+    final extras = widget.seed == null ? Random() : Random(widget.seed! + 7);
+    final rival = Rival.pick(extras, (name) {
+      final r = _account.rivalRecord(name);
+      return r.wins + r.losses;
+    });
+    final record = _account.rivalRecord(rival.name);
+    _bountyPaid = _rivalDone = false;
     final c = _c = PokerController(
       bots: widget.bots,
       difficulty: widget.difficulty,
@@ -174,6 +186,9 @@ class _PokerScreenState extends State<PokerScreen> {
       resultTimeout: widget.resultTimeout,
       rng: widget.seed == null ? null : Random(widget.seed),
       you: _account.persona,
+      rival: rival,
+      rivalRecord: (theirs: record.losses, yours: record.wins),
+      bountySeat: widget.bots == 1 ? 1 : 2 + extras.nextInt(widget.bots - 1),
     );
     c
       ..addListener(_settle)
@@ -181,10 +196,49 @@ class _PokerScreenState extends State<PokerScreen> {
     return c;
   }
 
-  /// Your tournament's over: win only for first place.
+  /// Your tournament's over: win only for first place. Along the way:
+  /// achievements, the bounty, the rival's record.
   void _settle() {
     if (_c.phase == TablePhase.finished && !_ticket.settled) {
       _ticket.settle(_c.yourPlace == 1 ? Outcome.win : Outcome.loss);
+    }
+    if (widget.party != null) return;
+    if (_c.bountyBy == 0 && !_bountyPaid) {
+      _bountyPaid = true;
+      final pay = _ticket.stake == 0 ? 0 : max(1, _ticket.stake ~/ 2);
+      _account.bonus('holdem', pay);
+      _toast('BOUNTY!', pay > 0 ? '+${_account.money(pay)}' : 'You knocked out the bounty bot');
+    }
+    final rival = _c.rival;
+    if (rival != null && !_rivalDone && _c.phase == TablePhase.finished) {
+      _rivalDone = true;
+      _account.rivalResult(rival.name, won: _c.beatRival);
+      if (_c.beatRival) _c.found.add(Achievement.rival);
+    }
+    while (_c.found.isNotEmpty) {
+      final a = _c.found.removeAt(0);
+      if (_account.earn(a)) _toast('Achievement!', a.title);
+    }
+  }
+
+  var _bountyPaid = false, _rivalDone = false;
+
+  /// Pop-ups waiting their turn, and the one showing.
+  final _toasts = <({String title, String text})>[];
+  ({String title, String text})? _showing;
+  Timer? _toastTimer;
+
+  void _toast(String title, String text) {
+    _toasts.add((title: title, text: text));
+    if (_showing == null) _nextToast();
+  }
+
+  void _nextToast() {
+    _toastTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _showing = _toasts.isEmpty ? null : _toasts.removeAt(0));
+    if (_showing != null) {
+      _toastTimer = Timer(Duration(milliseconds: (3000 * max(widget.pace, 0.3)).round()), _nextToast);
     }
   }
 
@@ -200,6 +254,7 @@ class _PokerScreenState extends State<PokerScreen> {
   void dispose() {
     widget.party?.removeListener(_follow);
     widget.party?.hidden(this);
+    _toastTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -254,6 +309,37 @@ class _PokerScreenState extends State<PokerScreen> {
                       againLabel: _againLabel(),
                       leaveLabel: widget.party == null ? 'Games' : 'Back to party',
                       onLeave: widget.party == null ? () => Navigator.of(context).pop() : _leave,
+                    ),
+                  ),
+                if (_showing case final t?)
+                  Positioned(
+                    top: 8,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: Center(
+                        child: Pop(
+                          key: ValueKey(t),
+                          child: Container(
+                            key: const Key('toast'),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: Toon.box(Toon.yellow, radius: 14, shadow: 3),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  t.title,
+                                  style: Toon.text(13, weight: FontWeight.w800, color: Toon.inkLight),
+                                ),
+                                Text(
+                                  t.text,
+                                  style: Toon.text(17, weight: FontWeight.w700, color: Toon.inkLight),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
               ],

@@ -12,8 +12,11 @@ import 'package:duel_engine/poker/odds.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/reads.dart';
 import 'package:duel_engine/poker/sit_and_go.dart';
+import 'package:duel_engine/poker/story.dart';
+import '../../../core/account/achievements.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/online/party.dart';
+import 'rivals.dart';
 import 'table_talk.dart';
 import '../../../core/sound/sound.dart';
 
@@ -49,9 +52,19 @@ class PokerController extends ChangeNotifier {
     this.pace = 1,
     this.you = const Persona.you(),
     this.resultTimeout,
+    this.rival,
+    this.rivalRecord = (theirs: 0, yours: 0),
+    this.bountySeat,
   }) : _rng = rng ?? Random(),
        assert(bots >= 1 && bots <= 5) {
     personas = [you, ...Persona.bots(bots, _rng)];
+    // A rival takes seat 1 (its own name, face and way of playing).
+    if (rival case final r?) {
+      personas[1] = r.persona;
+      for (var i = 2; i < personas.length; i++) {
+        if (personas[i].name == r.name) personas[i] = Persona.bots(1, Random(i)).single;
+      }
+    }
     game = SitAndGo(
       names: [for (final p in personas) p.name],
       config: SitAndGoConfig.forPlayers(bots + 1),
@@ -61,8 +74,19 @@ class PokerController extends ChangeNotifier {
     // Each bot plays its own hidden way (no two alike): you work it out.
     final deck = [...BotStyle.values]..shuffle(_rng);
     _styles = [for (var i = 0; i <= bots; i++) i == 0 ? null : deck[(i - 1) % deck.length]];
+    if (rival case final r?) _styles[1] = r.style;
     _bots = [
-      for (final s in _styles) s == null ? null : PokerBot(style: s, difficulty: difficulty, rng: _rng),
+      for (final (i, s) in _styles.indexed)
+        s == null
+            ? null
+            : PokerBot(
+                style: s,
+                // A rival plays a level up.
+                difficulty: i == 1 && rival != null
+                    ? Difficulty.values[min(difficulty.index + 1, Difficulty.values.length - 1)]
+                    : difficulty,
+                rng: _rng,
+              ),
     ];
   }
 
@@ -85,6 +109,201 @@ class PokerController extends ChangeNotifier {
     _bots = List.filled(seats.length, null);
     _styles = List.filled(seats.length, null);
     reads = TableReads(seats.length);
+    rival = null;
+    rivalRecord = (theirs: 0, yours: 0);
+    bountySeat = null;
+  }
+
+  // --- Bot games: rival, bounty, the story, achievements -----------------------
+
+  /// The rival in seat 1 (bot games), and the record so far.
+  late final Rival? rival;
+  late final ({int theirs, int yours}) rivalRecord;
+
+  /// The bot with a price on its head (bot games).
+  late final int? bountySeat;
+
+  /// Who knocked the bounty bot out (0: you).
+  int? bountyBy;
+
+  /// Your decisions this game (for Hand of the game).
+  final List<YourDecision> decisions = [];
+
+  /// The game's big moments (for the table story).
+  final List<StoryEvent> events = [];
+
+  /// Achievements found this game, waiting to be shown (the screen takes
+  /// them).
+  final List<Achievement> found = [];
+
+  bool get _offline => _bots.any((b) => b != null);
+
+  /// Your fewest big blinds this game.
+  double _lowBlinds = double.infinity;
+  var _comebackNoted = false;
+
+  /// Everyone's chances when the cards first came up all in.
+  Map<int, double> _allInOdds = const {};
+
+  void _found(Achievement a) {
+    if (!found.contains(a)) found.add(a);
+  }
+
+  /// You finished ahead of the rival (once your game is over).
+  bool get beatRival {
+    final me = yourPlace;
+    if (me == null || rival == null) return false;
+    if (me == 1) return true;
+    final theirs = game.players[1].place;
+    return theirs != null && theirs > me;
+  }
+
+  /// The table story and Hand of the game, once it's over (bot games).
+  List<String> get story => tableStory(
+    names: [for (final p in personas) p.name],
+    events: events,
+    winner: game.players.firstWhere((p) => p.place == 1, orElse: () => game.players[0]).seat,
+    hands: game.handsPlayed,
+    tilts: [for (final r in reads.players) r.tilts],
+  );
+
+  ({String? best, String? worst}) get handOfGame => handOfTheGame(decisions);
+
+  /// Notes your move before it's played.
+  YourDecision? _noteDecision(PokerHand h) {
+    final me = handPlayer(0);
+    if (!_offline || me == null || me.hole.length < 2) return null;
+    final opponents = h.players.where((p) => !p.folded).length - 1;
+    final aggressor = reads.aggressor;
+    return YourDecision(
+      hand: handNumber,
+      street: h.street,
+      action: ActionLabel.check,
+      hole: [...me.hole],
+      board: [...h.board],
+      equity: equityVsRandom(
+        me.hole,
+        h.board,
+        opponents: opponents,
+        rng: Random(handNumber * 97 + decisions.length),
+        simulations: 250,
+      ),
+      toCall: h.legalMoves().callAmount,
+      pot: h.pot,
+      bigBlind: h.bigBlind,
+      against: aggressor != null && aggressor != 0 && h.currentBet > 0 ? personas[aggressor].name : null,
+    );
+  }
+
+  /// A hand's over: how your decisions turned out, the big moments, and
+  /// any achievements.
+  void _noteHand(PokerHand h, HandResult r) {
+    if (!_offline) return;
+    final total = r.pots.fold(0, (s, p) => s + p.amount);
+    final main = r.pots.first;
+    final winners = [for (final w in main.winners) game.handSeats[w]];
+    final me = handIndex(0);
+    if (me != null) {
+      final p = h.players[me];
+      for (final d in decisions.where((d) => d.hand == handNumber)) {
+        d.net = (r.winnings[me] ?? 0) - p.committed;
+        d.showdown = r.shown.containsKey(me);
+        if (d.action == ActionLabel.fold && h.board.length == 5 && r.showdown && main.hand != null) {
+          d.wouldHaveWon = evaluateHand([...d.hole, ...h.board]).score >= main.hand!.score;
+        }
+      }
+    }
+    if (winners.length == 1 && total >= h.bigBlind * 10) {
+      events.add(BigPot(winners.single, total, r.showdown ? main.hand?.describe() : null, handNumber));
+    }
+    if (winners.length == 1 && _allInOdds.length >= 2) {
+      final w = winners.single, chance = _allInOdds[w];
+      if (chance != null && chance < 0.3) {
+        final loser =
+            (_allInOdds.entries.where((e) => e.key != w).toList()..sort((a, b) => b.value.compareTo(a.value)))
+                .first
+                .key;
+        events.add(BadBeat(w, loser, chance));
+      }
+    }
+    final youWon = me != null && (r.winnings[me] ?? 0) > 0;
+    if (!youWon) return;
+    final hole = h.players[me].hole;
+    final weak = _weak(hole, h.board);
+    if ({for (final c in hole) c.rank}.containsAll(const {7, 2})) _found(Achievement.sevenDeuce);
+    if ((_allInOdds[0] ?? 1) < 0.25) _found(Achievement.underdog);
+    if (r.showdown && main.winners.contains(me)) {
+      final v = r.shown[me];
+      if (v?.category == HandCategory.quads) _found(Achievement.quads);
+      if (v?.category == HandCategory.straightFlush && v!.ranks.first == 14) _found(Achievement.royal);
+    }
+    if (!r.showdown && weak) {
+      if (total > h.bigBlind * 4) events.add(Bluff(0, total));
+      final rockFolded = [
+        for (final (k, p) in h.players.indexed)
+          if (p.folded && _styles[game.handSeats[k]] == BotStyle.rock) k,
+      ];
+      if (rockFolded.isNotEmpty) _found(Achievement.bluffRock);
+    }
+  }
+
+  /// Very little: nothing made on the board, or a weak pair of cards
+  /// before it.
+  static bool _weak(List<PlayingCard> hole, List<PlayingCard> board) {
+    if (hole.length < 2) return false;
+    return board.length >= 3
+        ? evaluateHand([...hole, ...board]).category == HandCategory.highCard
+        : hole[0].rank != hole[1].rank && max(hole[0].rank, hole[1].rank) < 12;
+  }
+
+  /// After a hand: who went out and to whom, bounty, rival lines, your
+  /// lowest point and comeback; at the end, the game's achievements.
+  void _noteBusts(PokerHand h) {
+    if (!_offline) return;
+    final r = h.result;
+    final main = r?.pots.first;
+    final by = main != null && main.winners.length == 1 ? game.handSeats[main.winners.single] : null;
+    for (final seat in justBusted) {
+      events.add(KnockOut(seat, by, handNumber));
+      if (seat == bountySeat) {
+        bountyBy = by;
+        if (by == 0) _found(Achievement.bounty);
+      }
+      if (rival case final rv? when seat == 1 && by == 0) {
+        _sayLine(1, rv.lostToYou[_rng.nextInt(rv.lostToYou.length)]);
+      }
+      if (rival case final rv? when seat == 0 && by == 1) {
+        _sayLine(1, rv.beatYou[_rng.nextInt(rv.beatYou.length)]);
+      }
+    }
+    final blinds = game.players[0].stack / game.blinds.$2;
+    if (game.players[0].stack > 0) {
+      if (blinds < _lowBlinds) _lowBlinds = blinds;
+      if (!_comebackNoted && _lowBlinds <= 3 && blinds >= 15) {
+        _comebackNoted = true;
+        events.add(Comeback(_lowBlinds));
+      }
+    }
+    final place = game.players[0].place ?? (game.isOver ? 1 : null);
+    if (place == 1 && (game.isOver || game.players.where((p) => p.place == null).length == 1)) {
+      _found(Achievement.firstWin);
+      if (personas.length == 6) _found(Achievement.fullTable);
+      if (difficulty == Difficulty.hard) _found(Achievement.hardWin);
+      if (_lowBlinds <= 2) _found(Achievement.comeback);
+    }
+  }
+
+  /// A bot says [text] (its own words, not from the table talk).
+  void _sayLine(int seat, String text) {
+    if (_bots[seat] == null) return;
+    talk[seat] = (text: text, id: ++_talkId);
+    _talkTimers[seat]?.cancel();
+    _talkTimers[seat] = Timer(Duration(milliseconds: (4500 * pace).round()), () {
+      if (_disposed) return;
+      talk.remove(seat);
+      _notify();
+    });
+    _notify();
   }
 
   final Difficulty difficulty;
@@ -213,7 +432,10 @@ class PokerController extends ChangeNotifier {
   /// Your place when your tournament is over.
   int? get yourPlace => game.players[0].place;
 
-  void start() => _newHand();
+  void start() {
+    if (rival case final r?) _sayLine(1, r.hello(rivalRecord.theirs, rivalRecord.yours));
+    _newHand();
+  }
 
   void _after(int ms, VoidCallback f) {
     _timer?.cancel();
@@ -335,6 +557,7 @@ class PokerController extends ChangeNotifier {
       simulations: 600,
     );
     odds = {for (final (k, i) in inHand.indexed) game.handSeats[i]: chances[k]};
+    if (_allInOdds.isEmpty) _allInOdds = odds;
   }
 
   /// The skip button: bots play quickly until it's your move again (or the
@@ -395,6 +618,7 @@ class PokerController extends ChangeNotifier {
     _parked = null;
     hurrying = false;
     odds = const {};
+    _allInOdds = const {};
     bigWin = null;
     bigWinSeat = null;
     final h = game.startHand(deck: _nextDeck());
@@ -474,7 +698,25 @@ class PokerController extends ChangeNotifier {
   /// Your move. Only while [yourTurn].
   void act(Move move) {
     if (!yourTurn) return;
-    _play(hand!, move);
+    final h = hand!;
+    final d = _noteDecision(h);
+    _play(h, move);
+    if (d != null) {
+      decisions.add(
+        YourDecision(
+          hand: d.hand,
+          street: d.street,
+          action: handPlayer(0)?.lastAction?.label ?? ActionLabel.check,
+          hole: d.hole,
+          board: d.board,
+          equity: d.equity,
+          toCall: d.toCall,
+          pot: d.pot,
+          bigBlind: d.bigBlind,
+          against: d.against,
+        ),
+      );
+    }
     _afterMove();
   }
 
@@ -487,6 +729,7 @@ class PokerController extends ChangeNotifier {
     }
     phase = TablePhase.payout;
     reads.endHand(h, game.handSeats, number: handNumber, mucked: mucked);
+    _noteHand(h, r);
     final me = handIndex(0);
     canShowCards = me != null && (h.muckable.contains(me) || h.showable == me);
     _celebrate(h, r);
@@ -627,10 +870,12 @@ class PokerController extends ChangeNotifier {
   void _handEnded() {}
 
   void _endHand() {
+    final h = hand!;
     justBusted = game.finishHand();
     for (final seat in justBusted) {
       _say(seat, Talk.bust, chance: 0.8);
     }
+    _noteBusts(h);
     _handEnded();
     if (game.isOver || game.players[0].stack == 0) {
       // The tournament: the big win, or the big loss.

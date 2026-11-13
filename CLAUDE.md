@@ -340,7 +340,14 @@ weights cut from the variable font.
   `GameSummary` with `pickQuotes`). Showdown results wait for Next hand
   (`waitingForYou` / `nextHand()`; Show / Muck: `canShowCards`,
   `showCards()` / `muckCards()`); `resultTimeout` (online: 10 s) moves
-  on by itself with a countdown.
+  on by itself with a countdown. Bot games only: `rivals.dart` (`Rival`:
+  recurring named bots in seat 1, a level harder, records in
+  `Account.rivalRecord`), `bountySeat` / `bountyBy` (screen pays half the
+  stake via `Account.bonus`), `found` achievements
+  (`core/account/achievements.dart`, `Account.earn`, toast in the screen,
+  list in the profile), `decisions` / `events` → `story` and `handOfGame`
+  (`duel_engine/poker/story.dart`, `equityVsRandom` in `odds.dart`), shown
+  in `GameSummary`.
 - `lib/games/crazy_eights/`: `engine/crazy_eights.dart` (rules + an event
   list the commentary and animations read), `engine/eights_bot.dart`;
   `ui/eights_controller.dart` (pacing, `commentary()`), `ui/eights_screen.dart`

@@ -704,11 +704,23 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
 }
 
 class _NamePlate extends StatelessWidget {
-  const _NamePlate({required this.name, required this.stack, this.note});
+  const _NamePlate({
+    required this.name,
+    required this.stack,
+    this.note,
+    this.bounty = false,
+    this.rival = false,
+  });
 
   final String name;
   final int stack;
   final String? note;
+
+  /// The bot with a price on its head (bot games).
+  final bool bounty;
+
+  /// Your rival (bot games).
+  final bool rival;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -717,7 +729,22 @@ class _NamePlate extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(name, style: Toon.text(12), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (rival)
+              const Icon(
+                Icons.local_fire_department_rounded,
+                key: Key('rival'),
+                size: 13,
+                color: Toon.orange,
+              ),
+            if (bounty) const Icon(Icons.gps_fixed_rounded, key: Key('bounty'), size: 13, color: Toon.red),
+            Flexible(
+              child: Text(name, style: Toon.text(12), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
         // Stacks count up (and down) as chips arrive and go.
         TweenAnimationBuilder<double>(
           tween: Tween(end: stack.toDouble()),
@@ -846,6 +873,8 @@ class _BotSeat extends StatelessWidget {
                 name: persona.name,
                 stack: p?.stack ?? table.stack,
                 note: out ? 'Out · ${_ordinal(table.place ?? 0)}' : null,
+                bounty: c.bountySeat == seat && !out,
+                rival: c.rival != null && seat == 1,
               ),
             ),
             if (c.actingSeat == seat)
