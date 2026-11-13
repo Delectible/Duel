@@ -273,7 +273,9 @@ extension CashTables on Referee {
 
   static Move _checkMove(PokerHand h, Doc move) {
     final legal = h.legalMoves();
-    final kind = MoveKind.values.asNameMap()[move['kind']];
+    var kind = MoveKind.values.asNameMap()[move['kind']];
+    // A call with nothing to call is a check.
+    if (kind == MoveKind.call && legal.canCheck) kind = MoveKind.check;
     final amount = min(move['amount'] is int ? move['amount']! as int : 0, legal.maxRaiseTo);
     final ok = switch (kind) {
       MoveKind.fold => true,
