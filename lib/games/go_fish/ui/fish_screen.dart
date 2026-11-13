@@ -642,8 +642,7 @@ class _Hand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hand = [...c.game.hands[0]]
-      ..sort((a, b) => a.rank != b.rank ? a.rank.compareTo(b.rank) : a.suit.index.compareTo(b.suit.index));
+    final hand = sortByRank(c.game.hands[0]);
     final canPick = c.yourTurn && !c.game.mustFish;
     return LayoutBuilder(
       builder: (context, box) {

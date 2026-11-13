@@ -300,6 +300,10 @@ weights cut from the variable font.
   (`cardFace`).
 - `lib/core/cards/` (+ `duel_engine/cards.dart`): `PlayingCard` / `Deck` and `CardView` (suits are drawn
   paths; Fredoka has no suit glyphs; under 44 px wide, one suit only). Shared by every card game.
+  **Hands always show suits alternating colour** (spades first, then red /
+  black taking turns where the cards allow; never black, red, red, black):
+  sort your hand with `sortBySuit` / `sortByRank` (`suitOrder`) from
+  `duel_engine/cards.dart`, in every game, new ones too.
 - `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player
   range, tile art (`tile_art.dart`: a small painted scene per game, about
   84 x 64, scaled to the tile), sample `board` (`previews.dart`), `rules`, `minutes`

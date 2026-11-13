@@ -12,6 +12,7 @@ import 'core/online/firebase_config.dart';
 import 'core/online/online.dart';
 import 'core/online/party.dart';
 import 'core/session/play_setup.dart';
+import 'core/startup/launch_curtain.dart';
 import 'core/theme/rotation_fade.dart';
 import 'core/theme/toon.dart';
 import 'features/home/home_screen.dart';
@@ -24,12 +25,13 @@ Future<void> main() async {
   final setup = PlaySetup();
   // The app shows straight away; online joins in when Firebase has started
   // (never waited for: a slow or stuck start mustn't hold up the app).
-  runApp(DuelApp(account: account, setup: setup));
+  runApp(DuelApp(account: account, setup: setup, curtain: true));
   // Markers in the phone's log (adb logcat) for checking a launch.
   WidgetsBinding.instance.addPostFrameCallback((_) => debugPrint('Duel: first frame'));
-  unawaited(_goOnline(account, setup));
+  // The launch curtain stays up while these settle (at most a few seconds).
+  Startup.track(_goOnline(account, setup));
   // Never waited for either: no audio just means no sounds.
-  unawaited(Sound.start());
+  Startup.track(Sound.start());
 }
 
 /// The phone's saved account; if that can't be read the app still opens
@@ -50,7 +52,7 @@ Future<void> _goOnline(Account account, PlaySetup setup) async {
 }
 
 class DuelApp extends StatefulWidget {
-  DuelApp({super.key, PlaySetup? setup, Account? account, PartyService? party})
+  DuelApp({super.key, PlaySetup? setup, Account? account, PartyService? party, this.curtain = false})
     : setup = setup ?? PlaySetup(party: party),
       account = account ?? Account();
 
@@ -62,6 +64,9 @@ class DuelApp extends StatefulWidget {
 
   /// You: profile, wallet, stats, settings.
   final Account account;
+
+  /// The launch curtain over the first moments (the real app; not tests).
+  final bool curtain;
 
   @override
   State<DuelApp> createState() => _DuelAppState();
@@ -148,9 +153,12 @@ class _DuelAppState extends State<DuelApp> with WidgetsBindingObserver {
               theme: Toon.theme(),
               showPerformanceOverlay: Perf.instance.graphs,
               checkerboardOffscreenLayers: Perf.instance.layers,
-              builder: (context, child) => PerfOverlay(
-                child: SystemBars(child: RotationFade(child: child!)),
-              ),
+              builder: (context, child) {
+                final app = PerfOverlay(
+                  child: SystemBars(child: RotationFade(child: child!)),
+                );
+                return widget.curtain ? LaunchCurtain(child: app) : app;
+              },
               home: const HomeScreen(),
             ),
           ),

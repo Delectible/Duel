@@ -112,3 +112,47 @@ String rankWord(int rank) => switch (rank) {
 
 /// "7 of hearts", "Queen of spades".
 String cardName(PlayingCard c) => '${rankWord(c.rank)} of ${suitName(c.suit)}';
+
+/// Every game shows a hand this way: the suits in it, spades first, then
+/// alternating red and black wherever the cards allow it, so neighbouring
+/// suits are easy to tell apart (never black, red, red, black).
+List<Suit> suitOrder(Set<Suit> suits) {
+  const black = [Suit.spades, Suit.clubs], red = [Suit.hearts, Suit.diamonds];
+  final left = {...suits};
+  final out = <Suit>[];
+  final blacks = black.where(left.contains).length, reds = red.where(left.contains).length;
+  var redNext = !left.contains(Suit.spades) && reds > blacks;
+  while (left.isNotEmpty) {
+    final pick =
+        (redNext ? red : black).where(left.contains).firstOrNull ??
+        (redNext ? black : red).firstWhere(left.contains);
+    out.add(pick);
+    left.remove(pick);
+    redNext = !pick.isRed;
+  }
+  return out;
+}
+
+/// A hand grouped by suit ([suitOrder]), low to high within a suit.
+List<PlayingCard> sortBySuit(Iterable<PlayingCard> cards) {
+  final order = suitOrder({for (final c in cards) c.suit});
+  return [...cards]..sort(
+    (a, b) =>
+        a.suit != b.suit ? order.indexOf(a.suit).compareTo(order.indexOf(b.suit)) : a.rank.compareTo(b.rank),
+  );
+}
+
+/// A hand by rank, low to high; cards of one rank in [suitOrder] (of
+/// that rank's suits), so their colours take turns too.
+List<PlayingCard> sortByRank(Iterable<PlayingCard> cards) {
+  final orders = <int, List<Suit>>{};
+  List<Suit> order(int rank) => orders[rank] ??= suitOrder({
+    for (final c in cards)
+      if (c.rank == rank) c.suit,
+  });
+  return [...cards]..sort(
+    (a, b) => a.rank != b.rank
+        ? a.rank.compareTo(b.rank)
+        : order(a.rank).indexOf(a.suit).compareTo(order(a.rank).indexOf(b.suit)),
+  );
+}

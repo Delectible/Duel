@@ -100,15 +100,8 @@ class BlitzController extends ChangeNotifier {
 
   List<BlitzMove> get _yours => yourTurn ? game.moves(0) : const [];
 
-  /// Your hand: reds then blacks, low to high (easy to count a colour).
-  List<PlayingCard> get hand {
-    final h = [...game.hands[0]];
-    h.sort((a, b) {
-      if (a.suit.isRed != b.suit.isRed) return a.suit.isRed ? -1 : 1;
-      return a.rank != b.rank ? a.rank.compareTo(b.rank) : a.suit.index.compareTo(b.suit.index);
-    });
-    return h;
-  }
+  /// Your hand by suit, the colours taking turns (as in every game).
+  List<PlayingCard> get hand => sortBySuit(game.hands[0]);
 
   /// What the picked-up card can do to castle card ([player], [index]).
   BlitzMove? moveAt(int player, int index) {

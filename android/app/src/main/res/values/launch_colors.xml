@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Duel's yellow: the launch screen, and the splash the app's own
+         curtain takes over from (lib/core/startup/launch_curtain.dart). -->
+    <color name="launch_background">#FFC745</color>
+</resources>

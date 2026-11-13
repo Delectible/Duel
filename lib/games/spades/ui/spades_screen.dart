@@ -664,26 +664,6 @@ class _Label extends StatelessWidget {
   );
 }
 
-/// The suits in your hand, spades first, then alternating red and black
-/// wherever the cards allow it, so neighbouring suits are easy to tell
-/// apart.
-List<Suit> suitOrder(Set<Suit> suits) {
-  const black = [Suit.spades, Suit.clubs], red = [Suit.hearts, Suit.diamonds];
-  final left = {...suits};
-  final out = <Suit>[];
-  final blacks = black.where(left.contains).length, reds = red.where(left.contains).length;
-  var redNext = !left.contains(Suit.spades) && reds > blacks;
-  while (left.isNotEmpty) {
-    final pick =
-        (redNext ? red : black).where(left.contains).firstOrNull ??
-        (redNext ? black : red).firstWhere(left.contains);
-    out.add(pick);
-    left.remove(pick);
-    redNext = !pick.isRed;
-  }
-  return out;
-}
-
 /// Your cards, sorted by suit ([suitOrder]) and rank. On your turn the
 /// cards you may play lift up.
 class _Hand extends StatelessWidget {
@@ -694,13 +674,7 @@ class _Hand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final order = suitOrder({for (final card in c.game.hands[0]) card.suit});
-    final hand = [...c.game.hands[0]]
-      ..sort(
-        (a, b) => a.suit != b.suit
-            ? order.indexOf(a.suit).compareTo(order.indexOf(b.suit))
-            : a.rank.compareTo(b.rank),
-      );
+    final hand = sortBySuit(c.game.hands[0]);
     final playable = c.yourPlayable.toSet();
     final dealing = c.stage == SpadesStage.dealing;
     return LayoutBuilder(
