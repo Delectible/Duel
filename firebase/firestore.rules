@@ -26,6 +26,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // The shared cash tables: anyone signed in can watch; your own cards
+    // only you.
+    match /cash/{stake} {
+      allow read: if signedIn();
+      allow write: if false;
+      match /hands/{uid} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
     // A party: only its members can see it.
     match /parties/{partyId} {
       allow read: if signedIn() && request.auth.uid in resource.data.members;

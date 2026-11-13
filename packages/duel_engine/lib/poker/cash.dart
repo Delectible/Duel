@@ -48,6 +48,7 @@ class CashSeat {
     this.waiting = false,
     this.leaving = false,
     this.timeouts = 0,
+    this.topUp = 0,
   });
 
   final String id;
@@ -70,6 +71,9 @@ class CashSeat {
   /// Turns in a row that ran out (two and you're stood up).
   int timeouts;
 
+  /// Chips added mid-hand, joining the stack after it.
+  int topUp;
+
   bool get bot => id.startsWith('bot:');
 
   BotStyle get botStyle => BotStyle.values.asNameMap()[style] ?? BotStyle.shark;
@@ -84,6 +88,7 @@ class CashSeat {
     if (waiting) 'waiting': true,
     if (leaving) 'leaving': true,
     if (timeouts > 0) 'timeouts': timeouts,
+    if (topUp > 0) 'topUp': topUp,
   };
 
   static CashSeat fromJson(Map<Object?, Object?> j) => CashSeat(
@@ -96,6 +101,7 @@ class CashSeat {
     waiting: j['waiting'] == true,
     leaving: j['leaving'] == true,
     timeouts: j['timeouts'] as int? ?? 0,
+    topUp: j['topUp'] as int? ?? 0,
   );
 }
 

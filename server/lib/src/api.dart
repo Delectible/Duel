@@ -20,6 +20,12 @@ import 'store.dart';
 /// - POST /v1/matches/<id>/forfeit                           -> match
 /// - POST /v1/matches/<id>/rematch                           -> match
 /// - POST /v1/wallet                 {carry, id, delta}      -> wallet
+/// - POST /v1/cash                                           -> {tables, mine}
+/// - POST /v1/cash/<stake>/sit       {buyIn, name, avatar}   -> table
+/// - POST /v1/cash/<stake>/move      {version, move}         -> table
+/// - POST /v1/cash/<stake>/tick                              -> table
+/// - POST /v1/cash/<stake>/leave                             -> table
+/// - POST /v1/cash/<stake>/topup     {pips}                  -> table
 ///
 /// Errors: {error: "…"} with 400 (bad move), 401 (sign in), 403, 404, 409.
 Handler api(Referee referee, TokenVerifier verifier) {
@@ -109,6 +115,34 @@ Handler api(Referee referee, TokenVerifier verifier) {
     ..post('/v1/matches/<id>/rematch', (Request q, String id) => call(q, (p, _) => referee.rematch(p, id)))
     ..post('/v1/matches/<id>/rejoin', (Request q, String id) => call(q, (p, _) => referee.rejoin(p, id)))
     ..post('/v1/matches/<id>/end', (Request q, String id) => call(q, (p, _) => referee.endMatch(p, id)))
+    ..post('/v1/cash', (Request q) => call(q, (p, _) => referee.cashLobby(p)))
+    ..post(
+      '/v1/cash/<stake>/sit',
+      (Request q, String stake) =>
+          call(q, (p, b) => referee.cashSit(p, stake, b['buyIn'] is int ? b['buyIn']! as int : 0)),
+    )
+    ..post(
+      '/v1/cash/<stake>/move',
+      (Request q, String stake) => call(q, (p, b) {
+        final version = b['version'];
+        final move = b['move'];
+        if (version is! int || move is! Map) throw const RefereeError(400, 'Send {version, move}');
+        return referee.cashMove(p, stake, version, move.cast<String, Object?>());
+      }),
+    )
+    ..post(
+      '/v1/cash/<stake>/tick',
+      (Request q, String stake) => call(q, (p, _) => referee.cashTick(p, stake)),
+    )
+    ..post(
+      '/v1/cash/<stake>/leave',
+      (Request q, String stake) => call(q, (p, _) => referee.cashLeave(p, stake)),
+    )
+    ..post(
+      '/v1/cash/<stake>/topup',
+      (Request q, String stake) =>
+          call(q, (p, b) => referee.cashTopUp(p, stake, b['pips'] is int ? b['pips']! as int : 0)),
+    )
     ..post(
       '/v1/wallet',
       (Request q) => call(
