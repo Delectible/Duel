@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
+import '../../../core/avatars/characters.dart';
+import '../../../core/avatars/faces.dart';
 import '../../../core/theme/toon.dart';
 
 /// The Poker Lounge's own look: the back room of Duel. Deep navy and felt
@@ -299,6 +301,10 @@ class LoungeModeScreen extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
+                              if (CharacterFaces.byName[row.name] case final face?) ...[
+                                Face(Persona(name: row.name, look: Look.cap, avatar: face), size: 40),
+                                const SizedBox(width: 10),
+                              ],
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,

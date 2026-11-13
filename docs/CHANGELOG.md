@@ -672,6 +672,21 @@ Ships as app version **0.4.1**.
   explanations and the referee's messages (now currency-neutral).
   → 0.11.0 · 2026-11-13
 
+### 35. Faces, money, a smoother lobby (requested 2026-11-13)
+
+- [x] **35.1 Debug menu: set money** to any amount (or 0 / 1k / 10k /
+  100k / 1M); it goes to the server like a bot game's result, so it
+  sticks online. → 0.11.1 · 2026-11-13
+- [x] **35.2 Faces for the characters** (`CharacterFaces`): Vinnie (top
+  hat, mustache), Roxy (pink, mohawk), The Professor (monocle, tuft);
+  bosses Lucky Lou (cowboy, wink), Granny Gold (bun, glasses), Captain
+  Chaos (pirate, eyepatch), The Mime (pale, beanie, tear), Madame Nine
+  (wizard hat, earrings); shown at the table, on the rivals' board and
+  the Boss Tables screen. → 0.11.1 · 2026-11-13
+- [x] **35.3 Cash lobby waits for the shared tables** ("Finding the
+  tables…", up to 4 s) instead of flashing the local ones first.
+  → 0.11.1 · 2026-11-13
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

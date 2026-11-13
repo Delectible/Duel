@@ -50,6 +50,10 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
   /// The tables shown: the shared ones when the server answers, else this
   /// phone's (marked Local). Never waits on the network to show something.
   late List<CashTableState> _tables = LocalCashTables.at(_now());
+
+  /// Opening: waiting a moment for the shared tables before showing any
+  /// (so this phone's don't flash up first).
+  var _finding = false;
   var _online = false;
 
   /// You're seated at this shared table (the app was closed at it).
@@ -64,19 +68,25 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
   void initState() {
     super.initState();
     final party = PlaySetupScope.read(context)?.party;
-    if (party != null) _service = CashService(party);
-    unawaited(_load());
+    if (party != null) {
+      _service = CashService(party);
+      _finding = true;
+    }
+    unawaited(_load(first: true));
     // The tables move on while you watch; offline, it keeps trying.
     _refresh = Timer.periodic(const Duration(seconds: 15), (_) => unawaited(_load()));
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool first = false}) async {
     final service = _service;
     if (service != null) {
       try {
-        final r = await service.lobby();
+        // The first look waits a little longer (it may be signing in); after
+        // that the local tables show and it keeps trying in the background.
+        final r = await service.lobby(limit: Duration(seconds: first ? 4 : 5));
         if (!mounted) return;
         setState(() {
+          _finding = false;
           _online = true;
           _mine = r.mine;
           _docs = {for (final d in r.tables) '${d['stake']}': d};
@@ -89,6 +99,7 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
     }
     if (!mounted) return;
     setState(() {
+      _finding = false;
       _online = false;
       _mine = null;
       _tables = LocalCashTables.at(_now());
@@ -184,7 +195,7 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              CashWhere(online: _online),
+                              if (!_finding) CashWhere(online: _online),
                             ],
                           ),
                         ],
@@ -228,7 +239,26 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                for (final t in _tables)
+                if (_finding)
+                  const Padding(
+                    key: Key('finding tables'),
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 3, color: Lounge.gold),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Finding the tables…',
+                          style: TextStyle(fontFamily: 'Fredoka', color: Lounge.dim, fontSize: 15),
+                        ),
+                      ],
+                    ),
+                  ),
+                for (final t in _finding ? const <CashTableState>[] : _tables)
                   _TableCard(
                     table: t,
                     balance: account.balance,

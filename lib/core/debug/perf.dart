@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../account/account.dart';
 import '../theme/toon.dart';
 
 /// The hidden debug menu's switches (long-press About in Settings). Kept
@@ -280,6 +281,10 @@ class _DebugSheetState extends State<_DebugSheet> {
           Text(_screen, key: const Key('debug screen'), style: Toon.text(15)),
           const SizedBox(height: 16),
           const _SmoothnessTest(),
+          const SizedBox(height: 18),
+          Text('Money', style: Toon.text(18, weight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          const _SetMoney(),
         ],
       ),
     );
@@ -374,4 +379,87 @@ class _SmoothnessTestState extends State<_SmoothnessTest> with SingleTickerProvi
       ),
     ],
   );
+}
+
+/// Sets your balance to any amount (testing stakes and cash tables).
+class _SetMoney extends StatefulWidget {
+  const _SetMoney();
+
+  @override
+  State<_SetMoney> createState() => _SetMoneyState();
+}
+
+class _SetMoneyState extends State<_SetMoney> {
+  final _field = TextEditingController();
+
+  @override
+  void dispose() {
+    _field.dispose();
+    super.dispose();
+  }
+
+  void _set(int amount) {
+    final account = AccountScope.maybeRead(context);
+    if (account == null) return;
+    setState(() => account.setBalance(amount));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final account = AccountScope.maybeRead(context);
+    if (account == null) return const SizedBox.shrink();
+    Widget quick(String label, int amount) => ToonButton(
+      key: Key('debug money $amount'),
+      color: Toon.card,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      onPressed: () => _set(amount),
+      child: Text(label, style: Toon.text(14)),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Now: ${account.money(account.balance)}', key: const Key('debug balance'), style: Toon.text(15)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                key: const Key('debug money field'),
+                controller: _field,
+                keyboardType: const TextInputType.numberWithOptions(signed: true),
+                decoration: const InputDecoration(hintText: 'Any amount', isDense: true),
+                onSubmitted: (v) {
+                  final n = int.tryParse(v.replaceAll(',', '').trim());
+                  if (n != null) _set(n);
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            ToonButton(
+              key: const Key('debug money set'),
+              color: Toon.yellow,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              onPressed: () {
+                final n = int.tryParse(_field.text.replaceAll(',', '').trim());
+                if (n != null) _set(n);
+              },
+              child: const Text('Set'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            quick('0', 0),
+            quick('1,000', 1000),
+            quick('10,000', 10000),
+            quick('100,000', 100000),
+            quick('1,000,000', 1000000),
+          ],
+        ),
+      ],
+    );
+  }
 }

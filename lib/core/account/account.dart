@@ -292,6 +292,10 @@ class Account extends ChangeNotifier {
     return net;
   }
 
+  /// Debug menu: your balance becomes [amount] (sent to the server like a
+  /// bot game's result, so it sticks online too).
+  void setBalance(int amount) => _change(() => _unsynced += amount - balance);
+
   /// Extra pips won in a game (a bounty), on top of the stake's result.
   void bonus(String gameId, int pips) {
     if (pips <= 0) return;

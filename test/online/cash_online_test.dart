@@ -77,6 +77,9 @@ void main() {
           ),
         ),
       );
+      // Opening: a moment finding the shared tables, never this phone's first.
+      expect(find.byKey(const Key('finding tables')), findsOneWidget);
+      expect(find.byKey(const Key('local tables')), findsNothing);
       await wait(800);
       expect(find.byKey(const Key('online tables')), findsOneWidget);
       expect(find.textContaining('1 person here: Sam'), findsOneWidget);

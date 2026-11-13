@@ -13,9 +13,10 @@ void main() {
     testWidgets('$phone: long-press About opens the debug menu; the frame rate shows', (tester) async {
       usePhone(tester, size);
       addTearDown(() => Perf.instance.fps = false);
+      final account = Account();
       await tester.pumpWidget(
         AccountScope(
-          account: Account(),
+          account: account,
           child: PlaySetupScope(
             setup: PlaySetup(),
             child: MaterialApp(
@@ -56,6 +57,22 @@ void main() {
       await tester.tap(find.byKey(const Key('debug fps')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('fps badge')), findsNothing);
+
+      // Any amount of money.
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('debug money 100000')),
+        200,
+        scrollable: find
+            .descendant(of: find.byKey(const Key('debug sheet')), matching: find.byType(Scrollable))
+            .first,
+      );
+      await tester.tap(find.byKey(const Key('debug money 100000')));
+      await tester.pump();
+      expect(account.balance, 100000);
+      await tester.enterText(find.byKey(const Key('debug money field')), '-250');
+      await tester.tap(find.byKey(const Key('debug money set')));
+      await tester.pump();
+      expect(account.balance, -250);
       expect(tester.takeException(), isNull);
     });
   }

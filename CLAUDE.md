@@ -328,7 +328,8 @@ weights cut from the variable font.
   (local: `CashController`, chips via `Account.cashIn` / `cashChips` /
   `cashOut`, cashed out on next launch if the app closed; online:
   `OnlineCashController`, replays the referee's hands like the online
-  Sit & Go).
+  Sit & Go). Named characters' faces: `core/avatars/characters.dart`
+  (`CharacterFaces.byName`: rivals and bosses).
 - **Poker Lounge** (`lib/games/poker/lounge/`): home's first tile opens
   `LoungeScreen` (its own evening colours, `Lounge`; connection bar; the
   modes in `LoungeMode`: Sit & Go = the `holdem` game's preview, the rest

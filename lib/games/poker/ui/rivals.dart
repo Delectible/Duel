@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:duel_engine/poker/bot.dart';
 
+import '../../../core/avatars/characters.dart';
 import '../../../core/avatars/faces.dart';
 
 /// A bot who keeps coming back: same name, face and way of playing every
@@ -30,7 +31,8 @@ class Rival {
   /// When you knock it out.
   final List<String> lostToYou;
 
-  Persona get persona => Persona.bot(name, look);
+  Persona get persona =>
+      Persona(name: name, look: look, avatar: CharacterFaces.byName[name] ?? Avatar.forName(name));
 
   static String _score(int theirs, int yours) => theirs == yours
       ? "we're all square at $theirs–$yours"
