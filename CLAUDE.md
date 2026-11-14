@@ -43,6 +43,12 @@ together, GamePigeon-easy. Let it guide design and development choices.
   to the batch's changes in plain words (it's Play's "What's new"), and when a main idea lands add a
   few-word bullet to the newest `AppInfo.revisions` entry (About shows
   them as bullets; keep them short).
+- **Open threads** (see `docs/CHANGELOG.md` for detail): Tournament and
+  Boss Tables are explanation screens only (31.6 / 32.4: build once
+  agreed); cash stakes / unlocks / boss quirks are first guesses Luca may
+  change; Play's Data safety form still needs the online pips balance
+  (App activity > Other actions) and User IDs as required; the release
+  checklist artifact is https://claude.ai/artifact/7PNefZJjcrAfAidT5CV1c1.
 - **Release roadmap:** `docs/RELEASE.md` is the checklist to the public
   Play / App Store release, including the one-time Play Console setup;
   tick items as they land.
@@ -322,7 +328,8 @@ weights cut from the variable font.
   `cash/{stake}` docs never expire, `cashSecrets/{stake}` seed,
   `cash/{stake}/hands/{uid}`; lobby / sit / move / tick / leave / topup;
   real hands while a person sits, `_cashStep` / `_cashCatchUp` stand up
-  people who've gone). App: `CashService` (`core/online/cash_service.dart`),
+  people who've gone; `sit` takes the open `seat` the player picked in
+  the lobby's `chooseSeat`, a full table bumps a random bot). App: `CashService` (`core/online/cash_service.dart`),
   `CashLobbyScreen` (tries the shared tables, quietly falls back to
   `LocalCashTables`, `CashWhere` Online / Local marker), `CashScreen`
   (local: `CashController`, chips via `Account.cashIn` / `cashChips` /
