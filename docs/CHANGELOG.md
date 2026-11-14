@@ -687,6 +687,13 @@ Ships as app version **0.4.1**.
   tables…", up to 4 s) instead of flashing the local ones first.
   → 0.11.1 · 2026-11-13
 
+### 36. Pick your seat (requested 2026-11-14)
+
+- [x] **36.1** Sitting at a cash table, you tap an open seat first (the
+  table from above); online the referee seats you there if it's still
+  open, else in another open seat. A full table: a bot gets up for you,
+  never one you pick. → 0.11.2 · 2026-11-14
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

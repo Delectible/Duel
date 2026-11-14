@@ -96,6 +96,8 @@ void main() {
       await shot(tester, 'cash_lobby_$phone');
       await tester.tap(find.byKey(const Key('table kitchen')));
       await tester.pumpAndSettle();
+      await shot(tester, 'cash_seat_$phone');
+      await pickSeat(tester);
       expect(find.byKey(const Key('buy in')), findsOneWidget);
       await tester.tap(find.byKey(const Key('buy in go')));
       await tester.pump();
@@ -143,5 +145,21 @@ void main() {
     expect(find.textContaining('pip'), findsNothing);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 20));
+  });
+
+  test('you sit in the open seat you picked; the table turns round so you are at the bottom', () {
+    final table = CashTableState.fresh(CashStake.kitchen, Random(8), 0);
+    final open = [
+      for (var i = 0; i < cashSeats; i++)
+        if (table.seats[i] == null) i,
+    ];
+    final pick = open.last;
+    final c = CashController.sit(table: table, buyIn: 800, you: const Persona.you(), pace: 0, seat: pick);
+    for (var l = 1; l < cashSeats; l++) {
+      final s = table.seats[(pick + l) % cashSeats];
+      expect(c.isOpen(l), s == null, reason: 'seat \$l');
+      if (s != null) expect(c.personas[l].name, s.name);
+    }
+    c.dispose();
   });
 }

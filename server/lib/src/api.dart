@@ -21,7 +21,7 @@ import 'store.dart';
 /// - POST /v1/matches/<id>/rematch                           -> match
 /// - POST /v1/wallet                 {carry, id, delta}      -> wallet
 /// - POST /v1/cash                                           -> {tables, mine}
-/// - POST /v1/cash/<stake>/sit       {buyIn, name, avatar}   -> table
+/// - POST /v1/cash/<stake>/sit       {buyIn, seat, name, avatar} -> table
 /// - POST /v1/cash/<stake>/move      {version, move}         -> table
 /// - POST /v1/cash/<stake>/tick                              -> table
 /// - POST /v1/cash/<stake>/leave                             -> table
@@ -118,8 +118,15 @@ Handler api(Referee referee, TokenVerifier verifier) {
     ..post('/v1/cash', (Request q) => call(q, (p, _) => referee.cashLobby(p)))
     ..post(
       '/v1/cash/<stake>/sit',
-      (Request q, String stake) =>
-          call(q, (p, b) => referee.cashSit(p, stake, b['buyIn'] is int ? b['buyIn']! as int : 0)),
+      (Request q, String stake) => call(
+        q,
+        (p, b) => referee.cashSit(
+          p,
+          stake,
+          b['buyIn'] is int ? b['buyIn']! as int : 0,
+          seat: b['seat'] is int ? b['seat']! as int : null,
+        ),
+      ),
     )
     ..post(
       '/v1/cash/<stake>/move',

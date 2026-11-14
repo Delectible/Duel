@@ -55,3 +55,13 @@ Future<void> openFromHome(
   await tester.tap(find.byKey(const Key('lounge sitgo')));
   await wait();
 }
+
+/// Cash tables: picks the first open seat, if the seat sheet is up.
+Future<void> pickSeat(WidgetTester tester, [Future<void> Function()? settle]) async {
+  final seats = find.byWidgetPredicate(
+    (w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('pick seat '),
+  );
+  if (seats.evaluate().isEmpty) return;
+  await tester.tap(seats.first);
+  await (settle ?? () => tester.pumpAndSettle())();
+}

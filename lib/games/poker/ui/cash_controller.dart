@@ -27,13 +27,17 @@ class CashController extends PokerController {
     double pace = 1,
     Random? rng,
     void Function(int chips)? onChips,
+    int? seat,
   }) {
     final r = rng ?? Random();
     final bots = [
       for (var i = 0; i < cashSeats; i++)
         if (table.seats[i]?.bot ?? false) i,
     ];
-    var mine = table.seats.indexOf(null);
+    // The open seat you picked, else any open one, else a bot gets up.
+    var mine = seat != null && seat >= 0 && seat < cashSeats && table.seats[seat] == null
+        ? seat
+        : table.seats.indexOf(null);
     if (mine < 0) mine = bots[r.nextInt(bots.length)];
     final stake = table.stake;
     final game = CashGame(stake: stake, rng: r, button: (table.button - mine) % cashSeats);

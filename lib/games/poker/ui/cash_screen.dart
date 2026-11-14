@@ -94,7 +94,7 @@ Future<int?> chooseBuyIn(
 /// A cash table on this phone. Your chips come from your balance and go
 /// back to it when you leave.
 class CashScreen extends StatefulWidget {
-  const CashScreen({super.key, required this.table, required this.buyIn, this.pace = 1, this.seed})
+  const CashScreen({super.key, required this.table, required this.buyIn, this.seat, this.pace = 1, this.seed})
     : service = null,
       doc = null;
 
@@ -102,10 +102,14 @@ class CashScreen extends StatefulWidget {
   CashScreen.online({super.key, required CashService this.service, required Doc this.doc, this.pace = 1})
     : table = CashTableState.fromJson(doc),
       buyIn = 0,
+      seat = null,
       seed = null;
 
   final CashTableState table;
   final int buyIn;
+
+  /// The open seat you picked (local tables).
+  final int? seat;
   final CashService? service;
   final Doc? doc;
   final double pace;
@@ -122,6 +126,7 @@ class _CashScreenState extends State<CashScreen> {
             ? CashController.sit(
                 table: widget.table,
                 buyIn: widget.buyIn,
+                seat: widget.seat,
                 you: _account.persona,
                 pace: widget.pace,
                 rng: widget.seed == null ? null : Random(widget.seed),

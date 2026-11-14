@@ -88,6 +88,7 @@ void main() {
       // Luca joins Sam.
       await tester.tap(find.byKey(const Key('table kitchen')));
       await wait();
+      await pickSeat(tester, () => wait());
       await tester.tap(find.byKey(const Key('buy in go')));
       await wait(1200);
       expect(find.byType(CashScreen), findsOneWidget);

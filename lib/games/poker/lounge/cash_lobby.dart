@@ -125,11 +125,17 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
     final account = AccountScope.read(context);
     // Back at your seat (the app was closed at this table).
     if (_online && _mine == table.stake.name) return _open(_docs[_mine]!);
+    // Pick an open seat (a full table: a bot gets up for you).
+    int? seat;
+    if (table.seats.contains(null)) {
+      seat = await chooseSeat(context, table);
+      if (seat == null || !mounted) return;
+    }
     final pips = await chooseBuyIn(context, stake: table.stake, balance: account.balance);
     if (pips == null || !mounted) return;
     if (_online) {
       try {
-        final doc = await _service!.sit(table.stake, pips);
+        final doc = await _service!.sit(table.stake, pips, seat: seat);
         if (mounted) await _open(doc);
         return;
       } on OnlineError catch (e) {
@@ -149,7 +155,7 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
     account.cashIn(pips);
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => CashScreen(table: table, buyIn: pips, pace: widget.pace),
+        builder: (_) => CashScreen(table: table, buyIn: pips, seat: seat, pace: widget.pace),
       ),
     );
     if (mounted) unawaited(_load());
@@ -447,3 +453,125 @@ class _TableCard extends StatelessWidget {
     );
   }
 }
+
+/// Where to sit: the table from above, the open seats to tap. Null if you
+/// change your mind.
+Future<int?> chooseSeat(BuildContext context, CashTableState table) => showModalBottomSheet<int>(
+  context: context,
+  showDragHandle: true,
+  isScrollControlled: true,
+  backgroundColor: Lounge.navy,
+  builder: (context) => SafeArea(
+    child: SingleChildScrollView(
+      key: const Key('pick seat'),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Pick a seat · ${table.stake.label}',
+            style: Toon.text(22, weight: FontWeight.w700, color: Lounge.gold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap an open seat.',
+            style: Toon.text(14, weight: FontWeight.w500, color: Lounge.dim),
+          ),
+          const SizedBox(height: 14),
+          // The table fits the screen either way up.
+          SizedBox(
+            height: min(MediaQuery.sizeOf(context).width / 1.5, MediaQuery.sizeOf(context).height * 0.5),
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final h = box.maxHeight, w = min(box.maxWidth, h * 1.6);
+                // Round the felt, clockwise from the bottom.
+                Offset spot(int i) {
+                  final a = pi / 2 + i * 2 * pi / cashSeats;
+                  return Offset(w / 2 + cos(a) * w * 0.40, h / 2 + sin(a) * h * 0.36);
+                }
+
+                return Center(
+                  child: SizedBox(
+                    width: w,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: w * 0.14,
+                          right: w * 0.14,
+                          top: h * 0.18,
+                          bottom: h * 0.18,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Lounge.felt,
+                              borderRadius: BorderRadius.circular(h),
+                              border: Border.all(color: const Color(0xFF8A5A2B), width: 8),
+                            ),
+                          ),
+                        ),
+                        for (var i = 0; i < cashSeats; i++)
+                          Positioned(
+                            left: spot(i).dx - 34,
+                            top: spot(i).dy - 30,
+                            width: 68,
+                            height: 60,
+                            child: table.seats[i] == null
+                                ? GestureDetector(
+                                    key: Key('pick seat $i'),
+                                    onTap: () => Navigator.pop(context, i),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: Lounge.gold,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Lounge.night, width: 2.5),
+                                          ),
+                                          child: const Icon(Icons.add_rounded, color: Lounge.night),
+                                        ),
+                                        Text(
+                                          'Sit here',
+                                          style: Toon.text(11, weight: FontWeight.w700, color: Lounge.lamp),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : Column(
+                                    children: [
+                                      Face(
+                                        table.seats[i]!.bot
+                                            ? Persona.bot(
+                                                table.seats[i]!.name,
+                                                Look.values.asNameMap()[table.seats[i]!.look] ?? Look.cap,
+                                              )
+                                            : Persona(
+                                                name: table.seats[i]!.name,
+                                                look: Look.headband,
+                                                avatar: table.seats[i]!.avatar == null
+                                                    ? Avatar.forName(table.seats[i]!.name)
+                                                    : Avatar.fromJson(table.seats[i]!.avatar!),
+                                              ),
+                                        size: 40,
+                                      ),
+                                      Text(
+                                        table.seats[i]!.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Toon.text(11, weight: FontWeight.w600, color: Lounge.cream),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+);

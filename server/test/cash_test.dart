@@ -126,4 +126,15 @@ void main() {
     expect(CashTableState.fromJson(t).people, isEmpty);
     expect(await balance('luca'), greaterThan(2000));
   });
+
+  test('you sit where you picked if it is open; a full table bumps a bot', () async {
+    final first = await ref.cashLobby(luca);
+    final kitchen = CashTableState.fromJson((first['tables']! as List).first as Map<Object?, Object?>);
+    final open = [
+      for (var i = 0; i < cashSeats; i++)
+        if (kitchen.seats[i] == null) i,
+    ];
+    final t = CashTableState.fromJson(await ref.cashSit(luca, 'kitchen', 1000, seat: open.last));
+    expect(t.seats[open.last]?.id, 'luca');
+  });
 }

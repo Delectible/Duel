@@ -27,8 +27,10 @@ class CashService {
     );
   }
 
-  Future<Doc> sit(CashStake stake, int buyIn) => backend.call('/v1/cash/${stake.name}/sit', {
+  /// Sits down with [buyIn], in [seat] if it's still open.
+  Future<Doc> sit(CashStake stake, int buyIn, {int? seat}) => backend.call('/v1/cash/${stake.name}/sit', {
     'buyIn': buyIn,
+    'seat': ?seat,
     'name': party.account.name == 'You' ? 'Player' : party.account.name,
     'avatar': party.account.avatar.toJson(),
   });

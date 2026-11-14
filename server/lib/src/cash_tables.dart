@@ -46,7 +46,7 @@ extension CashTables on Referee {
 
   /// Sits [p] at [stake] with [buyIn] from their pips: in an open seat, or
   /// a bot's. Mid-hand they're dealt in from the next one.
-  Future<Doc> cashSit(Player p, String stakeName, int buyIn) => store.transaction((tx) async {
+  Future<Doc> cashSit(Player p, String stakeName, int buyIn, {int? seat}) => store.transaction((tx) async {
     final stake = _stake(stakeName);
     for (final other in CashStake.values) {
       if (other == stake) continue;
@@ -70,16 +70,21 @@ extension CashTables on Referee {
     if (balance < buyIn) throw const RefereeError(409, "Your balance doesn't cover that");
     // The bots have been playing: catch up before anyone sits.
     if (t.people.isEmpty && doc['hand'] == null) t.simulate(_now, _rng);
-    var seat = t.seats.indexOf(null);
-    if (seat < 0) {
+    // The open seat they picked (if it's still open), else any open one,
+    // else a bot gets up (never one they pick).
+    final want = seat;
+    var at = want != null && want >= 0 && want < cashSeats && t.seats[want] == null
+        ? want
+        : t.seats.indexOf(null);
+    if (at < 0) {
       final bots = [
         for (var i = 0; i < cashSeats; i++)
           if (t.seats[i]!.bot && !_inHand(doc, i)) i,
       ];
       if (bots.isEmpty) throw const RefereeError(409, 'The table is full');
-      seat = bots[_rng.nextInt(bots.length)];
+      at = bots[_rng.nextInt(bots.length)];
     }
-    t.seats[seat] = CashSeat(
+    t.seats[at] = CashSeat(
       id: p.uid,
       name: Referee.cleanName(p.name),
       stack: buyIn,
