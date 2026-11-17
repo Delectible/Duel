@@ -128,17 +128,25 @@ class _Row extends StatelessWidget {
         const SizedBox(width: 8),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 120),
-          child: ToonButton(
-            key: Key('play $id'),
-            color: onPlay == null ? Lounge.panel : Lounge.gold,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            onPressed: onPlay,
-            child: Text(
-              button,
-              textAlign: TextAlign.center,
-              style: _text(14, weight: FontWeight.w700, color: onPlay == null ? Lounge.dim : Lounge.night),
-            ),
-          ),
+          // Can't play it now: why, in words (a grey button doesn't read).
+          child: onPlay == null
+              ? Text(
+                  button,
+                  key: Key('play $id'),
+                  textAlign: TextAlign.center,
+                  style: _text(13, weight: FontWeight.w700, color: locked ? Lounge.dim : Lounge.lamp),
+                )
+              : ToonButton(
+                  key: Key('play $id'),
+                  color: Lounge.gold,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  onPressed: onPlay,
+                  child: Text(
+                    button,
+                    textAlign: TextAlign.center,
+                    style: _text(14, weight: FontWeight.w700, color: Lounge.night),
+                  ),
+                ),
         ),
       ],
     ),
@@ -165,10 +173,10 @@ class _Tiers extends StatelessWidget {
             final locked = tier == TournamentTier.main && !mainOpen;
             final today = tier == TournamentTier.freeroll && account.freerollPlayed;
             final short = account.balance < tier.buyIn;
-            final why = busy
-                ? 'Finish your game first'
-                : locked
+            final why = locked
                 ? 'Cash in a Regular first'
+                : busy
+                ? 'Finish your game first'
                 : today
                 ? 'Back tomorrow'
                 : short
@@ -230,10 +238,10 @@ class _Ladder extends StatelessWidget {
             final beaten = account.bossesBeaten > b.rung;
             final locked = b.rung > account.bossesBeaten;
             final short = account.balance < b.stake;
-            final why = busy
-                ? 'Finish your game first'
-                : locked
+            final why = locked
                 ? 'Locked'
+                : busy
+                ? 'Finish your game first'
                 : short
                 ? 'Not enough ${account.currency.noun}'
                 : null;

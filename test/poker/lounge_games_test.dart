@@ -62,7 +62,8 @@ void main() {
       await tester.pump();
       await shot(tester, 'lounge_bosses_$phone');
       // Only the first boss is open.
-      expect(tester.widget<ToonButton>(find.byKey(const Key('play boss 1'))).onPressed, isNull);
+      expect(find.widgetWithText(ToonButton, 'Locked'), findsNothing);
+      expect(tester.widget(find.byKey(const Key('play boss 1'))), isA<Text>());
       await tester.tap(find.byKey(const Key('play boss 0')));
       await _open(tester);
       expect(find.byKey(const Key('over title')), findsNothing);
@@ -107,7 +108,7 @@ void main() {
     await tester.pumpWidget(_app(account, const BossTablesScreen(pace: 0.05)));
     await tester.pump();
     expect(find.byKey(const Key('lounge continue')), findsOneWidget);
-    expect(tester.widget<ToonButton>(find.byKey(const Key('play boss 0'))).onPressed, isNull);
+    expect(tester.widget(find.byKey(const Key('play boss 0'))), isA<Text>());
     await shot(tester, 'lounge_continue');
     await tester.tap(find.byKey(const Key('continue lounge game')));
     await _open(tester);
@@ -128,11 +129,7 @@ void main() {
       await tester.pumpWidget(_app(account, const TournamentScreen(pace: 0.05)));
       await tester.pump();
       await shot(tester, 'lounge_tournament');
-      expect(
-        tester.widget<ToonButton>(find.byKey(const Key('play main'))).onPressed,
-        isNull,
-        reason: 'locked',
-      );
+      expect(tester.widget(find.byKey(const Key('play main'))), isA<Text>(), reason: 'locked');
       await tester.tap(find.byKey(const Key('play regular')));
       await _open(tester);
       expect(find.text('Regular'), findsOneWidget);
