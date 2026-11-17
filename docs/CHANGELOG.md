@@ -704,7 +704,7 @@ Ships as app version **0.4.1**.
   timeout claim, picks the live updates up again if they drop, and
   fetches the table itself when nothing's moved for 10 s. Also: your own
   turn running out (the server folds for you) froze the table, in cash
-  games and online Sit & Go.
+  games and online Sit & Go. → 0.11.3 · 2026-11-17 · 0757fa5
 
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
