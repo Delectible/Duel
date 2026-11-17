@@ -14,10 +14,12 @@ import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/reads.dart';
 import 'package:duel_engine/poker/sit_and_go.dart';
 import 'package:duel_engine/poker/story.dart';
+import 'package:duel_engine/poker/tournament.dart';
 import '../../../core/account/achievements.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/online/cash_service.dart';
 import '../../../core/online/party.dart';
+import 'lounge_games.dart';
 import 'rivals.dart';
 import 'table_talk.dart';
 import '../../../core/sound/sound.dart';
@@ -25,6 +27,7 @@ import '../../../core/sound/sound.dart';
 part 'online_poker.dart';
 part 'cash_controller.dart';
 part 'online_cash.dart';
+part 'tournament_controller.dart';
 
 enum TablePhase {
   /// Your deal: shuffle the deck, then tap Deal.
@@ -59,6 +62,9 @@ class PokerController extends ChangeNotifier {
     this.rival,
     this.rivalRecord = (theirs: 0, yours: 0),
     this.bountySeat,
+    this.boss,
+    this.rivalMemory,
+    Map<String, Object?>? saved,
   }) : _rng = rng ?? Random(),
        assert(bots >= 1 && bots <= 5) {
     personas = [you, ...Persona.bots(bots, _rng)];
@@ -69,30 +75,106 @@ class PokerController extends ChangeNotifier {
         if (personas[i].name == r.name) personas[i] = Persona.bots(1, Random(i)).single;
       }
     }
+    // A game picked up again: the same table.
+    if (saved != null) {
+      final names = (saved['names']! as List).cast<String>();
+      final faces = saved['faces']! as List;
+      final looks = (saved['looks']! as List).cast<String>();
+      for (var i = 1; i < personas.length && i < names.length; i++) {
+        if (i == 1 && rival != null) continue;
+        personas[i] = Persona(
+          name: names[i],
+          look: Look.values.asNameMap()[looks[i]] ?? Look.cap,
+          avatar: Avatar.fromJson((faces[i] as Map).cast<String, dynamic>()),
+        );
+      }
+    }
     game = SitAndGo(
       names: [for (final p in personas) p.name],
       config: SitAndGoConfig.forPlayers(bots + 1),
       rng: _rng,
     );
-    reads = TableReads(personas.length);
     // Each bot plays its own hidden way (no two alike): you work it out.
     final deck = [...BotStyle.values]..shuffle(_rng);
     _styles = [for (var i = 0; i <= bots; i++) i == 0 ? null : deck[(i - 1) % deck.length]];
     if (rival case final r?) _styles[1] = r.style;
+    if (saved != null) {
+      final styles = (saved['styles']! as List).cast<String?>();
+      // Seat 1's a rival or boss: its own style.
+      for (var i = rival == null ? 1 : 2; i < _styles.length && i < styles.length; i++) {
+        _styles[i] = BotStyle.values.asNameMap()[styles[i]] ?? _styles[i];
+      }
+      final stacks = (saved['stacks']! as List).cast<int>();
+      final places = (saved['places']! as List).cast<int?>();
+      for (final p in game.players) {
+        p.stack = stacks[p.seat];
+        p.place = places[p.seat];
+      }
+      game.buttonSeat = saved['button']! as int;
+      game.handsPlayed = saved['hands']! as int;
+      handNumber = game.handsPlayed;
+      _shownLevel = game.level;
+    }
+    reads = TableReads(personas.length);
+    final b = boss;
     _bots = [
       for (final (i, s) in _styles.indexed)
         s == null
             ? null
+            : i == 1 && b != null
+            // The boss: its habit, its level, and what it remembers of you.
+            ? PokerBot(
+                style: s,
+                difficulty: b.difficulty,
+                rng: _rng,
+                quirk: b.quirk,
+                quirkStrength: b.quirkStrength,
+                memory: rivalMemory,
+                memoryWeight: b.memoryWeight,
+              )
             : PokerBot(
                 style: s,
-                // A rival plays a level up.
+                // A rival plays a level up, and remembers you.
                 difficulty: i == 1 && rival != null
                     ? Difficulty.values[min(difficulty.index + 1, Difficulty.values.length - 1)]
                     : difficulty,
                 rng: _rng,
+                memory: i == 1 ? rivalMemory : null,
+                memoryWeight: i == 1 ? rivalMemoryWeight(difficulty) : 0,
               ),
     ];
   }
+
+  /// The Boss Tables: the boss in seat 1 (as [rival]).
+  final Boss? boss;
+
+  /// What the rival (or boss) in seat 1 remembers of you from past games.
+  final ReadMemory? rivalMemory;
+
+  /// Called after every hand, between hands (the screen saves the game).
+  VoidCallback? afterHand;
+
+  /// A notice for the next hand ("Final table!"), unless the blinds go up.
+  String? _nextBanner;
+
+  /// The game as it stands between hands, to pick it up again (bot games;
+  /// see the constructor's `saved`).
+  Map<String, Object?> snapshot() => {
+    'names': [for (final p in personas) p.name],
+    'faces': [for (final p in personas) p.avatar.toJson()],
+    'looks': [for (final p in personas) p.look.name],
+    'styles': [for (final s in _styles) s?.name],
+    'stacks': [for (final p in game.players) p.stack],
+    'places': [for (final p in game.players) p.place],
+    'button': game.buttonSeat,
+    'hands': game.handsPlayed,
+  };
+
+  /// The game's name in the top bar.
+  String get title => boss == null ? "Texas Hold'em" : 'vs ${boss!.name}';
+
+  /// How many started (the game-over card: "of 6 players").
+  int get fieldSize => personas.length;
 
   /// A table set up elsewhere (online: the server's seats, you at 0).
   PokerController._seated({
@@ -102,7 +184,9 @@ class PokerController extends ChangeNotifier {
     required int button,
     this.pace = 1,
     this.resultTimeout,
-  }) : _rng = Random() {
+  }) : _rng = Random(),
+       boss = null,
+       rivalMemory = null {
     personas = seats;
     game = SitAndGo(
       names: [for (final p in personas) p.name],
@@ -129,7 +213,9 @@ class PokerController extends ChangeNotifier {
     this.pace = 1,
     this.resultTimeout,
     // ignore: prefer_initializing_formals
-  }) : _rng = rng {
+  }) : _rng = rng,
+       boss = null,
+       rivalMemory = null {
     personas = seats;
     game = table;
     reads = TableReads(seats.length);
@@ -470,7 +556,11 @@ class PokerController extends ChangeNotifier {
   int? get yourPlace => game.players[0].place;
 
   void start() {
-    if (rival case final r?) _sayLine(1, r.hello(rivalRecord.theirs, rivalRecord.yours));
+    if (rival case final r?) {
+      // Hello, and (once it knows you) what it remembers of how you play.
+      final known = rivalMemory == null ? null : memoryLine(rivalMemory!);
+      _sayLine(1, [r.hello(rivalRecord.theirs, rivalRecord.yours), ?known].join(' '));
+    }
     _newHand();
   }
 
@@ -664,7 +754,8 @@ class PokerController extends ChangeNotifier {
     handNumber++;
     justBusted = const [];
     final (sb, bb) = game.blinds;
-    banner = game.level > _shownLevel ? 'Blinds up! ${chips(sb)} / ${chips(bb)}' : null;
+    banner = game.level > _shownLevel ? 'Blinds up! ${chips(sb)} / ${chips(bb)}' : _nextBanner;
+    _nextBanner = null;
     _shownLevel = game.level;
     phase = TablePhase.dealing;
     _notify();
@@ -915,6 +1006,7 @@ class PokerController extends ChangeNotifier {
     _noteBusts(h);
     _handEnded();
     _betweenHands();
+    if (!(game.isOver || _youBusted)) afterHand?.call();
     if (game.isOver || _youBusted) {
       // The tournament: the big win, or the big loss.
       Sound.play(yourPlace == 1 ? Sfx.winBig : Sfx.loseBig);

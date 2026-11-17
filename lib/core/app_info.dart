@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.11.3';
+  static const version = '0.11.4';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,11 +24,23 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Fix: online cash tables could get stuck on a bot (mostly after a while at the table), and letting '
-      'your own time run out froze the table.';
+      'Poker Lounge: Tournaments (18 players, three tables, top three paid) and the Boss Tables (beat five '
+      'bosses, each with a habit to learn). Rivals and bosses now remember how you play. Trophy shelf, new '
+      'achievements, and a lounge game picks up where you left it.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
+    (
+      '0.11',
+      [
+        'Cash games: shared tables online',
+        'Pick your seat at a cash table',
+        'Tournaments: 18 players, three tables',
+        'Boss Tables: a ladder of five bosses',
+        'Rivals and bosses remember how you play',
+        'Trophy shelf and new achievements',
+      ],
+    ),
     (
       '0.10',
       [

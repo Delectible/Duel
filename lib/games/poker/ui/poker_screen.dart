@@ -16,9 +16,53 @@ import '../../../core/online/party.dart';
 import '../../../features/party/lobby.dart';
 import 'poker_guide.dart';
 import 'poker_controller.dart';
+import 'package:duel_engine/poker/bot.dart';
+import 'package:duel_engine/poker/tournament.dart';
+import 'lounge_games.dart';
 import 'rivals.dart';
 import 'table_stats.dart';
 import 'table_view.dart';
+
+/// A Poker Lounge game against bots: a boss on the ladder, or a
+/// tournament. [saved] picks one up again (the app closed mid-game).
+class LoungeGame {
+  const LoungeGame.boss(Boss this.boss, {this.saved}) : tier = null;
+  const LoungeGame.tournament(TournamentTier this.tier, {this.saved}) : boss = null;
+
+  final Boss? boss;
+  final TournamentTier? tier;
+
+  /// The game so far ([PokerController.snapshot]), to carry on from.
+  final Map<String, Object?>? saved;
+
+  /// For the stats.
+  String get gameId => boss != null ? 'bosses' : 'tournament';
+
+  /// The game in progress, as [Account.saveLoungeGame] keeps it.
+  Map<String, Object?> save(Map<String, Object?> game, int stake) => {
+    'kind': gameId,
+    if (boss != null) 'boss': boss!.name,
+    if (tier != null) 'tier': tier!.name,
+    'stake': stake,
+    'game': game,
+  };
+
+  /// A saved game ([save]), or null if it can't be read.
+  static LoungeGame? fromSave(Map<String, Object?>? j) {
+    if (j == null) return null;
+    final game = (j['game'] as Map?)?.cast<String, Object?>();
+    if (game == null) return null;
+    if (Boss.byName('${j['boss']}') case final b?) return LoungeGame.boss(b, saved: game);
+    final tier = TournamentTier.byName(j['tier'] as String?);
+    return tier == null ? null : LoungeGame.tournament(tier, saved: game);
+  }
+
+  /// The stake a saved game was played for.
+  static int savedStake(Map<String, Object?>? j) => j?['stake'] as int? ?? 0;
+
+  /// "Lucky Lou" / "Regular tournament", for the Continue button.
+  String get label => boss?.name ?? '${tier!.label} tournament';
+}
 
 /// Texas Hold'em Sit & Go against [bots] bots.
 class PokerScreen extends StatefulWidget {
@@ -30,7 +74,8 @@ class PokerScreen extends StatefulWidget {
     this.seed,
     this.resultTimeout,
     this.stake,
-  }) : party = null;
+  }) : party = null,
+       lounge = null;
 
   /// With your party (and its bots), online: the referee deals.
   const PokerScreen.online({super.key, required PartyService this.party, this.pace = 1})
@@ -38,9 +83,21 @@ class PokerScreen extends StatefulWidget {
       difficulty = Difficulty.normal,
       seed = null,
       resultTimeout = null,
-      stake = null;
+      stake = null,
+      lounge = null;
+
+  /// A boss or a tournament from the Poker Lounge ([stake]: the buy-in or
+  /// the boss's stake, already taken).
+  PokerScreen.lounge({super.key, required LoungeGame this.lounge, this.stake, this.pace = 1, this.seed})
+    : party = null,
+      bots = lounge.boss != null ? 3 : tournamentSeats - 1,
+      difficulty = lounge.boss?.tableDifficulty ?? lounge.tier!.difficulty,
+      resultTimeout = null;
 
   final PartyService? party;
+
+  /// The lounge game (bosses, tournaments).
+  final LoungeGame? lounge;
 
   final int bots;
   final Difficulty difficulty;
@@ -79,12 +136,14 @@ class _PokerScreenState extends State<PokerScreen> {
       party.showing(this, 'holdem');
       party.addListener(_follow);
     }
+    _saved = widget.lounge?.saved;
     _ticket =
         widget.stake ??
         StakeTicket(
           account: _account,
-          gameId: 'holdem',
-          stake: 0,
+          gameId: widget.lounge?.gameId ?? 'holdem',
+          // A game picked up again: its stake was taken when it began.
+          stake: widget.lounge == null ? 0 : LoungeGame.savedStake(_account.loungeGame),
           opponents: widget.bots,
           difficulty: widget.difficulty,
         );
@@ -170,6 +229,7 @@ class _PokerScreenState extends State<PokerScreen> {
         return online;
       }
     }
+    if (widget.lounge case final lounge?) return _loungeTable(lounge);
     // A rival sits in (the one you've played least) and one bot carries a
     // bounty.
     final extras = widget.seed == null ? Random() : Random(widget.seed! + 7);
@@ -188,6 +248,7 @@ class _PokerScreenState extends State<PokerScreen> {
       you: _account.persona,
       rival: rival,
       rivalRecord: (theirs: record.losses, yours: record.wins),
+      rivalMemory: _account.memoryOf(rival.name),
       bountySeat: widget.bots == 1 ? 1 : 2 + extras.nextInt(widget.bots - 1),
     );
     c
@@ -199,7 +260,9 @@ class _PokerScreenState extends State<PokerScreen> {
   /// Your tournament's over: win only for first place. Along the way:
   /// achievements, the bounty, the rival's record.
   void _settle() {
-    if (_c.phase == TablePhase.finished && !_ticket.settled) {
+    if (widget.lounge != null) {
+      _settleLounge();
+    } else if (_c.phase == TablePhase.finished && !_ticket.settled) {
       _ticket.settle(_c.yourPlace == 1 ? Outcome.win : Outcome.loss);
     }
     if (widget.party != null) return;
@@ -213,7 +276,8 @@ class _PokerScreenState extends State<PokerScreen> {
     if (rival != null && !_rivalDone && _c.phase == TablePhase.finished) {
       _rivalDone = true;
       _account.rivalResult(rival.name, won: _c.beatRival);
-      if (_c.beatRival) _c.found.add(Achievement.rival);
+      _account.remember(rival.name, _c.reads.players[0]);
+      if (_c.beatRival && _c.boss == null) _c.found.add(Achievement.rival);
     }
     while (_c.found.isNotEmpty) {
       final a = _c.found.removeAt(0);
@@ -250,6 +314,119 @@ class _PokerScreenState extends State<PokerScreen> {
     });
   }
 
+  /// A lounge game picked up again (used once, by the first table).
+  Map<String, Object?>? _saved;
+
+  /// The boss's table (the boss in seat 1, three bots) or your table in a
+  /// tournament; saved after every hand.
+  PokerController _loungeTable(LoungeGame lounge) {
+    final saved = _saved;
+    _saved = null;
+    final rng = widget.seed == null ? null : Random(widget.seed);
+    final PokerController c;
+    if (lounge.boss case final b?) {
+      final record = _account.rivalRecord(b.name);
+      _rivalDone = false;
+      c = _c = PokerController(
+        bots: widget.bots,
+        difficulty: widget.difficulty,
+        pace: widget.pace,
+        rng: rng,
+        you: _account.persona,
+        rival: b.rival,
+        rivalRecord: (theirs: record.losses, yours: record.wins),
+        boss: b,
+        rivalMemory: _account.memoryOf(b.name),
+        saved: saved,
+      );
+    } else {
+      final r = rng ?? Random();
+      final t = saved != null
+          ? Tournament.fromJson(saved)
+          : Tournament.fresh(
+              you: _account.persona.name,
+              yourLook: _account.persona.look.name,
+              bots: _tournamentBots(r),
+              rng: r,
+            );
+      c = _c = TournamentController.seat(
+        t: t,
+        tier: lounge.tier!,
+        you: _account.persona,
+        memoryOf: _account.memoryOf,
+        pace: widget.pace,
+        rng: r,
+      );
+    }
+    void save() => _account.saveLoungeGame(lounge.save(c.snapshot(), _ticket.stake));
+    c
+      ..afterHand = save
+      ..addListener(_settle)
+      ..start();
+    save();
+    return c;
+  }
+
+  /// The tournament's 17 bots: the three rivals and fourteen others, each
+  /// with a way of playing.
+  static List<({String name, String look, String style})> _tournamentBots(Random rng) {
+    final rivals = [for (final r in Rival.all) (name: r.name, look: r.look.name, style: r.style.name)];
+    final others = Persona.bots(
+      tournamentPlayers - 1,
+      rng,
+    ).where((p) => !rivals.any((r) => r.name == p.name));
+    final styles = [...BotStyle.values]..shuffle(rng);
+    return [
+      ...rivals,
+      for (final (k, p) in others.take(tournamentPlayers - 1 - rivals.length).indexed)
+        (name: p.name, look: p.look.name, style: styles[k % styles.length].name),
+    ];
+  }
+
+  /// A lounge game's over: the prize, the ladder or the tournament record,
+  /// achievements, and what the boss (or rivals) remember of you.
+  void _settleLounge() {
+    if (_c.phase != TablePhase.finished || _ticket.settled) return;
+    final lounge = widget.lounge!;
+    _account.saveLoungeGame(null);
+    if (lounge.boss case final b?) {
+      final won = _c.beatRival;
+      _ticket.settlePrize(won ? b.prize + (_c.yourPlace == 1 ? b.tableBonus : 0) : 0);
+      if (won) {
+        _account.bossBeaten(b.rung);
+        _c.found.add(b.achievement);
+        if (_account.bossesBeaten >= Boss.ladder.length) _c.found.add(Achievement.ladder);
+      }
+      return;
+    }
+    final c = _c as TournamentController;
+    final tier = lounge.tier!;
+    final place = c.yourPlace ?? c.tournament.left + 1;
+    _ticket.settlePrize(Tournament.prize(tier.pool, place));
+    _account.tourneyResult(tier.name, place);
+    for (final r in c.rivalsMet) {
+      _account.remember(r.name, r.reads);
+    }
+    if (place <= 3) _c.found.add(Achievement.tourneyCash);
+    if (place == 1) _c.found.add(Achievement.tourneyWin);
+    if (place == 1 && tier == TournamentTier.main) _c.found.add(Achievement.mainEvent);
+  }
+
+  /// Play again: the same boss, or another tournament of the same kind
+  /// (not the Daily Freeroll: once a day).
+  VoidCallback? get _again {
+    final lounge = widget.lounge;
+    if (lounge == null) return _playAgain;
+    if (lounge.tier == TournamentTier.freeroll) return null;
+    return () {
+      setState(() {
+        _c.dispose();
+        _ticket = _ticket.again();
+        _c = _newTable();
+      });
+    };
+  }
+
   @override
   void dispose() {
     widget.party?.removeListener(_follow);
@@ -272,6 +449,8 @@ class _PokerScreenState extends State<PokerScreen> {
       return;
     }
     if (_c.phase == TablePhase.finished || await confirmLeave(context, _ticket)) {
+      // Leaving a lounge game for good: you're out.
+      if (widget.lounge != null && _c.phase != TablePhase.finished) _account.saveLoungeGame(null);
       if (mounted) Navigator.of(context).pop();
     }
   }
@@ -305,9 +484,13 @@ class _PokerScreenState extends State<PokerScreen> {
                     child: _GameOver(
                       c: _c,
                       ticket: _ticket,
-                      onAgain: widget.party == null ? _playAgain : _rematch(),
+                      onAgain: widget.party == null ? _again : _rematch(),
                       againLabel: _againLabel(),
-                      leaveLabel: widget.party == null ? 'Games' : 'Back to party',
+                      leaveLabel: widget.lounge != null
+                          ? 'Lounge'
+                          : widget.party == null
+                          ? 'Games'
+                          : 'Back to party',
                       onLeave: widget.party == null ? () => Navigator.of(context).pop() : _leave,
                     ),
                   ),
@@ -396,6 +579,8 @@ extension on _PokerScreenState {
 
   String _againLabel() {
     final party = widget.party;
+    if (widget.lounge?.tier == TournamentTier.freeroll) return 'Tomorrow';
+    if (widget.lounge?.boss != null) return 'Rematch';
     if (party == null) return 'Play again';
     final m = party.match;
     if (m == null || m['status'] != 'over') return 'Still playing…';
@@ -441,12 +626,14 @@ class _Hud extends StatelessWidget {
                   runSpacing: 2,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text("Texas Hold'em", maxLines: 1, style: Toon.text(18, weight: FontWeight.w700)),
+                    Text(c.title, maxLines: 1, style: Toon.text(18, weight: FontWeight.w700)),
                     StakeBadge(ticket),
                   ],
                 ),
                 Text(
-                  '${narrow ? 'Hand $hand · ' : ''}Blinds ${chips(sb)} / ${chips(bb)}'
+                  '${narrow ? 'Hand $hand · ' : ''}'
+                  '${c is TournamentController ? '${(c as TournamentController).tournament.left} left · ' : ''}'
+                  'Blinds ${chips(sb)} / ${chips(bb)}'
                   '${left == null ? '' : ' · up in $left hand${left == 1 ? '' : 's'}'}',
                   style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
                 ),
@@ -498,7 +685,28 @@ class _GameOver extends StatelessWidget {
   Widget build(BuildContext context) {
     final place = c.yourPlace ?? 1;
     final won = place == 1;
-    final players = c.personas.length;
+    final players = c.fieldSize;
+    final boss = c.boss;
+    final tour = c is TournamentController ? c as TournamentController : null;
+    final title = boss != null
+        ? (c.beatRival ? 'You beat ${boss.name}!' : '${boss.name} wins')
+        : tour != null && won
+        ? 'Champion!'
+        : won
+        ? 'You won!'
+        : 'Out in ${_ordinal(place)}';
+    final subtitle = boss != null
+        ? 'You finished ${_ordinal(place)} of $players.'
+              '${c.beatRival && boss.last ? ' The whole ladder is yours!' : ''}'
+        : tour != null
+        ? (won
+              ? 'You beat all $players players.'
+              : place <= Tournament.paid.length
+              ? 'In the money: ${_ordinal(place)} of $players.'
+              : 'Of $players players. The top ${Tournament.paid.length} are paid.')
+        : won
+        ? 'You took every chip at a table of $players.'
+        : 'Of $players players.';
     return ColoredBox(
       color: Toon.ink.withValues(alpha: 0.5),
       child: Center(
@@ -520,12 +728,14 @@ class _GameOver extends StatelessWidget {
                     Face(c.personas[0], size: 72),
                     const SizedBox(height: 10),
                     Text(
-                      won ? 'You won!' : 'Out in ${_ordinal(place)}',
+                      title,
+                      key: const Key('over title'),
+                      textAlign: TextAlign.center,
                       style: Toon.text(30, weight: FontWeight.w700),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      won ? 'You took every chip at a table of $players.' : 'Of $players players.',
+                      subtitle,
                       textAlign: TextAlign.center,
                       style: Toon.text(16, weight: FontWeight.w500),
                     ),
@@ -535,7 +745,11 @@ class _GameOver extends StatelessWidget {
                     ),
                     GameSummary(
                       c: c,
-                      footer: c is OnlinePokerController ? _Lineup(c: c as OnlinePokerController) : null,
+                      footer: c is OnlinePokerController
+                          ? _Lineup(c: c as OnlinePokerController)
+                          : tour != null
+                          ? _Podium(c: tour)
+                          : null,
                     ),
                     const SizedBox(height: 10),
                     StakeResult(ticket),
@@ -599,6 +813,42 @@ class _Lineup extends StatelessWidget {
         note,
         textAlign: TextAlign.center,
         style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
+      ),
+    );
+  }
+}
+
+/// A tournament's prize places (and yours, if you were out before).
+class _Podium extends StatelessWidget {
+  const _Podium({required this.c});
+
+  final TournamentController c;
+
+  @override
+  Widget build(BuildContext context) {
+    final account = AccountScope.maybeRead(context) ?? Account();
+    final t = c.tournament;
+    final order = t.standings;
+    final me = order.indexWhere((e) => e.you);
+    return Container(
+      key: const Key('podium'),
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.all(8),
+      decoration: Toon.box(Toon.card, radius: 12, shadow: 2),
+      child: Column(
+        children: [
+          Text(
+            t.over ? 'Prize places' : 'Still playing: ${t.left} left',
+            style: Toon.text(14, weight: FontWeight.w700),
+          ),
+          for (var k = 0; k < Tournament.paid.length && k < order.length; k++)
+            Text(
+              '${_ordinal(k + 1)}  ${order[k].you ? 'You' : order[k].name}'
+              '${t.over ? '  ${account.money(Tournament.prize(c.tier.pool, k + 1))}' : ''}',
+              style: Toon.text(13, weight: order[k].you ? FontWeight.w800 : FontWeight.w500),
+            ),
+          if (me >= Tournament.paid.length) Text('${_ordinal(me + 1)}  You', style: Toon.text(13)),
+        ],
       ),
     );
   }

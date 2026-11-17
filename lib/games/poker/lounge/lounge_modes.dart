@@ -53,7 +53,7 @@ class LoungeMode {
   /// Still to settle, or worth knowing.
   final List<String> notes;
 
-  /// Playable now (Sit & Go).
+  /// Playable now.
   final bool open;
 
   static const sitAndGo = LoungeMode(
@@ -119,6 +119,7 @@ class LoungeMode {
     tagline: 'Eighteen players, three tables, one champion.',
     icon: Icons.emoji_events_rounded,
     color: Lounge.sky,
+    open: true,
     how: [
       'Pay the buy-in and take a seat: you and 17 bots across three tables of six.',
       'Everyone starts with the same stack. The blinds go up together at every table.',
@@ -128,7 +129,10 @@ class LoungeMode {
           'the bank), so the pool is worth chasing.',
       'The other tables play on in the background; between hands you can see the standings and how many '
           'are left.',
-      'Leave and you\'re out (your chips are blinded away), as in a real tournament.',
+      'Leave and you\'re out (your chips are blinded away), as in a real tournament. Close the app and '
+          'you pick up where you left off.',
+      'About 20 to 30 minutes if you go all the way. The Freeroll\'s bots are easy, the Regular\'s normal, '
+          'the Main Event\'s hard.',
     ],
     tableTitle: 'Buy-ins',
     table: [
@@ -136,7 +140,7 @@ class LoungeMode {
       (name: 'Regular', detail: 'Buy-in {500} · pool {9000}', note: 'Any time'),
       (name: 'Main Event', detail: 'Buy-in {5000} · pool {90000}', note: 'Unlocks after a Regular cash'),
     ],
-    notes: ['Later: the same with friends, everyone in the party at the tables.'],
+    notes: ['Bots only for now. Later: the same with friends, everyone in the party at the tables.'],
   );
 
   static const bosses = LoungeMode(
@@ -145,14 +149,19 @@ class LoungeMode {
     tagline: 'Beat the boss, climb the ladder.',
     icon: Icons.local_fire_department_rounded,
     color: Lounge.ruby,
+    open: true,
     how: [
       'A ladder of five bosses, each a named shark with a quirk you can learn to beat.',
       'Each boss table is a Sit & Go: the boss plus a few bots. Finish ahead of the boss to beat them and '
           'unlock the next.',
-      'Every boss has a stake to sit down and a prize for beating them, a trophy on your lounge shelf and an '
-          'achievement.',
+      'Every boss has a stake to sit down and a prize for beating them (three times the stake, five for the '
+          'final boss; win the whole table for one more), a trophy on your lounge shelf and an achievement. '
+          'Lose and it just costs the stake: try again any time.',
       'Bosses talk: they taunt you before the game and remember how you beat them.',
+      'They remember how you play, too, from game to game, and the higher up the ladder, the more they use '
+          'it. Their habits get subtler as you climb.',
     ],
+    notes: ['Bots only for now.'],
     tableTitle: 'The bosses',
     table: [
       (name: 'Lucky Lou', detail: 'Calls every river. Never folds a draw.', note: 'Boss 1'),
@@ -166,12 +175,16 @@ class LoungeMode {
   static const all = [sitAndGo, cash, tournament, bosses];
 }
 
-/// What a mode will be: how it works and what's on offer, in the lounge's
-/// colours, with "Coming soon".
+/// A mode's page: how it works and what's on offer, in the lounge's
+/// colours; [play] (the tables, the ladder) goes on top when it's built,
+/// else "Coming soon".
 class LoungeModeScreen extends StatelessWidget {
-  const LoungeModeScreen({super.key, required this.mode});
+  const LoungeModeScreen({super.key, required this.mode, this.play});
 
   final LoungeMode mode;
+
+  /// What you pick to play (in place of the table of what's on offer).
+  final Widget? play;
 
   /// Amounts written {5000} in the text, in your currency ("5,000 pips",
   /// "\$5,000"); a range {500}–{1000} says the unit once for pips.
@@ -262,6 +275,7 @@ class LoungeModeScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
+                ?play,
                 panel(
                   children: [
                     Text('How it works', style: text(19, weight: FontWeight.w700)),
@@ -286,7 +300,7 @@ class LoungeModeScreen extends StatelessWidget {
                       ),
                   ],
                 ),
-                if (mode.table.isNotEmpty)
+                if (mode.table.isNotEmpty && play == null)
                   panel(
                     children: [
                       Text(mode.tableTitle ?? '', style: text(19, weight: FontWeight.w700)),
@@ -334,7 +348,10 @@ class LoungeModeScreen extends StatelessWidget {
                 if (mode.notes.isNotEmpty)
                   panel(
                     children: [
-                      Text('To agree on', style: text(19, weight: FontWeight.w700)),
+                      Text(
+                        mode.open ? 'Worth knowing' : 'To agree on',
+                        style: text(19, weight: FontWeight.w700),
+                      ),
                       const SizedBox(height: 6),
                       for (final n in mode.notes)
                         Text(

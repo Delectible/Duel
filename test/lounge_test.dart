@@ -49,6 +49,9 @@ void main() {
         await tester.tap(find.byKey(Key('lounge $id')));
         await tester.pumpAndSettle();
         expect(find.byKey(Key('mode $id')), findsOneWidget);
+        // Now built: what you pick to play.
+        expect(find.byKey(Key(id == 'tournament' ? 'tournament tiers' : 'boss ladder')), findsOneWidget);
+        expect(find.text('Coming soon'), findsNothing);
         await shot(tester, 'lounge_${id}_$phone');
         await tester.tap(find.byKey(const Key('mode back')));
         await tester.pumpAndSettle();
@@ -69,6 +72,7 @@ void main() {
         scrollable: find.byType(Scrollable).last,
       );
       expect(find.byKey(const Key('lounge rivals')), findsOneWidget);
+      expect(find.byKey(const Key('trophy shelf')), findsOneWidget);
       expect(find.text('1–0'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });

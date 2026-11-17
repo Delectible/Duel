@@ -14,9 +14,10 @@ import '../ui/hand_chart.dart';
 import '../ui/rivals.dart';
 import 'cash_lobby.dart';
 import 'lounge_modes.dart';
+import 'lounge_play.dart';
 
-/// The Poker Lounge: Duel's back room. The ways to play poker (Sit & Go
-/// now; cash games, tournaments and boss tables to come), your record, the
+/// The Poker Lounge: Duel's back room. The ways to play poker (Sit & Go,
+/// cash games, tournaments, boss tables), your record and trophies, the
 /// rivals' board, the achievements, and a few things to read. The
 /// connection bar is here too, so you always know who you're playing with.
 class LoungeScreen extends StatelessWidget {
@@ -33,6 +34,8 @@ class LoungeScreen extends StatelessWidget {
       // Who you're playing with, as on home (it keeps its own colours).
       const ConnectionBar(),
       const SizedBox(height: 18),
+      // A boss or tournament left mid-way.
+      const ContinueLoungeGame(),
       const _Heading('Tables'),
       _Modes(holdem: holdem, setup: setup),
       const SizedBox(height: 18),
@@ -42,6 +45,9 @@ class LoungeScreen extends StatelessWidget {
     final right = [
       const _Heading('Your poker'),
       _Record(account: account),
+      const SizedBox(height: 18),
+      const _Heading('Trophies'),
+      const TrophyShelf(),
       const SizedBox(height: 18),
       const _Heading('Rivals'),
       _Rivals(account: account),
@@ -214,6 +220,8 @@ class _Modes extends StatelessWidget {
                       builder: (_) => switch (m.id) {
                         'sitgo' => GamePreviewScreen(game: holdem),
                         'cash' => const CashLobbyScreen(),
+                        'tournament' => const TournamentScreen(),
+                        'bosses' => const BossTablesScreen(),
                         _ => LoungeModeScreen(mode: m),
                       },
                     ),

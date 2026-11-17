@@ -300,7 +300,10 @@ class TableView extends StatelessWidget {
             child: Center(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
-                child: c.banner == null || c.phase != TablePhase.dealing
+                // Once, as the hand is dealt (not again on the flop: the same
+                // notice twice at once would clash).
+                child:
+                    c.banner == null || c.phase != TablePhase.dealing || (c.hand?.board.isNotEmpty ?? false)
                     ? const SizedBox.shrink()
                     : ToonBox(
                         key: ValueKey(c.banner),

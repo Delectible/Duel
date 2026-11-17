@@ -308,12 +308,53 @@ class Decision {
 /// seen them do), plays its position, follows through on plans (c-bets,
 /// barrels, check-raises, slow-plays), sizes bets its own way, gets on
 /// tilt after a bad loss and tightens up when stacks are short.
+/// A boss's habit, played on top of its style: plain to see when
+/// [PokerBot.quirkStrength] is high, a tendency when it's low.
+enum Quirk {
+  /// Calls every bet on the river; never folds a draw (Lucky Lou).
+  callsRivers,
+
+  /// Never bluffs; slow-plays its monsters, then springs the trap (Granny
+  /// Gold).
+  trapsNeverBluffs,
+
+  /// Raises almost every hand before the flop, bets when checked to
+  /// (Captain Chaos).
+  raisesEverything,
+
+  /// Always takes the same time: no timing tells at all (The Mime).
+  noTells,
+
+  /// Studies the person at the table and plays against their habits
+  /// (Madame Nine).
+  studiesYou,
+}
+
 class PokerBot {
-  PokerBot({required this.style, required this.difficulty, required this.rng});
+  PokerBot({
+    required this.style,
+    required this.difficulty,
+    required this.rng,
+    this.quirk,
+    this.quirkStrength = 1,
+    this.memory,
+    this.memorySeat = 0,
+    this.memoryWeight = 0,
+  });
 
   final BotStyle style;
   final Difficulty difficulty;
   final Random rng;
+
+  /// A boss's habit, and how often it shows (0..1).
+  final Quirk? quirk;
+  final double quirkStrength;
+
+  /// What it remembers of the person at table seat [memorySeat] from past
+  /// games, used at [memoryWeight] (0..1) on top of what it sees now.
+  final ReadMemory? memory;
+  final int memorySeat;
+  final double memoryWeight;
 
   Move decide(PokerHand hand, {TableReads? reads, List<int>? seats}) =>
       think(hand, reads: reads, seats: seats).move;
@@ -322,9 +363,20 @@ class PokerBot {
   /// [seats] maps hand index -> table seat (both optional: without them
   /// the bot plays on what it sees in this hand alone).
   Decision think(PokerHand hand, {TableReads? reads, List<int>? seats}) {
-    final c = _Spot(this, hand, reads, seats ?? [for (var i = 0; i < hand.players.length; i++) i]);
-    final move = hand.street == Street.preflop ? c.preflop() : c.postflop();
-    return Decision(move, c.tempo(move));
+    // Its memory of you joins what the table has seen, for this decision.
+    final remembered =
+        memory != null && reads != null && memoryWeight > 0 && memorySeat < reads.players.length;
+    final now = remembered ? reads.players[memorySeat] : null;
+    if (remembered) reads.players[memorySeat] = now!.withMemory(memory!, memoryWeight);
+    try {
+      final c = _Spot(this, hand, reads, seats ?? [for (var i = 0; i < hand.players.length; i++) i]);
+      var move = hand.street == Street.preflop ? c.preflop() : c.postflop();
+      if (quirk != null) move = c.quirked(move);
+      final steady = quirk == Quirk.noTells && rng.nextDouble() < quirkStrength;
+      return Decision(move, steady ? 0.4 : c.tempo(move));
+    } finally {
+      if (remembered) reads.players[memorySeat] = now!;
+    }
   }
 }
 
@@ -573,6 +625,78 @@ class _Spot {
   }
 
   Move _foldOrCheck() => legal.canCheck ? const Move.check() : const Move.fold();
+
+  // --- Boss quirks -----------------------------------------------------------
+
+  /// [move] as the boss's habit would have it (each time with the quirk's
+  /// strength: always at the bottom of the ladder, a tendency at the top).
+  Move quirked(Move move) {
+    final s = bot.quirkStrength;
+    bool often([double f = 1]) => rng.nextDouble() < s * f;
+    switch (bot.quirk) {
+      case Quirk.callsRivers:
+        if (move.kind != MoveKind.fold || legal.canCheck) return move;
+        if (h.street == Street.river && often()) return const Move.call();
+        final draw = h.street == Street.preflop ? null : outs(me.hole, h.board);
+        if (draw != null && draw.outs >= 8 && often()) return const Move.call();
+      case Quirk.trapsNeverBluffs:
+        if (bluffing && move.kind == MoveKind.raise && often()) {
+          bluffing = false;
+          return _foldOrCheck();
+        }
+        if (strength >= 0.8 && h.street != Street.river && move.kind == MoveKind.raise && often(0.75)) {
+          return legal.canCheck ? const Move.check() : const Move.call();
+        }
+        // The trap springs on the river.
+        if (strength >= 0.8 && h.street == Street.river && move.kind != MoveKind.raise && often()) {
+          return legal.canCheck ? _bet(value: true) : _raise(value: true);
+        }
+      case Quirk.raisesEverything:
+        if (move.kind == MoveKind.raise || !legal.canRaise || stackBB < 8) return move;
+        // Not into a big raise with rubbish: chaos, not suicide.
+        if (legal.callAmount > me.stack * 0.3 && strength < 0.5) return move;
+        if (h.street == Street.preflop && often(0.85)) {
+          bluffing = strength < 0.4;
+          return _raiseTo(max(h.currentBet * 3, bb * 3));
+        }
+        if (h.street != Street.preflop && legal.canCheck && often(0.55)) {
+          bluffing = strength < 0.4;
+          return _bet(value: strength >= 0.6);
+        }
+      case Quirk.studiesYou:
+        final you = seats.indexOf(bot.memorySeat);
+        if (you < 0 || you == i || h.players[you].folded || reads == null) return move;
+        final r = reads!.players[bot.memorySeat];
+        // Folds to bets a lot: bet at them with anything.
+        if (h.street != Street.preflop &&
+            legal.canCheck &&
+            move.kind == MoveKind.check &&
+            r.facedBets >= 6 &&
+            r.foldToBetRate > 0.55 &&
+            often()) {
+          bluffing = strength < 0.4;
+          return _bet(value: strength >= 0.6, small: true);
+        }
+        // Never folds: don't bluff them, value-bet thinner instead.
+        if (bluffing && move.kind == MoveKind.raise && r.facedBets >= 6 && r.foldToBetRate < 0.3 && often()) {
+          bluffing = false;
+          return _foldOrCheck();
+        }
+        // Bluffs a lot: catch them.
+        if (move.kind == MoveKind.fold &&
+            !legal.canCheck &&
+            r.aggressiveShowdowns >= 3 &&
+            r.bluffRate > 0.4 &&
+            strength > 0.3 &&
+            often()) {
+          return const Move.call();
+        }
+      case Quirk.noTells:
+      case null:
+        break;
+    }
+    return move;
+  }
 
   // --- Thinking time ---------------------------------------------------------
 

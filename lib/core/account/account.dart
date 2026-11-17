@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import '../avatars/faces.dart';
 import 'achievements.dart';
 import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/poker/reads.dart';
 import '../sound/sound.dart';
 import '../theme/toon.dart';
 
@@ -248,6 +249,95 @@ class Account extends ChangeNotifier {
     );
   }
 
+  // --- What rivals and bosses remember of you ---------------------------------
+
+  final Map<String, ReadMemory> _memory = {};
+
+  /// How [name] (a rival or boss) remembers you playing.
+  ReadMemory memoryOf(String name) => _memory[name] ?? ReadMemory();
+
+  /// After a game with [name]: what it saw you do this game joins what it
+  /// remembers (older games fading).
+  void remember(String name, PlayerReads game) {
+    if (game.hands == 0) return;
+    _change(() => _memory[name] = memoryOf(name).remember(game));
+  }
+
+  // --- The lounge: Boss Tables and tournaments --------------------------------
+
+  /// A boss or tournament game in progress (saved after every hand), so
+  /// closing the app doesn't lose it.
+  Map<String, Object?>? _loungeGame;
+
+  Map<String, Object?>? get loungeGame => _loungeGame;
+
+  /// Saves (or with null clears) the lounge game in progress.
+  void saveLoungeGame(Map<String, Object?>? game) {
+    _loungeGame = game;
+    _save();
+  }
+
+  /// Bosses beaten on the ladder so far (the next one is unlocked).
+  int _bosses = 0;
+  int get bossesBeaten => _bosses;
+
+  /// You beat boss [rung] (0 = the first): the next one unlocks.
+  void bossBeaten(int rung) {
+    if (rung + 1 > _bosses) _change(() => _bosses = rung + 1);
+  }
+
+  final Map<String, ({int played, int cashes, int wins, int best})> _tourneys = {};
+
+  /// Your record in the tournament [tier]: entries, top-three finishes,
+  /// wins and best place (0: none yet).
+  ({int played, int cashes, int wins, int best}) tourneyRecord(String tier) =>
+      _tourneys[tier] ?? (played: 0, cashes: 0, wins: 0, best: 0);
+
+  void tourneyResult(String tier, int place) {
+    final r = tourneyRecord(tier);
+    _change(
+      () => _tourneys[tier] = (
+        played: r.played + 1,
+        cashes: r.cashes + (place <= 3 ? 1 : 0),
+        wins: r.wins + (place == 1 ? 1 : 0),
+        best: r.best == 0 ? place : min(r.best, place),
+      ),
+    );
+  }
+
+  /// The day (yyyy-mm-dd) you last entered the Daily Freeroll.
+  String? _freeroll;
+
+  static String _today() {
+    final d = DateTime.now();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// You've had today's Daily Freeroll.
+  bool get freerollPlayed => _freeroll == _today();
+
+  void enterFreeroll() => _change(() => _freeroll = _today());
+
+  /// Settles a game whose payout is a prize (tournaments, bosses): [prize]
+  /// (all of it, the stake included) goes to your balance. Returns the
+  /// change compared to before the stake.
+  int settlePrize({required String gameId, required int stake, required int prize}) {
+    final st = stats(gameId);
+    _change(() {
+      st.played++;
+      if (prize > stake || (stake == 0 && prize > 0)) {
+        st.won++;
+      } else if (prize < stake) {
+        st.lost++;
+      } else {
+        st.tied++;
+      }
+      st.net += prize - stake;
+      _unsynced += prize;
+    });
+    return prize - stake;
+  }
+
   // --- Cash tables (local) ----------------------------------------------------
 
   /// At a local cash table: the chips in front of you and what you've put
@@ -421,6 +511,18 @@ class Account extends ChangeNotifier {
           _rivals[k] = (wins: v[0] as int, losses: v[1] as int);
         }
       });
+      final memory = j['memory'] as Map<String, dynamic>? ?? {};
+      memory.forEach((k, v) => _memory[k] = ReadMemory.fromJson(v));
+      final lounge = j['lounge'];
+      if (lounge is Map<String, dynamic>) _loungeGame = lounge;
+      _bosses = j['bosses'] as int? ?? 0;
+      final tourneys = j['tourneys'] as Map<String, dynamic>? ?? {};
+      tourneys.forEach((k, v) {
+        if (v is List && v.length == 4 && v.every((x) => x is int)) {
+          _tourneys[k] = (played: v[0] as int, cashes: v[1] as int, wins: v[2] as int, best: v[3] as int);
+        }
+      });
+      _freeroll = j['freeroll'] as String?;
       _cashChips = j['cashChips'] as int?;
       _cashIn = j['cashIn'] as int? ?? 0;
       final stats = j['stats'] as Map<String, dynamic>? ?? {};
@@ -452,6 +554,15 @@ class Account extends ChangeNotifier {
         'rivals': {
           for (final e in _rivals.entries) e.key: [e.value.wins, e.value.losses],
         },
+      if (_memory.isNotEmpty) 'memory': {for (final e in _memory.entries) e.key: e.value.toJson()},
+      'lounge': ?_loungeGame,
+      if (_bosses > 0) 'bosses': _bosses,
+      if (_tourneys.isNotEmpty)
+        'tourneys': {
+          for (final e in _tourneys.entries)
+            e.key: [e.value.played, e.value.cashes, e.value.wins, e.value.best],
+        },
+      'freeroll': ?_freeroll,
       'cashChips': ?_cashChips,
       if (_cashChips != null) 'cashIn': _cashIn,
       'left': {

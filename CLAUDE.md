@@ -44,8 +44,8 @@ together, GamePigeon-easy. Let it guide design and development choices.
   few-word bullet to the newest `AppInfo.revisions` entry (About shows
   them as bullets; keep them short).
 - **Open threads** (see `docs/CHANGELOG.md` for detail): Tournament and
-  Boss Tables are explanation screens only (31.6 / 32.4: build once
-  agreed); cash stakes / unlocks / boss quirks are first guesses Luca may
+  Boss Tables are bots only (friends later); cash stakes / unlocks, boss
+  stakes / quirks and tournament buy-ins are first guesses Luca may
   change; Play's Data safety form still needs the online pips balance
   (App activity > Other actions) and User IDs as required; the release
   checklist artifact is https://claude.ai/artifact/7PNefZJjcrAfAidT5CV1c1.
@@ -339,9 +339,27 @@ weights cut from the variable font.
   (`CharacterFaces.byName`: rivals and bosses).
 - **Poker Lounge** (`lib/games/poker/lounge/`): home's first tile opens
   `LoungeScreen` (its own evening colours, `Lounge`; connection bar; the
-  modes in `LoungeMode`: Sit & Go = the `holdem` game's preview, the rest
-  `LoungeModeScreen` explanations until built; record, rivals,
-  achievements, tips). The `holdem` `GameInfo` ("Hold'em Sit & Go") stays
+  modes in `LoungeMode`: Sit & Go = the `holdem` game's preview, Cash
+  Games = `CashLobbyScreen`, Tournament / Boss Tables = `LoungeModeScreen`
+  with a `play` list (`lounge/lounge_play.dart`: `TournamentScreen`,
+  `BossTablesScreen`, `openLoungeGame`, `ContinueLoungeGame`,
+  `TrophyShelf`); record, trophies, rivals, achievements, tips).
+  **Tournament and Boss Tables** (bots only): `ui/lounge_games.dart`
+  (`Boss.ladder`: rival + `Quirk` + stake / multiple, quirk strength and
+  memory weight rising up the ladder; `TournamentTier`; `memoryLine`),
+  played on `PokerScreen.lounge(LoungeGame)`. Bosses: a `PokerController`
+  with `boss` (seat 1). Tournaments: engine `duel_engine/poker/
+  tournament.dart` (`Tournament`: 18 `Entrant`s, three tables,
+  `playHand` for the other tables, `endRound` places, `balance` breaks /
+  evens tables, you never move; `TournamentTable`) and
+  `TournamentController` (part of `poker_controller.dart`: your table,
+  turned round, reseated between hands). Saved after every hand
+  (`afterHand` → `Account.saveLoungeGame`, `PokerController.snapshot` /
+  `saved`); prizes via `StakeTicket.settlePrize`; `Account.bossesBeaten`,
+  `tourneyRecord`, `freerollPlayed`. **Memory**: `PokerBot.memory`
+  (`ReadMemory` in `reads.dart`, kept per name in `Account.memoryOf` /
+  `remember`) is mixed into the table's read of you at `memoryWeight`
+  (rivals by difficulty, bosses by rung). The `holdem` `GameInfo` ("Hold'em Sit & Go") stays
   in `games` (party lookups, online) but isn't on home's grid. Tests open
   games with `openFromHome` (`test/screens.dart`).
 - `lib/games/catalog.dart`: the game picker's list (`GameInfo`: player

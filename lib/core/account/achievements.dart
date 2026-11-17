@@ -1,4 +1,5 @@
-/// Things to chase in Hold'em against bots. Earned ones are kept in the
+/// Things to chase in Hold'em against bots (Sit & Go, Boss Tables,
+/// tournaments). Earned ones are kept in the
 /// [Account] (id -> when); the profile lists them all.
 enum Achievement {
   firstWin('First table', 'Win a Hold\'em game against bots.'),
@@ -11,7 +12,16 @@ enum Achievement {
   bounty('Bounty hunter', 'Knock out the bounty bot.'),
   rival('Settled the score', 'Finish ahead of a rival.'),
   quads('Four of a kind', 'Win a showdown with four of a kind.'),
-  royal('Royal flush', 'Win with the best hand in poker.');
+  royal('Royal flush', 'Win with the best hand in poker.'),
+  bossLou('Luck ran out', 'Beat Lucky Lou at the Boss Tables.'),
+  bossGranny('Sprang the trap', 'Beat Granny Gold at the Boss Tables.'),
+  bossChaos('Calm in the storm', 'Beat Captain Chaos at the Boss Tables.'),
+  bossMime('Read the unreadable', 'Beat The Mime at the Boss Tables.'),
+  bossMadame('Out-studied', 'Beat Madame Nine, the final boss.'),
+  ladder('Top of the ladder', 'Beat all five bosses.'),
+  tourneyCash('In the money', 'Finish in the top three of a tournament.'),
+  tourneyWin('Champion', 'Win a tournament.'),
+  mainEvent('Main Event champion', 'Win the Main Event.');
 
   const Achievement(this.title, this.text);
 

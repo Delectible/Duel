@@ -108,6 +108,99 @@ class PlayerReads {
 
   /// Of the times they bet the river and were seen, how often it was a bluff.
   double get bluffRate => aggressiveShowdowns == 0 ? 0 : bluffsShown / aggressiveShowdowns;
+
+  /// The counts that make up a read of how someone plays (what a bot can
+  /// remember from one game to the next), in [ReadMemory]'s order.
+  List<num> get _counts => [
+    hands, vpip, pfr, threeBets, bets, raises, calls, checks, folds, cbetChances, cbets, //
+    facedBets, foldsToBet, showdowns, showdownsWon, aggressiveShowdowns, bluffsShown, //
+    bigBetsShown, bigBetsStrong, smallBetsShown, smallBetsStrong, allIns, opens, sizedBets, limps, //
+    openBlinds, betShare,
+  ];
+
+  void _setCounts(List<num> v) {
+    var k = 0;
+    int n() => v[k++].round();
+    hands = n();
+    vpip = n();
+    pfr = n();
+    threeBets = n();
+    bets = n();
+    raises = n();
+    calls = n();
+    checks = n();
+    folds = n();
+    cbetChances = n();
+    cbets = n();
+    facedBets = n();
+    foldsToBet = n();
+    showdowns = n();
+    showdownsWon = n();
+    aggressiveShowdowns = n();
+    bluffsShown = n();
+    bigBetsShown = n();
+    bigBetsStrong = n();
+    smallBetsShown = n();
+    smallBetsStrong = n();
+    allIns = n();
+    opens = n();
+    sizedBets = n();
+    limps = n();
+    openBlinds = v[k++].toDouble();
+    betShare = v[k++].toDouble();
+  }
+
+  /// This game's read with [memory] added in at [weight] (0 forgets it,
+  /// 1 remembers it all): what a bot that knows you sees. The game's own
+  /// things (mood, chips, the hands) are this game's.
+  PlayerReads withMemory(ReadMemory memory, double weight) {
+    final now = _counts;
+    final r = PlayerReads()
+      .._setCounts([
+        for (var i = 0; i < now.length; i++)
+          now[i] + (i < memory.counts.length ? memory.counts[i] * weight : 0),
+      ])
+      ..tilt = tilt
+      ..tilts = tilts
+      ..handsWon = handsWon
+      ..biggestPot = biggestPot
+      ..chipsWon = chipsWon
+      ..bluffWins = bluffWins
+      ..bestBluff = bestBluff;
+    return r;
+  }
+}
+
+/// How someone has played over past games, as a bot remembers it: the
+/// counts of [PlayerReads], fading a little each game so a change of style
+/// shows ([remember]). Kept per bot (rivals, bosses) in the app's account.
+class ReadMemory {
+  ReadMemory([List<double>? counts]) : counts = counts ?? const [];
+
+  final List<double> counts;
+
+  /// Hands it remembers you playing.
+  double get hands => counts.isEmpty ? 0 : counts[0];
+
+  /// What it remembers as a read (rates, totals).
+  PlayerReads get reads => PlayerReads().withMemory(this, 1);
+
+  /// After a game: the old memory fades to [keep] and [game] is added; at
+  /// most [cap] hands are kept (scaled down, so the rates stay).
+  ReadMemory remember(PlayerReads game, {double keep = 0.6, double cap = 80}) {
+    final now = game._counts;
+    var v = [for (var i = 0; i < now.length; i++) now[i] + (i < counts.length ? counts[i] * keep : 0.0)];
+    if (v[0] > cap) {
+      final f = cap / v[0];
+      v = [for (final x in v) x * f];
+    }
+    return ReadMemory([for (final x in v) (x * 100).roundToDouble() / 100]);
+  }
+
+  List<double> toJson() => counts;
+
+  static ReadMemory fromJson(Object? j) =>
+      ReadMemory(j is List ? [for (final x in j) x is num ? x.toDouble() : 0.0] : null);
 }
 
 /// The table's memory for a whole game: everyone's reads plus the last few

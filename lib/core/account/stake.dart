@@ -118,6 +118,10 @@ class StakeTicket {
     paid: paid?.call(outcome),
   );
 
+  /// Settles once with a prize (tournaments, bosses): [prize] is all that
+  /// comes back, the stake included.
+  int settlePrize(int prize) => result ??= account.settlePrize(gameId: gameId, stake: stake, prize: prize);
+
   /// Leaving before the end counts as a loss.
   void forfeit() {
     if (!settled) settle(Outcome.loss);
@@ -162,7 +166,7 @@ class StakeResult extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = ticket.result ?? 0;
     final money = ticket.account.money(r.abs());
-    final (text, color) = ticket.stake == 0
+    final (text, color) = ticket.stake == 0 && r <= 0
         ? ('Free game: no stake, no winnings', Toon.muted)
         : r > 0
         ? ('+$money', Toon.green)
@@ -178,7 +182,7 @@ class StakeResult extends StatelessWidget {
         text,
         key: const Key('stake result'),
         textAlign: TextAlign.center,
-        style: Toon.text(ticket.stake == 0 ? 14 : 26, weight: FontWeight.w700, color: color),
+        style: Toon.text(ticket.stake == 0 && r <= 0 ? 14 : 26, weight: FontWeight.w700, color: color),
       ),
     );
   }

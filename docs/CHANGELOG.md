@@ -33,11 +33,14 @@ Running list of requested changes and when each one landed.
 - [x] **2.0 User story:** recorded in `docs/VISION.md` (party model,
   shared menus, games as plug-ins, GamePigeon-easy invites, phases).
 
-- [ ] **2.1 Pick the backend and sign-in** for online play, then update
-  `docs/PRIVACY.md` and the Data safety form to match.
+- [x] **2.1 Pick the backend and sign-in** for online play, then update
+  `docs/PRIVACY.md` and the Data safety form to match. Done in 11.1 / 11.2
+  (Firebase, anonymous sign-in; the Data safety form is still Luca's, see
+  CLAUDE.md's open threads). → 0.6.0 · 2026-10-16
 - [x] **2.2 First card game** vs a bot: Texas Hold'em (see 3.4).
   → 0.2.0 · 2026-10-10
-- [ ] **2.3 First card game** online.
+- [x] **2.3 First card game** online: Texas Hold'em (11.5).
+  → 0.7.0 · 2026-10-16
 
 ## Revision v0.2 (requested 2026-10-10)
 
@@ -448,7 +451,7 @@ Ships as app version **0.4.1**.
   host**, **a vote** (everyone votes from the game's preview; when all
   have, the most votes wins, a coin toss on a tie, at the smallest stake
   voted for it) or **first come** (anyone can start a game).
-- [ ] **18.4 Blitz online** (later).
+- [x] **18.4 Blitz online**: done in 28.2. → 0.10.0 · 2026-10-24
 
 ### 19. Sound effects (requested 2026-10-21)
 
@@ -620,8 +623,8 @@ Ships as app version **0.4.1**.
   beat, knockouts, comeback, best bluff, tilts). → 0.10.3 · 2026-11-13
 - [x] **31.5 Hand of the game**: your best and worst decision, judged by
   your chances, the price and how it turned out. → 0.10.3 · 2026-11-13
-- [ ] **31.6 Boss tables and mini-tournaments**: tabled for the bigger
-  poker expansion (with cash tables, 25).
+- [x] **31.6 Boss tables and mini-tournaments**: built in 38.
+  → 0.11.4 · 2026-11-17
 
 ### 32. Launch screen, suits, Poker Lounge (requested 2026-11-13)
 
@@ -639,9 +642,9 @@ Ships as app version **0.4.1**.
   (the game we have), Cash Games, Tournament and Boss Tables (explanation
   screens for now), your poker record, the rivals' board, achievements,
   tip of the day, the hands, Play at home. → 0.10.3 · 2026-11-13
-- [ ] **32.4 Cash Games** (25), **Tournament** (18 players, 3 tables,
-  top 3 paid), **Boss Tables** (5 bosses, a ladder): to build once the
-  explanation screens are agreed.
+- [x] **32.4 Cash Games** (25), **Tournament** (18 players, 3 tables,
+  top 3 paid), **Boss Tables** (5 bosses, a ladder): cash games in 33,
+  the other two in 38. → 0.11.4 · 2026-11-17
 
 ### 33. Cash games (requested 2026-11-13)
 
@@ -706,20 +709,60 @@ Ships as app version **0.4.1**.
   turn running out (the server folds for you) froze the table, in cash
   games and online Sit & Go. → 0.11.3 · 2026-11-17 · 0757fa5
 
-### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
+### 38. Tournament and Boss Tables (requested 2026-11-17)
 
-- [ ] **25.1 Online cash tables, open to everyone**: a set of public
+Bots only for now (with friends later). Decided with Luca: 20–30 minute
+tournaments, a game left mid-way picks up where it was, a rising boss
+ladder, a 1,000 Freeroll, boss + 3 bots (finish ahead of the boss),
+habits clear at the bottom and subtler up the ladder, and rivals and
+bosses remember how you play.
+
+- [x] **38.1 Tournament**: you and 17 bots (the three rivals among them)
+  at three tables of six; the blinds go up every 6 hands at every table;
+  the other tables play on between your hands; as players go out tables
+  break up and the rest are moved to keep them even ("Rex joins your
+  table", "Final table!"); you never move. Top three paid 50 / 30 / 20%.
+  Daily Freeroll (free, pool 1,000, once a day, easy bots), Regular
+  (500, pool 9,000, normal), Main Event (5,000, pool 90,000, hard;
+  unlocks after a top-three Regular). Leave and you're out.
+- [x] **38.2 Boss Tables**: a ladder of five, each a Sit & Go of the boss
+  and three bots: Lucky Lou (calls every river, never folds a draw;
+  stake 200), Granny Gold (never bluffs, traps; 500), Captain Chaos
+  (raises almost everything; 1,000), The Mime (no timing tells; 2,500),
+  Madame Nine (studies you and plays against your habits; 5,000). Finish
+  ahead of the boss: 3x the stake back (Madame Nine 5x), win the whole
+  table for one stake more; beating one unlocks the next. Up the ladder:
+  harder play, the habit shows less often, more of their memory used.
+  Bosses greet you with your record and taunt or sulk.
+- [x] **38.3 They remember you**: rivals (Sit & Go, tournaments) and
+  bosses keep a read of how you play from game to game (hands played,
+  folds to bets, bluffs shown, sizes), older games fading; how much they
+  use it rises with difficulty, and they say so ("Still folding when
+  someone bets? I remember.").
+- [x] **38.4 Saved as you go**: a boss or tournament game is saved after
+  every hand; the lounge offers Continue (one lounge game at a time).
+- [x] **38.5 Trophy shelf** in the lounge (a trophy per boss beaten; gold,
+  silver or bronze per tournament, your best) and **9 achievements**
+  (each boss, the whole ladder, in the money, champion, Main Event).
+- [x] **38.6 Change log tidied**: 2.1, 2.3, 18.4 and 25.x marked done
+  with the items that did them.
+- [x] **38.7 Fix**: a "Blinds up!" notice could pop up twice in one hand
+  (at speed it tripped an error); it shows once, as the hand is dealt.
+
+### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
+
+- [x] **25.1 Online cash tables, open to everyone**: a set of public
   Hold'em tables at different stakes, always running with bots; any
   player can sit down at any time and takes a bot's seat (the bot comes
   back when they leave), so any number of people can play. Leave any
   time (mid-hand: fold, then cash out).
-- [ ] **25.2 Pips are the chips**: buy in from your balance, cash out to
+- [x] **25.2 Pips are the chips**: buy in from your balance, cash out to
   it. You need the pips (no credit); earn them in the other games first.
   No cut: it's among friends, not a casino.
-- [ ] **25.3 Unlocks**: bigger tables open up as you go (e.g. by balance
+- [x] **25.3 Unlocks**: bigger tables open up as you go (e.g. by balance
   or by what you've won).
-- The server-side wallet it needed is in (28.3). Next: public tables
-  (not party matches) with seats people join and leave mid-session.
+- All three done in 33 (shared tables, buy in from your balance, tables
+  unlock by balance). → 0.11.0 · 2026-11-13
 
 ### 12. Fixes
 
