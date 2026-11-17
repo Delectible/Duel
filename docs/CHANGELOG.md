@@ -724,7 +724,7 @@ bosses remember how you play.
   table", "Final table!"); you never move. Top three paid 50 / 30 / 20%.
   Daily Freeroll (free, pool 1,000, once a day, easy bots), Regular
   (500, pool 9,000, normal), Main Event (5,000, pool 90,000, hard;
-  unlocks after a top-three Regular). Leave and you're out.
+  unlocks after a top-three Regular). Leave and you're out. → 0.11.4 · 2026-11-17 · 300e8ae
 - [x] **38.2 Boss Tables**: a ladder of five, each a Sit & Go of the boss
   and three bots: Lucky Lou (calls every river, never folds a draw;
   stake 200), Granny Gold (never bluffs, traps; 500), Captain Chaos
@@ -733,21 +733,21 @@ bosses remember how you play.
   ahead of the boss: 3x the stake back (Madame Nine 5x), win the whole
   table for one stake more; beating one unlocks the next. Up the ladder:
   harder play, the habit shows less often, more of their memory used.
-  Bosses greet you with your record and taunt or sulk.
+  Bosses greet you with your record and taunt or sulk. → 0.11.4 · 2026-11-17 · 300e8ae
 - [x] **38.3 They remember you**: rivals (Sit & Go, tournaments) and
   bosses keep a read of how you play from game to game (hands played,
   folds to bets, bluffs shown, sizes), older games fading; how much they
   use it rises with difficulty, and they say so ("Still folding when
-  someone bets? I remember.").
+  someone bets? I remember."). → 0.11.4 · 2026-11-17 · 300e8ae
 - [x] **38.4 Saved as you go**: a boss or tournament game is saved after
-  every hand; the lounge offers Continue (one lounge game at a time).
+  every hand; the lounge offers Continue (one lounge game at a time). → 0.11.4 · 2026-11-17 · 300e8ae
 - [x] **38.5 Trophy shelf** in the lounge (a trophy per boss beaten; gold,
   silver or bronze per tournament, your best) and **9 achievements**
-  (each boss, the whole ladder, in the money, champion, Main Event).
+  (each boss, the whole ladder, in the money, champion, Main Event). → 0.11.4 · 2026-11-17 · 300e8ae
 - [x] **38.6 Change log tidied**: 2.1, 2.3, 18.4 and 25.x marked done
-  with the items that did them.
+  with the items that did them. → 0.11.4 · 2026-11-17 · 300e8ae
 - [x] **38.7 Fix**: a "Blinds up!" notice could pop up twice in one hand
-  (at speed it tripped an error); it shows once, as the hand is dealt.
+  (at speed it tripped an error); it shows once, as the hand is dealt. → 0.11.4 · 2026-11-17 · 300e8ae
 
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
