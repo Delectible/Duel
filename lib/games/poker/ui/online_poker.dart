@@ -91,6 +91,7 @@ class OnlinePokerController extends PokerController {
   DateTime _heard = DateTime.now();
   Object? _turnAt;
   int? _claimed;
+  DateTime _claimedAt = DateTime.now();
 
   int _local(int server) => (server - mySeat) % serverSeats;
   int _server(int local) => (local + mySeat) % serverSeats;
@@ -217,8 +218,9 @@ class OnlinePokerController extends PokerController {
   void _actFor(int seat, PokerHand h) {
     final m = _logged();
     if (m == null) {
-      // Yours: the buttons are up. Someone else's: wait for the server.
-      if (seat != 0) _park(_step);
+      // Yours: the buttons are up (if your time runs out, the server's
+      // move for you comes next). Someone else's: wait for the server.
+      _park(_step);
       return;
     }
     // Bots take their time (and give their tells) while you're in the
@@ -409,8 +411,11 @@ class OnlinePokerController extends PokerController {
     if (m == null || m['status'] != 'live') return;
     _notify();
     final v = m['version'] as int?;
-    if (_msLeft < -1500 && _claimed != v) {
+    // Once per version; again every few seconds if nothing came of it.
+    final now = _clock();
+    if (_msLeft < -1500 && (_claimed != v || now.difference(_claimedAt).inSeconds >= 5)) {
       _claimed = v;
+      _claimedAt = now;
       unawaited(party.claimTimeout());
     }
   }

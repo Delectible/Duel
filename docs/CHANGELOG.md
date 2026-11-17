@@ -694,6 +694,18 @@ Ships as app version **0.4.1**.
   open, else in another open seat. A full table: a bot gets up for you,
   never one you pick. → 0.11.2 · 2026-11-14
 
+### 37. Cash tables never stall (reported 2026-11-17)
+
+- [x] **37.1 Fix: bots hung up online** (mostly after a while at the
+  table): the phone was still showing the bots think when the server
+  dealt the next hand, lost the rest of the hand and waited for ever.
+  Now it keeps the hand it's showing until it's done, asks for the next
+  one only once it's caught up, skips a hand it missed, retries a lost
+  timeout claim, picks the live updates up again if they drop, and
+  fetches the table itself when nothing's moved for 10 s. Also: your own
+  turn running out (the server folds for you) froze the table, in cash
+  games and online Sit & Go.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; planned, not started)
 
 - [ ] **25.1 Online cash tables, open to everyone**: a set of public

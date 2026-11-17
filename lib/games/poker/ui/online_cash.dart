@@ -48,16 +48,45 @@ class OnlineCashController extends PokerController {
       clock: clock,
     );
     c._seatFrom(t, null);
-    c._subs = [
-      service.watch(t.stake).listen((d) {
-        if (d != null) c._onDoc(d);
-      }, onError: (Object _) {}),
-      service.mine(t.stake).listen((d) {
-        c._mine = d;
-        c._onDoc(c._doc);
-      }, onError: (Object _) {}),
-    ];
+    c._listen();
     return c;
+  }
+
+  /// Follows the table and your cards; a stream that drops is picked up
+  /// again (the watchdog in [_second] fetches the table meanwhile).
+  void _listen() {
+    for (final s in _subs) {
+      unawaited(s.cancel());
+    }
+    void again(Object? _) {
+      if (_disposed || _relisten != null) return;
+      _relisten = Timer(const Duration(seconds: 3), () {
+        _relisten = null;
+        if (!_disposed) _listen();
+      });
+    }
+
+    _subs = [
+      service
+          .watch(stake)
+          .listen(
+            (d) {
+              if (d != null) _onDoc(d);
+            },
+            onError: again,
+            onDone: () => again(null),
+          ),
+      service
+          .mine(stake)
+          .listen(
+            (d) {
+              _mine = d;
+              _onDoc(_doc);
+            },
+            onError: again,
+            onDone: () => again(null),
+          ),
+    ];
   }
 
   final CashService service;
@@ -68,6 +97,7 @@ class OnlineCashController extends PokerController {
   Doc? _mine;
   List<StreamSubscription<Doc?>> _subs = const [];
   Timer? _tick;
+  Timer? _relisten;
 
   @override
   bool get isCash => true;
@@ -91,11 +121,28 @@ class OnlineCashController extends PokerController {
   Map<Object?, Object?>? get _hand => _doc['hand'] as Map?;
   int? get _handNo => _hand?['no'] as int?;
   bool get _handOver => _hand?['won'] != null;
-  List<List<Object?>> get _moves => ((_hand?['moves'] as List?) ?? const []).cast<List<Object?>>();
 
   /// The hand dealt on this table.
   int? _dealtNo;
   int _cursor = 0;
+
+  /// The hand being shown, as the server last had it: kept when the
+  /// server moves on to the next one, so this phone (still showing the
+  /// bots think) can finish it.
+  Map<Object?, Object?>? _played;
+
+  /// The last hand this phone finished showing.
+  int? _finishedNo;
+
+  /// The server's hand [no], if this phone has it.
+  Map<Object?, Object?>? _handNumbered(int? no) {
+    if (no == null) return null;
+    if (_played?['no'] == no) return _played;
+    return _handNo == no ? _hand : null;
+  }
+
+  /// The server moved past the hand this phone is showing.
+  bool get _movedOn => _dealtNo != null && _handNo != _dealtNo;
 
   /// Chips you'd leave with now (mid-hand: what's not in the pot).
   int get yourChips => handPlayer(0)?.stack ?? game.players[0].stack;
@@ -169,7 +216,7 @@ class OnlineCashController extends PokerController {
     return Deck.lazy((i) {
       if (i < dealt) return _blank;
       final k = boardAt[i - dealt];
-      final board = _handNo == no ? (_hand?['board'] as List?) ?? const [] : const [];
+      final board = (_handNumbered(no)?['board'] as List?) ?? const [];
       return k != null && k < board.length ? PlayingCard.parse('${board[k]}') : _blank;
     });
   }
@@ -178,6 +225,7 @@ class OnlineCashController extends PokerController {
   void _dealt(PokerHand h) {
     _cursor = 0;
     _dealtNo = _handNo;
+    _played = _hand;
     final mine = _myCards;
     final me = handIndex(0);
     if (mine != null && me != null) {
@@ -188,8 +236,7 @@ class OnlineCashController extends PokerController {
   }
 
   void _showCards(PokerHand h) {
-    if (_handNo != _dealtNo) return;
-    final shown = (_hand?['shown'] as Map?) ?? const {};
+    final shown = (_played?['shown'] as Map?) ?? const {};
     for (final e in shown.entries) {
       final i = handIndex(_local(int.parse('${e.key}')));
       if (i == null) continue;
@@ -201,22 +248,28 @@ class OnlineCashController extends PokerController {
 
   @override
   bool _canAdvance(PokerHand h) {
-    if (_handNo != _dealtNo) return true;
-    if (h.isAllInRunout || h.street == Street.river) return _handOver;
+    final played = _played;
+    if (played == null) return true;
     final needed = switch (h.street) {
       Street.preflop => 3,
       Street.flop => 4,
       _ => 5,
     };
-    return ((_hand?['board'] as List?) ?? const []).length >= needed;
+    final ok = h.isAllInRunout || h.street == Street.river
+        ? played['won'] != null
+        : ((played['board'] as List?) ?? const []).length >= needed;
+    // The rest of the hand never reached this phone: on to the server's.
+    if (!ok && _movedOn) _after(0, _resync);
+    return ok;
   }
 
   @override
   void _beforeAdvance(PokerHand h) => _showCards(h);
 
+  List<List<Object?>> get _playedMoves => ((_played?['moves'] as List?) ?? const []).cast<List<Object?>>();
+
   Move? _logged() {
-    if (_handNo != _dealtNo) return null;
-    final moves = _moves;
+    final moves = _playedMoves;
     if (_cursor >= moves.length) return null;
     final m = moves[_cursor];
     return OnlinePokerController._toMove(MoveKind.values[m[0]! as int], m[1]! as int);
@@ -226,10 +279,13 @@ class OnlineCashController extends PokerController {
   void _actFor(int seat, PokerHand h) {
     final m = _logged();
     if (m == null) {
-      if (seat != 0 || _doc['turn'] != mySeat) _park(_step);
+      // The server moved on and this hand's moves never all came: catch up.
+      if (_movedOn) return _resync();
+      // Yours too: if your time runs out, the server's fold comes next.
+      _park(_step);
       return;
     }
-    final raw = _moves[_cursor];
+    final raw = _playedMoves[_cursor];
     final tempo = raw.length > 2 ? (raw[2]! as int) / 100 : null;
     final think = seat == 0
         ? 0
@@ -246,7 +302,7 @@ class OnlineCashController extends PokerController {
   }
 
   @override
-  bool get yourTurn => super.yourTurn && _doc['turn'] == mySeat && _logged() == null;
+  bool get yourTurn => super.yourTurn && !_movedOn && _doc['turn'] == mySeat && _logged() == null;
 
   @override
   void act(Move move) {
@@ -263,7 +319,28 @@ class OnlineCashController extends PokerController {
   }
 
   @override
-  void _handEnded() => _cursor = 0;
+  void _handEnded() {
+    _cursor = 0;
+    _finishedNo = _dealtNo;
+  }
+
+  /// Gives up on a hand this phone can't finish (its moves were missed)
+  /// and deals the server's current one.
+  void _resync() {
+    if (_disposed || !_movedOn) return;
+    _timer?.cancel();
+    _countdown?.cancel();
+    _parked = null;
+    waitingForYou = false;
+    secondsLeft = null;
+    _cursor = 0;
+    _finishedNo = _dealtNo;
+    _played = null;
+    _dealtNo = null;
+    if (phase == TablePhase.finished) return _notify();
+    phase = TablePhase.dealing;
+    _newHand();
+  }
 
   /// Out of chips as the server has it (sitting out a hand isn't broke).
   @override
@@ -279,12 +356,19 @@ class OnlineCashController extends PokerController {
   Object? _endedAt;
   DateTime _endedHeard = DateTime.now();
   int? _asked;
+  DateTime _askedAt = DateTime.now();
+
+  /// Since when this table has been waiting on the server (null: it isn't).
+  DateTime? _stuckSince;
+  DateTime _fetchedAt = DateTime.now();
 
   void _onDoc(Doc d) {
     if (_disposed) return;
     if ((d['version'] as int? ?? 0) < (_doc['version'] as int? ?? 0)) return;
+    if (d['version'] != _doc['version']) _stuckSince = null;
     _doc = d;
     trouble = false;
+    if (_hand?['no'] == _dealtNo && _dealtNo != null) _played = _hand;
     if (d['turnAt'] != _turnAt) {
       _turnAt = d['turnAt'];
       _heard = _clock();
@@ -324,17 +408,40 @@ class OnlineCashController extends PokerController {
     final v = _doc['version'] as int?;
     final now = _clock();
     var due = false;
-    if (_hand == null || _handOver) {
-      due = now.difference(_endedHeard).inMilliseconds > 5500 || _hand == null;
+    if (_hand == null) {
+      due = true;
+    } else if (_handOver) {
+      // The next hand once this phone has shown this one (the server
+      // waits its few seconds), or after a while whatever this phone's up to.
+      final since = now.difference(_endedHeard).inMilliseconds;
+      due = (_finishedNo == _handNo && since > 2000) || since > 15000;
     } else {
       final d = _doc['deadline'] as int?, at = _doc['turnAt'] as int?;
       if (d != null && at != null) due = (d - at) - now.difference(_heard).inMilliseconds < -1500;
     }
+    _watchdog(now);
     _notify();
-    if (due && _asked != v) {
+    // Asked once per table version; again every few seconds if nothing came
+    // of it (a lost call, or the server not ready yet).
+    if (due && (_asked != v || now.difference(_askedAt).inSeconds >= 5)) {
       _asked = v;
+      _askedAt = now;
+      _fetchedAt = now;
       unawaited(service.tick(stake).then((d) => _onDoc(d), onError: (Object _) => _troubled()));
     }
+  }
+
+  /// A table waiting on a move that never comes (a dropped stream, a lost
+  /// update): fetch the table afresh every few seconds until it moves.
+  void _watchdog(DateTime now) {
+    if (_parked == null || yourTurn) {
+      _stuckSince = null;
+      return;
+    }
+    final since = _stuckSince ??= now;
+    if (now.difference(since).inSeconds < 10 || now.difference(_fetchedAt).inSeconds < 5) return;
+    _fetchedAt = now;
+    unawaited(service.tick(stake).then((d) => _onDoc(d), onError: (Object _) => _troubled()));
   }
 
   /// Seconds left for whoever is to act (people only).
@@ -387,6 +494,7 @@ class OnlineCashController extends PokerController {
   @override
   void dispose() {
     _tick?.cancel();
+    _relisten?.cancel();
     for (final s in _subs) {
       unawaited(s.cancel());
     }

@@ -186,4 +186,81 @@ void main() {
     c.dispose();
     await tester.pumpWidget(const SizedBox());
   });
+
+  for (final silent in [false, true]) {
+    testWidgets('online table: a phone slower than the server (bots shown thinking) keeps up'
+        '${silent ? '; live updates go quiet for a while' : ''}', (tester) async {
+      usePhone(tester, phones['small']!);
+      final srv = FakeServer(seed: 5);
+      final account = Account()..name = 'Luca';
+      account.bonus('test', 2900);
+      final party = PartyService(srv.player('luca'), account: account);
+      final service = CashService(party);
+
+      var quiet = false;
+      // The referee's clock and the phone's run on the test's time.
+      Future<void> wait([int ms = 400]) async {
+        for (var i = 0; i < 4; i++) {
+          srv.now = srv.now.add(Duration(milliseconds: ms ~/ 4));
+          // Quiet: nothing reaches the phone but what it asks for itself.
+          if (!quiet) unawaited(srv.publish());
+          await tester.pump(Duration(milliseconds: ms ~/ 4));
+        }
+      }
+
+      Future<T> run<T>(Future<T> Function() f) async {
+        late T result;
+        var done = false;
+        unawaited(
+          f().then((v) {
+            result = v;
+            done = true;
+          }),
+        );
+        for (var i = 0; i < 300 && !done; i++) {
+          await tester.pump(const Duration(milliseconds: 20));
+        }
+        expect(done, isTrue);
+        return result;
+      }
+
+      await wait(1500);
+      expect(account.balance, 3000);
+      final doc = await run(() => service.sit(CashStake.kitchen, 1000));
+      await wait();
+      expect(account.balance, 2000, reason: 'the referee took the buy-in');
+      final c = OnlineCashController.forTable(service, doc, you: account.persona, clock: () => srv.now);
+      c.start();
+      // At the bots' real pace the server finishes each hand (and may deal the
+      // next) long before this phone has shown it: it must never stall.
+      var acted = 0;
+      var timedOut = -1;
+      for (var i = 0; i < 3000 && acted < 6; i++) {
+        quiet = silent && i >= 100 && i < 400;
+        await wait(200);
+        // Another phone at the table asks for the next hand as soon as it may.
+        if (i % 5 == 0) unawaited(service.tick(CashStake.kitchen).then((_) {}, onError: (Object _) {}));
+        // The first turn is left to run out: the server folds for you.
+        if (c.yourTurn && timedOut < 0) timedOut = i;
+        if (c.yourTurn && i > timedOut + 250) {
+          c.act(const Move.fold());
+          acted++;
+        }
+        if (c.waitingForYou) c.nextHand();
+      }
+      expect(acted, greaterThanOrEqualTo(6), reason: 'several hands dealt to the phone');
+      await run(c.leave);
+      for (var i = 0; i < 100 && service.uid != null; i++) {
+        await wait(400);
+        final t = await run(() => srv.store.get('cash/kitchen'));
+        if (!CashTableState.fromJson(t!).people.any((s) => s.id == 'luca')) break;
+        srv.now = srv.now.add(const Duration(seconds: 10));
+        await run(() => service.tick(CashStake.kitchen));
+      }
+      await wait(800);
+      expect(account.balance, greaterThan(2000), reason: 'cashed out what was left');
+      c.dispose();
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 }
