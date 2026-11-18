@@ -831,6 +831,15 @@ bosses remember how you play.
   one every 2 s; doesn't disturb anyone's move). The bots talk as they do
   offline, the same lines on every phone. → 0.11.6 · 2026-11-18 · 8412852
 
+- [x] **43.6 Traits one at a time** (2026-11-18): the read card no longer
+  gives a combined profile ("Loose and aggressive: …"); every trait is a
+  separate line, judged on its own sample, the most marked first (at most
+  7). Limping now counts real limps (it fired on anyone who called a lot).
+  New ones: re-raises before the flop, opening size (big / min-raise),
+  bet size after the flop (big / small), gives up the flop after raising,
+  goes to showdown a lot, wins / loses showdowns, winning a lot of pots.
+  → 0.11.6 · 2026-11-18
+
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
 - [x] **25.1 Online cash tables, open to everyone**: a set of public

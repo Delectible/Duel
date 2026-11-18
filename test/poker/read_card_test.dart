@@ -38,22 +38,59 @@ void main() {
     expect(readNotes(_reads(hands: 8, vpip: 2)).join(' '), isNot(contains('most hands')));
   });
 
-  test('once there is a read, a line on what kind of player', () {
-    final lag = PlayerReads()
+  test('each trait is noted on its own: no combined profile, and limping only for real limps', () {
+    // Loose, aggressive, raising, c-betting, folding: all separate lines.
+    final r = PlayerReads()
       ..hands = 30
       ..vpip = 15
       ..pfr = 10
       ..bets = 10
       ..raises = 6
-      ..calls = 4;
-    expect(playerType(lag, players: 6), startsWith('Loose and aggressive'));
-    final rock = PlayerReads()
+      ..calls = 4
+      ..cbetChances = 5
+      ..cbets = 5
+      ..facedBets = 6
+      ..foldsToBet = 5;
+    final notes = readNotes(r);
+    expect(notes.join(' '), isNot(contains('Loose and')), reason: 'no character profile');
+    expect(notes.where((n) => n.contains('Plays')).length, 1);
+    expect(
+      notes.join('\n'),
+      allOf(
+        contains('Bets and raises far more'),
+        contains('Raises a lot before'),
+        contains('flop after raising'),
+        contains('Folds to bets'),
+      ),
+    );
+    expect(notes.length, lessThanOrEqualTo(readNotesMax));
+    // Calling a lot before the flop isn't limping: only counted limps are.
+    final caller = PlayerReads()
       ..hands = 30
-      ..vpip = 3
-      ..bets = 1
-      ..calls = 6;
-    expect(playerType(rock, players: 6), startsWith('Tight and passive'));
-    expect(playerType(PlayerReads()..hands = 5, players: 6), isNull);
+      ..vpip = 12
+      ..pfr = 2
+      ..calls = 12;
+    expect(readNotes(caller).join(' '), isNot(contains('Limps')));
+    expect(readNotes(caller..limps = 8).join(' '), contains('Limps in a lot'));
+  });
+
+  test('a good spread of other traits is recognised: sizes, showdowns, re-raising', () {
+    final r = PlayerReads()
+      ..hands = 40
+      ..vpip = 9
+      ..opens = 5
+      ..openBlinds = 25
+      ..threeBets = 5
+      ..sizedBets = 6
+      ..betShare = 6 * 0.35
+      ..showdowns = 14
+      ..showdownsWon = 11;
+    final all = readNotes(r).join('\n');
+    expect(all, contains('Opens big'));
+    expect(all, contains('re-raise before the flop'));
+    expect(all, contains('Bets small after the flop'));
+    expect(all, contains('Goes to showdown a lot'));
+    expect(all, contains('Wins most showdowns'));
   });
 
   testWidgets('the flame and target by a name are explained on their read card', (tester) async {

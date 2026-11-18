@@ -192,98 +192,133 @@ const readHands = 15;
   _ => (0.33, 0.45, 0.14),
 };
 
-/// What kind of player the numbers say, in a line, once there's a read:
-/// tight or loose (for this table size), aggressive or passive.
-String? playerType(PlayerReads r, {required int players}) {
-  if (r.hands < readHands) return null;
-  final (lots, _, picky) = _vpipBands(players);
-  final loose = r.vpipRate >= lots, tight = r.vpipRate <= (lots + picky) / 2;
-  final moves = r.bets + r.raises + r.calls;
-  final aggro = moves >= 6 && r.aggression >= 1.8, passive = moves >= 6 && r.aggression <= 0.9;
-  const la = 'Loose and aggressive: plays lots of hands and keeps betting. Hard to put on a hand.';
-  const lp = "Loose and passive: plays lots, calls lots, rarely raises. Bet your good hands; don't bluff.";
-  const ta = 'Tight and aggressive: picks good hands and bets them. A solid player.';
-  const tp = 'Tight and passive: careful, calls more than bets. When they raise, believe it.';
-  if (loose && aggro) return la;
-  if (loose && passive) return lp;
-  if (tight && aggro) return ta;
-  if (tight && passive) return tp;
-  if (loose) return 'Loose: gets involved in a lot of pots.';
-  if (tight) return 'Tight: waits for good cards.';
-  return null;
-}
-
-/// What anyone at the table could have worked out about a player: plain
-/// words from the numbers, once there's enough to go on, judged against
-/// the table's size ([players] dealt in).
+/// What anyone at the table could have worked out about a player, in plain
+/// words. Every trait is judged on its own, on its own sample (a trait
+/// shows once there's enough of that kind of play to go on), so a card
+/// lists a handful of separate things rather than one character profile.
+/// The most marked ones come first (at most [readNotesMax]). Rates that
+/// depend on how many hands were seen are pulled towards a normal player's
+/// for the table size ([players] dealt in) and say "Early:" until
+/// [readHands].
 List<String> readNotes(PlayerReads r, {int players = 6}) {
   if (r.hands < 3) return ['Too soon to tell: ${r.hands} hand${r.hands == 1 ? '' : 's'} seen.'];
-  final notes = <String>[];
-  if (r.tilt > 0.35) notes.add('Steaming after losing a big pot: expect wild plays.');
-  final type = playerType(r, players: players);
-  if (type != null) notes.add(type);
-  // How many hands they play. From the third hand there's the plain count;
-  // from the fourth a label, judged on the rate pulled towards a normal
-  // player's (as if six more average hands had been seen), so a few hands
-  // can't swing it. Under [readHands] it says "Early:".
+  final traits = <({double score, String text})>[];
+  void trait(double score, String text) => traits.add((score: score, text: text));
+  final early = r.hands < readHands;
+  String say(String t) => early ? 'Early: ${t[0].toLowerCase()}${t.substring(1)}' : t;
+  String pct(double x) => '${(x * 100).round()}%';
+
+  // --- Before the flop ---
   final (lots, most, picky) = _vpipBands(players);
   final typical = (lots + picky) / 2;
-  final vpip = (r.vpip + typical * 6) / (r.hands + 6);
-  if (r.hands < readHands) notes.add('Played ${r.vpip} of ${r.hands} hands so far.');
+  double shrink(int count, double prior) => (count + prior * 6) / (r.hands + 6);
+  final vpip = shrink(r.vpip, typical);
   if (r.hands >= 4) {
-    final early = r.hands < readHands;
-    String say(String t) => early ? 'Early: ${t[0].toLowerCase()}${t.substring(1)}' : t;
     if (vpip >= most) {
-      notes.add(say('Plays most hands.'));
+      trait(2 + vpip, say('Plays most hands.'));
     } else if (vpip >= lots) {
-      notes.add(say('Plays a lot of hands.'));
+      trait(1 + vpip, say('Plays a lot of hands.'));
     } else if (vpip <= picky) {
-      notes.add(say('Very picky: when they play, they have something.'));
+      trait(1 + (picky - vpip) * 4, say('Very picky: when they play, they have something.'));
     }
   }
-  if (r.hands >= 6 && vpip > lots * 0.75 && r.pfrRate < r.vpipRate * 0.35) {
-    notes.add('Limps and calls before the flop more than they raise.');
-  } else if (r.hands >= 6 && r.pfrRate >= 0.25) {
-    notes.add('Raises a lot before the flop.');
+  if (r.hands >= 6) {
+    final pfr = shrink(r.pfr, typical * 0.55);
+    if (pfr >= max(0.25, typical * 0.9)) trait(1 + pfr, say('Raises a lot before the flop.'));
   }
+  // Limping: just calling the big blind before anyone raised. Counted
+  // directly, not guessed from other numbers.
+  if (r.limps >= 3 && r.limps / r.hands >= 0.2) {
+    trait(1 + r.limps / r.hands, 'Limps in a lot instead of raising.');
+  }
+  if (r.threeBets >= 2 && r.threeBets / r.hands >= 0.08) {
+    trait(1 + r.threeBets / r.hands * 3, 'Likes to re-raise before the flop.');
+  }
+  if (r.opens >= 3) {
+    final avg = r.openBlinds / r.opens;
+    if (avg >= 4) {
+      trait(avg / 4, 'Opens big: about ${avg.toStringAsFixed(1)} big blinds.');
+    } else if (avg <= 2.2) {
+      trait(2.2 / avg, 'Min-raises before the flop.');
+    }
+  }
+
+  // --- After the flop ---
   final moves = r.bets + r.raises + r.calls;
   if (moves >= 6) {
     if (r.aggression >= 2.5) {
-      notes.add('Bets and raises far more than they call.');
+      trait(r.aggression / 2.5, 'Bets and raises far more than they call.');
     } else if (r.aggression <= 0.6) {
-      notes.add('Calls a lot, rarely bets: a calling station?');
+      trait(0.6 / max(r.aggression, 0.1), 'Calls a lot, rarely bets: a calling station?');
+    }
+  }
+  if (r.sizedBets >= 3) {
+    final share = r.betShare / r.sizedBets;
+    if (share >= 0.85) {
+      trait(share / 0.85, 'Bets big after the flop: about ${pct(share)} of the pot.');
+    } else if (share <= 0.4) {
+      trait(0.4 / max(share, 0.05), 'Bets small after the flop: about ${pct(share)} of the pot.');
+    }
+  }
+  if (r.cbetChances >= 3) {
+    if (r.cbetRate >= 0.75) {
+      trait(1 + r.cbetRate, 'Bets the flop after raising almost every time.');
+    } else if (r.cbetRate <= 0.3) {
+      trait(1 + (0.3 - r.cbetRate) * 3, 'Often gives up on the flop after raising.');
     }
   }
   if (r.facedBets >= 4) {
     if (r.foldToBetRate >= 0.6) {
-      notes.add('Folds to bets often: a good one to bluff.');
+      trait(1 + r.foldToBetRate, 'Folds to bets often: a good one to bluff.');
     } else if (r.foldToBetRate <= 0.25) {
-      notes.add("Hard to bluff: doesn't fold to bets.");
+      trait(1 + (0.25 - r.foldToBetRate) * 3, "Hard to bluff: doesn't fold to bets.");
     }
   }
-  if (r.cbetChances >= 3 && r.cbetRate >= 0.75) notes.add('Bets the flop after raising almost every time.');
+
+  // --- Showdowns and bluffs ---
+  if (r.hands >= 10 && r.showdowns >= 4 && r.showdowns / r.hands >= 0.3) {
+    trait(1 + r.showdowns / r.hands, 'Goes to showdown a lot.');
+  }
+  if (r.showdowns >= 3) {
+    if (r.showdownWinRate >= 0.7) {
+      trait(1 + r.showdownWinRate, 'Wins most showdowns they reach.');
+    } else if (r.showdownWinRate <= 0.3) {
+      trait(1 + (0.3 - r.showdownWinRate) * 2, 'Often loses at showdown: calls a bit light?');
+    }
+  }
   if (r.bluffsShown > 0) {
-    notes.add('Caught bluffing ${r.bluffsShown}× at showdowns.');
+    trait(1.5 + r.bluffsShown, 'Caught bluffing ${r.bluffsShown}× at showdowns.');
   } else if (r.aggressiveShowdowns >= 3) {
-    notes.add('Every river bet shown so far was the real thing.');
+    trait(1.4, 'Every river bet shown so far was the real thing.');
   }
   if (r.bigBetsShown >= 2) {
     final honest = r.bigBetsStrong / r.bigBetsShown;
-    if (honest >= 0.75) notes.add('Big bets have meant a big hand.');
-    if (honest <= 0.34) notes.add('Big bets have been bluffs more than not.');
+    if (honest >= 0.75) trait(1.6, 'Big bets have meant a big hand.');
+    if (honest <= 0.34) trait(1.6, 'Big bets have been bluffs more than not.');
   }
   if (r.smallBetsShown >= 2 && r.smallBetsStrong / r.smallBetsShown >= 0.75) {
-    notes.add('Small bets have been strong hands: a trap?');
+    trait(1.5, 'Small bets have been strong hands: a trap?');
   }
-  if (r.allIns >= 3) notes.add('Has gone all in ${r.allIns} times.');
-  if (r.hands < readHands) {
+
+  // --- Mood and big moments ---
+  if (r.tilt > 0.35) trait(3 + r.tilt, 'Steaming after losing a big pot: expect wild plays.');
+  if (r.allIns >= 3) trait(1 + r.allIns * 0.2, 'Has gone all in ${r.allIns} times.');
+  if (r.hands >= 10 && r.handsWon / r.hands >= 0.4) trait(1.3, 'Winning a lot of pots.');
+
+  traits.sort((a, b) => b.score.compareTo(a.score));
+  final notes = [for (final t in traits.take(readNotesMax)) t.text];
+  if (early) {
     final more = readHands - r.hands;
+    if (r.hands >= 3) notes.add('Played ${r.vpip} of ${r.hands} hands so far.');
     notes.add('A proper read in about $more more hand${more == 1 ? '' : 's'}.');
   } else if (notes.isEmpty) {
     notes.add('Nothing stands out: a solid, balanced player?');
   }
   return notes;
 }
+
+/// Most separate traits a read card lists (the most marked first).
+const readNotesMax = 7;
 
 Future<void> showReadCard(BuildContext context, PokerController c, int seat) => showToonSheet<void>(
   context,
