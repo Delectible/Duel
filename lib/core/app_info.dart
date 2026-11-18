@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.11.5';
+  static const version = '0.11.6';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,8 +24,8 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'A new app icon: the Duel ghost. Online cash tables move on to the next hand sooner, and the turn clock only '
-      'shows for a person, never under a bot.';
+      "Hold'em: after a hand, Next hand keeps your cards down; Show cards throws them face up on the table. Show a "
+      'bluff and the bots remember it (and the one you fooled takes it badly).';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -39,6 +39,7 @@ class AppInfo {
         'Rivals and bosses remember how you play',
         'Trophy shelf and new achievements',
         'New app icon: the Duel ghost',
+        'Show cards: throw them on the table',
       ],
     ),
     (

@@ -279,28 +279,39 @@ void main() {
   });
 
   for (final MapEntry(key: phone, value: size) in phones.entries) {
-    testWidgets('losing a showdown: muck by default, or show on $phone', (tester) async {
-      usePhone(tester, size);
-      await tester.pumpWidget(app(1, pace: 0.2));
-      final show = find.byKey(const Key('show cards'));
-      for (var i = 0; i < 20000; i++) {
-        await tester.pump(const Duration(milliseconds: 20));
-        if (show.evaluate().isNotEmpty) break;
-        if (await shuffleAndDeal(tester)) continue;
-        if (yourTurn()) {
-          await settleButtons(tester);
-          await tester.tap(find.byKey(const Key('call')));
+    testWidgets(
+      'losing a showdown: Next hand keeps your cards down; Show cards throws them on the table on $phone',
+      (tester) async {
+        usePhone(tester, size);
+        await tester.pumpWidget(app(1, pace: 0.2));
+        final show = find.byKey(const Key('show cards'));
+        for (var i = 0; i < 20000; i++) {
+          await tester.pump(const Duration(milliseconds: 20));
+          if (show.evaluate().isNotEmpty) break;
+          if (await shuffleAndDeal(tester)) continue;
+          if (yourTurn()) {
+            await settleButtons(tester);
+            await tester.tap(find.byKey(const Key('call')));
+          }
         }
-      }
-      expect(show, findsOneWidget);
-      expect(find.byKey(const Key('muck')), findsOneWidget);
-      await tester.pump(const Duration(milliseconds: 300));
-      await shot(tester, 'poker_muck_$phone');
-      await tester.tap(show);
-      await tester.pump();
-      expect(find.text('Shown'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+        expect(show, findsOneWidget);
+        expect(find.byKey(const Key('next hand')), findsOneWidget, reason: 'Next hand is always there');
+        await tester.pump(const Duration(milliseconds: 300));
+        await shot(tester, 'poker_muck_$phone');
+        await tester.tap(show);
+        await tester.pump(const Duration(milliseconds: 60));
+        expect(find.byKey(const Key('thrown cards')), findsOneWidget);
+        expect(find.text('You showed your cards.'), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 200));
+        await shot(tester, 'poker_shown_$phone');
+        // Then on to the next hand by itself.
+        for (var i = 0; i < 100 && find.byKey(const Key('thrown cards')).evaluate().isNotEmpty; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+        expect(find.byKey(const Key('thrown cards')), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets('bot games: the showdown result waits for Next hand', (tester) async {

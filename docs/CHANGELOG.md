@@ -785,6 +785,22 @@ bosses remember how you play.
   deadline noted in CLAUDE.md and `docs/RELEASE.md`. CI only.
   → (no app change) · 2026-11-18 · b1cd824
 
+### 42. Showing your cards (requested 2026-11-18)
+
+- [x] **42.1** After a hand you could show, the choice was a Muck / Show
+  toggle beside Next hand (or, when everyone folded to you, with no Next
+  hand at all). Now: **Next hand** is always there and keeps your cards
+  down; **Show cards** throws them face up onto the felt (a lob and a
+  spin, a thud) and moves on to the next hand after a beat. Everyone
+  folded to you: the same two buttons, and after 5 s it moves on, cards
+  down.
+- [x] **42.2 The bots react and remember**: a compelling show gets a line
+  (a bluff they folded to, a monster they folded to, a strong hand that
+  lost, a bluff they caught; each bot in its own voice). A shown bluff
+  goes into their read of you (they call you lighter, and rivals and
+  bosses keep it between games) and stings whoever folded to it (tilt:
+  they play looser for a while). Online, the server's bots don't talk.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
 - [x] **25.1 Online cash tables, open to everyone**: a set of public

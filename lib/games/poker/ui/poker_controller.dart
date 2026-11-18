@@ -864,10 +864,17 @@ class PokerController extends ChangeNotifier {
     _payoutSound(h, r);
     odds = const {};
     if (!r.showdown) {
-      // Everyone else folded: nothing to read, move on (a moment longer
-      // if it's yours, to show your cards if you like).
+      // Everyone else folded: nothing to read. Yours: Next hand (your cards
+      // stay down) or Show cards, and after a few seconds it moves on by
+      // itself, cards down.
+      if (canShowCards) {
+        waitingForYou = true;
+        _notify();
+        _after(5000, nextHand);
+        return;
+      }
       _notify();
-      _after(canShowCards ? 3500 : 1500, _endHand);
+      _after(1500, _endHand);
       return;
     }
     // Who won and with what: wait until you've read it (Next hand).
@@ -944,8 +951,11 @@ class PokerController extends ChangeNotifier {
   /// you show them; bots always show).
   Set<int> _mucked(PokerHand h) => {if (handIndex(0) case final i? when h.muckable.contains(i)) i};
 
-  /// Turns your cards up for the table after the hand. The bots remember
-  /// what you had (a shown bluff makes them call you lighter).
+  /// Turns your cards up: they're thrown face up on the table, the bots
+  /// have their say if it's worth it, and the next hand follows. What you
+  /// show changes how they see you: a shown bluff makes the table call you
+  /// lighter (and tilts whoever folded to it), a shown monster gets your
+  /// big bets respected.
   void showCards() {
     final h = hand;
     final i = handIndex(0);
@@ -954,36 +964,73 @@ class PokerController extends ChangeNotifier {
     revealed.add(0);
     reads.reveal(h, game.handSeats, i);
     _shown(i);
-    // A bluff shown off gets a reaction from someone it worked on.
+    Sound.play(Sfx.place);
+    _reactToShow(h, i);
+    // Let the cards land and the table react, then on.
+    waitingForYou = false;
+    secondsLeft = null;
+    _countdown?.cancel();
+    _after(2200, _endHand);
+    _notify();
+  }
+
+  /// What the bots make of the cards you showed ([i]: your hand index).
+  void _reactToShow(PokerHand h, int i) {
+    final hole = h.players[i].hole;
+    if (hole.length < 2) return;
     final r = h.result!;
-    if (!r.showdown && i == h.showable && h.players[i].hole.length == 2) {
-      final weak = h.board.length >= 3
-          ? evaluateHand([...h.players[i].hole, ...h.board]).category == HandCategory.highCard
-          : h.players[i].hole[0].rank != h.players[i].hole[1].rank &&
-                max(h.players[i].hole[0].rank, h.players[i].hole[1].rank) < 12;
+    final weak = _weak(hole, h.board);
+    final strong = h.board.length >= 3
+        ? evaluateHand([...hole, ...h.board]).category.index >= HandCategory.twoPair.index
+        : (hole[0].rank == hole[1].rank && hole[0].rank >= 10) || min(hole[0].rank, hole[1].rank) >= 13;
+    final bet = reads.aggressor == 0;
+    int? pick(Iterable<int> seats) {
+      final list = seats.where((s) => _bots[s] != null).toList();
+      return list.isEmpty ? null : list[_rng.nextInt(list.length)];
+    }
+
+    if (!r.showdown) {
+      // They folded to you.
       final folders = [
         for (final (k, p) in h.players.indexed)
-          if (k != i && p.folded && _bots[game.handSeats[k]] != null) game.handSeats[k],
+          if (k != i && p.folded) game.handSeats[k],
       ];
-      if (folders.isNotEmpty) {
-        _say(folders[_rng.nextInt(folders.length)], weak ? Talk.bluffed : Talk.shownStrong, chance: 0.8);
+      final who = pick(folders);
+      if (who == null) return;
+      if (weak && bet) {
+        // A bluff: whoever folded to it is stung.
+        for (final s in folders) {
+          final rd = reads.players[s];
+          rd.tilt = min(1.0, rd.tilt + (s == who ? 0.35 : 0.15));
+        }
+        _say(who, Talk.bluffed, chance: 0.95);
+      } else if (strong) {
+        _say(who, Talk.shownStrong, chance: 0.85);
+      } else {
+        _say(who, Talk.shownStrong, chance: 0.3);
       }
+      return;
     }
-    _notify();
+    // You lost the showdown and showed anyway.
+    final winners = [for (final w in r.pots.first.winners) game.handSeats[w]];
+    final who =
+        pick(winners) ??
+        pick([
+          for (final s in game.handSeats)
+            if (s != 0) s,
+        ]);
+    if (who == null) return;
+    if (strong) {
+      _say(who, Talk.badBeat, chance: 0.9);
+    } else if (weak && bet) {
+      _say(who, Talk.caughtBluff, chance: 0.9);
+    } else {
+      _say(who, Talk.caughtBluff, chance: 0.35);
+    }
   }
 
   /// Online: tells the server you showed.
   void _shown(int i) {}
-
-  /// Keep them down: with everyone folded to you, straight on to the next
-  /// hand.
-  void muckCards() {
-    final r = hand?.result;
-    if (!canShowCards || showedCards || r == null || r.showdown || phase != TablePhase.payout) return;
-    canShowCards = false;
-    _timer?.cancel();
-    _endHand();
-  }
 
   /// You've read the result: on to the next hand.
   void nextHand() {

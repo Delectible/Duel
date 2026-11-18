@@ -316,6 +316,24 @@ class TableView extends StatelessWidget {
           ),
         );
 
+        // You showed: your cards land face up on the felt, between you and
+        // the board.
+        final mine = c.handPlayer(0);
+        if (c.showedCards && mine != null && mine.hole.length == 2 && c.phase == TablePhase.payout) {
+          final land = px(Offset.lerp(spots[0], center, wide ? 0.42 : 0.36)!);
+          children.add(
+            _At(
+              key: ValueKey('thrown ${c.handNumber}'),
+              land,
+              child: _Thrown(
+                cards: mine.hole,
+                from: px(spots[0]) + const Offset(40, -19) - land,
+                width: boardCard * 1.15,
+              ),
+            ),
+          );
+        }
+
         return Stack(clipBehavior: Clip.none, children: children);
       },
     );
@@ -343,6 +361,49 @@ class _At extends StatelessWidget {
     left: at.dx,
     top: at.dy,
     child: FractionalTranslation(translation: const Offset(-0.5, -0.5), child: child),
+  );
+}
+
+/// Your two cards thrown face up onto the table from [from] (relative to
+/// where they land): a quick arc, a spin, a little bounce as they hit.
+class _Thrown extends StatelessWidget {
+  const _Thrown({required this.cards, required this.from, required this.width});
+
+  final List<PlayingCard> cards;
+  final Offset from;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    key: const Key('thrown cards'),
+    tween: Tween(begin: 0, end: 1),
+    duration: const Duration(milliseconds: 520),
+    curve: Curves.easeOutCubic,
+    builder: (context, t, _) {
+      // Up and over, then down: a lob, landing a touch big and settling.
+      final lift = sin(t * pi) * 34;
+      final scale = 1.25 - 0.25 * Curves.easeOutBack.transform(t);
+      return Transform.translate(
+        offset: from * (1 - t) - Offset(0, lift),
+        child: Transform.scale(
+          scale: scale,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var k = 0; k < 2; k++)
+                Transform.translate(
+                  offset: Offset(k == 0 ? 6 : -6, 0),
+                  child: Transform.rotate(
+                    // A spin in the air, landing slightly fanned.
+                    angle: (k == 0 ? -0.22 : 0.18) + (1 - t) * (k == 0 ? -2.4 : 2.0),
+                    child: CardView(card: cards[k], width: width),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
   );
 }
 
@@ -1069,7 +1130,8 @@ class _YourSeat extends StatelessWidget {
               left: 84,
               top: 4,
               child: Opacity(
-                opacity: folded ? 0.45 : 1,
+                // Thrown on the table: they've left your hand.
+                opacity: c.showedCards && c.phase == TablePhase.payout ? 0 : (folded ? 0.45 : 1),
                 child: Row(
                   children: [
                     for (var k = 0; k < 2; k++)

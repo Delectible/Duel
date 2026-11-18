@@ -64,25 +64,20 @@ class _ActionBarState extends State<ActionBar> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         child: c.waitingForYou
-            ? (c.canShowCards
+            ? (c.canShowCards && !c.showedCards
                   ? Row(
                       children: [
-                        _showChoice(),
+                        _showButton(),
                         const SizedBox(width: 8),
                         Expanded(child: _nextHandButton()),
                       ],
                     )
                   : _nextHandButton())
-            : c.canShowCards && c.phase == TablePhase.payout
+            : c.showedCards && c.phase == TablePhase.payout
             ? SizedBox(
                 height: 60,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Center(child: Text('Everyone folded.', style: Toon.text(15))),
-                    ),
-                    _showChoice(),
-                  ],
+                child: Center(
+                  child: Text('You showed your cards.', style: Toon.text(17, color: Toon.muted)),
                 ),
               )
             : c.phase == TablePhase.shuffle
@@ -92,55 +87,27 @@ class _ActionBarState extends State<ActionBar> {
     );
   }
 
-  /// Muck (keep your cards down: the default) or Show them to the table.
-  Widget _showChoice() {
-    Widget option(
-      String label,
-      IconData icon, {
-      required bool on,
-      required VoidCallback onTap,
-      required Key key,
-    }) => ToonButton(
-      key: key,
-      color: on ? Toon.yellow : Toon.card,
-      radius: 12,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      onPressed: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20),
-          Text(
-            label,
-            style: Toon.text(13, weight: FontWeight.w700, color: Toon.on(on ? Toon.yellow : Toon.card)),
-          ),
-        ],
-      ),
-    );
-    return SizedBox(
-      height: 60,
+  /// Show cards: throws yours face up on the table and goes on to the next
+  /// hand. Next hand beside it keeps them down (the default).
+  Widget _showButton() => SizedBox(
+    height: 60,
+    child: ToonButton(
+      key: const Key('show cards'),
+      color: Toon.yellow,
+      radius: 14,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      tooltip: 'Show your cards to the table',
+      onPressed: c.showCards,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          option(
-            'Muck',
-            Icons.visibility_off_rounded,
-            on: !c.showedCards,
-            onTap: c.muckCards,
-            key: const Key('muck'),
-          ),
+          const Icon(Icons.visibility_rounded),
           const SizedBox(width: 6),
-          option(
-            c.showedCards ? 'Shown' : 'Show',
-            Icons.visibility_rounded,
-            on: c.showedCards,
-            onTap: c.showCards,
-            key: const Key('show cards'),
-          ),
+          Text('Show cards', style: Toon.text(16, weight: FontWeight.w700)),
         ],
       ),
-    );
-  }
+    ),
+  );
 
   /// After a showdown: the table waits for this (online: counts down).
   Widget _nextHandButton() {

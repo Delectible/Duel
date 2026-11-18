@@ -36,6 +36,12 @@ enum Talk {
 
   /// You showed the strong hand it folded to.
   shownStrong,
+
+  /// You lost a showdown with a strong hand and showed it anyway.
+  badBeat,
+
+  /// You showed the bluff it just caught.
+  caughtBluff,
 }
 
 /// Each bot has a voice: the rookie is nervous and polite, the rock says
@@ -54,6 +60,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['Good game, everyone!', 'That was fun anyway!'],
     Talk.bluffed: ['You were bluffing?!', 'That is so mean! …Teach me?'],
     Talk.shownStrong: ['Phew, glad I folded!', 'Oh wow, good fold by me.'],
+    Talk.badBeat: ["Oh no, that's so unlucky!", 'Ouch, sorry!'],
+    Talk.caughtBluff: ['I caught you? Really?', 'I called and it worked!'],
   },
   BotStyle.rock: {
     Talk.allIn: ['All in.', 'I have it.'],
@@ -67,6 +75,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['GG.', 'Back to the library.'],
     Talk.bluffed: ['Noted.', 'Hm. Noted.'],
     Talk.shownStrong: ['Good fold.', 'As I thought.'],
+    Talk.badBeat: ['Unlucky.', 'Cooler.'],
+    Talk.caughtBluff: ['Thought so.', 'Expected.'],
   },
   BotStyle.shark: {
     Talk.allIn: ['Your move.', 'All of it. Call me.', "Let's see your nerve."],
@@ -80,6 +90,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['Rigged.', "I'll be back."],
     Talk.bluffed: ['Cute. Do it again.', 'I let you have that one.'],
     Talk.shownStrong: ['Obviously. I folded.', 'Saw it coming.'],
+    Talk.badBeat: ['Cry me a river.', 'Should have folded.'],
+    Talk.caughtBluff: ['Nice try, rookie.', 'I own you.'],
   },
   BotStyle.maniac: {
     Talk.allIn: ['ALL IN BABY!', 'YOLO!', 'Who wants to gamble?!'],
@@ -93,6 +105,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['Rebuy! Can I rebuy?', 'Worth it!'],
     Talk.bluffed: ['NO WAY! Respect!', 'Ha! You bluffed me! Love it!'],
     Talk.shownStrong: ['Boring! Bluff next time!', 'Yeah yeah, you had it.'],
+    Talk.badBeat: ['OOF! Brutal!', 'That hurts to look at!'],
+    Talk.caughtBluff: ['GOTCHA!', 'Hahaha, caught ya!'],
   },
   BotStyle.grinder: {
     Talk.allIn: ['Standard.', 'Easy shove, by the chart.'],
@@ -106,6 +120,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['GG. Variance.', 'Next session.'],
     Talk.bluffed: ['Interesting. Adjusting.', 'Logged.'],
     Talk.shownStrong: ['Standard fold.', 'Correct fold, then.'],
+    Talk.badBeat: ['Cooler. Nothing to do.', 'Variance. Standard.'],
+    Talk.caughtBluff: ['Bluff-catcher works.', 'Priced in.'],
   },
   BotStyle.fish: {
     Talk.allIn: ['Something tells me…', 'All in! I feel it!'],
@@ -119,6 +135,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['Who needs chips anyway?', 'Fun while it lasted!'],
     Talk.bluffed: ['I knew it! I should have called!', 'Next time I call!'],
     Talk.shownStrong: ['See, I can fold!', 'Good thing I folded!'],
+    Talk.badBeat: ['Ha, the river loves me!', 'Gotta play the odds, friend.'],
+    Talk.caughtBluff: ['Told you I had to see it!', 'See? Always call!'],
   },
   BotStyle.trapper: {
     Talk.allIn: ['Oh dear. All in, I suppose.', 'I think I have to…'],
@@ -132,6 +150,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['Caught in my own trap.', 'Good game, all.'],
     Talk.bluffed: ["Oh, you'll pay for that.", "I'll remember that."],
     Talk.shownStrong: ['Mm, I believe it.', 'Nice. Patience.'],
+    Talk.badBeat: ['Oh dear, poor thing.', 'That was cruel of the deck.'],
+    Talk.caughtBluff: ['Mm, I wondered.', 'Patience, dear.'],
   },
   BotStyle.bully: {
     Talk.allIn: ['You gonna call that?', 'Put it all in. Go on.', 'Pay up or fold.'],
@@ -145,6 +165,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['This table’s rigged.', 'Whatever.'],
     Talk.bluffed: ['Try that again. I dare you.', 'Lucky I let it go.'],
     Talk.shownStrong: ['Whatever.', 'Big deal.'],
+    Talk.badBeat: ['Shoulda folded.', 'Too bad, so sad.'],
+    Talk.caughtBluff: ['Nice try. Not on me.', 'Bluff me? Ha.'],
   },
   BotStyle.sheriff: {
     Talk.allIn: ['Nobody pushes me around.', "All in. I'm not buying it."],
@@ -158,6 +180,8 @@ const _lines = <BotStyle, Map<Talk, List<String>>>{
     Talk.bust: ['Someone had to keep you honest.', 'I regret nothing.'],
     Talk.bluffed: ['I KNEW it! Never again.', "Next time I'm calling you down."],
     Talk.shownStrong: ['Fine, you had it this time.', 'Hm. Honest, for once.'],
+    Talk.badBeat: ['Rough one. You had it.', 'Honest hand, bad luck.'],
+    Talk.caughtBluff: ['CAUGHT YOU!', 'Knew you were lying!'],
   },
 };
 
