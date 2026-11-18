@@ -809,10 +809,12 @@ bosses remember how you play.
   means (the rival with your record, the boss with its habit). → 0.11.6 · 2026-11-18 · 9dbe6fd
 - [x] **43.2 Fair reads**: "Plays most hands" came after just 6 hands
   with fixed cut-offs (3 of 6 = "most"). How many hands someone plays is
-  now judged on 12+ hands and against the table size (heads-up you play
-  most), says "So far:" while thin, and a player type follows once
-  there's a read (loose / tight × aggressive / passive). The read card
-  says how many more hands until a read. → 0.11.6 · 2026-11-18 · 9dbe6fd
+  now judged against the table size (heads-up you play most) and on the
+  rate pulled towards a normal player's, so a few hands can't swing it:
+  from the 3rd hand the plain count ("Played 3 of 5 hands so far"), from
+  the 4th a label marked "Early:" until there's a real read (15 hands),
+  and then a player type (loose / tight × aggressive / passive). The read
+  card  says how many more hands until a read. → 0.11.6 · 2026-11-18 · 9dbe6fd
 - [x] **43.3 Four new styles**: Nit (folds almost everything), Gambler
   (small pots tight, big pots can't let go), Copycat (plays like the
   player in seat 0: you, at your table), Wildcard (a new gear every six

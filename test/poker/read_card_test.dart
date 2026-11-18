@@ -15,18 +15,27 @@ PlayerReads _reads({required int hands, required int vpip, int pfr = 0}) => Play
   ..pfr = pfr;
 
 void main() {
-  test('how many hands someone plays is judged on enough hands and against the table size', () {
-    // Three of the first six: too few to call it.
-    expect(readNotes(_reads(hands: 6, vpip: 3)).join(' '), isNot(contains('most hands')));
-    expect(readNotes(_reads(hands: 6, vpip: 3)).join(' '), contains('read in about 9 more hands'));
+  test('how many hands someone plays: some read early, labelled, and judged against the table size', () {
+    // The first hands: the count, not a label.
+    expect(readNotes(_reads(hands: 3, vpip: 2)).join(' '), contains('Played 2 of 3 hands so far.'));
+    expect(readNotes(_reads(hands: 2, vpip: 2)).join(' '), contains('Too soon'));
+    // Three of the first six at a full table: a lot of hands, but only "Early", never "most".
+    final early = readNotes(_reads(hands: 6, vpip: 3)).join(' ');
+    expect(early, contains('Early: plays a lot of hands.'));
+    expect(early, isNot(contains('most hands')));
+    expect(early, contains('read in about 9 more hands'));
+    // A few more of the same and it says most, still early.
+    expect(readNotes(_reads(hands: 14, vpip: 9)).join(' '), contains('Early: plays most hands.'));
     // Heads-up, half your hands is normal.
-    expect(readNotes(_reads(hands: 20, vpip: 10), players: 2).join(' '), isNot(contains('hands.')));
-    // Six-handed, half is a lot.
-    expect(readNotes(_reads(hands: 40, vpip: 20)).join(' '), contains('Plays most hands.'));
+    expect(readNotes(_reads(hands: 20, vpip: 10), players: 2).join(' '), isNot(contains('plays')));
+    // Six-handed, half is a lot, and with enough hands there's no "Early".
+    final late = readNotes(_reads(hands: 40, vpip: 20)).join(' ');
+    expect(late, contains('Plays most hands.'));
+    expect(late, isNot(contains('Early')));
     // A quarter at a full table: nothing to say about it.
     expect(readNotes(_reads(hands: 40, vpip: 10)).join(' '), isNot(contains('most hands')));
-    // Early on it says so.
-    expect(readNotes(_reads(hands: 14, vpip: 9)).join(' '), contains('So far: plays most hands.'));
+    // A quarter early on isn't "most" either (the complaint).
+    expect(readNotes(_reads(hands: 8, vpip: 2)).join(' '), isNot(contains('most hands')));
   });
 
   test('once there is a read, a line on what kind of player', () {

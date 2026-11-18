@@ -217,30 +217,33 @@ String? playerType(PlayerReads r, {required int players}) {
 /// words from the numbers, once there's enough to go on, judged against
 /// the table's size ([players] dealt in).
 List<String> readNotes(PlayerReads r, {int players = 6}) {
-  if (r.hands < 6) return ['Too soon to tell: ${r.hands} hand${r.hands == 1 ? '' : 's'} seen.'];
+  if (r.hands < 3) return ['Too soon to tell: ${r.hands} hand${r.hands == 1 ? '' : 's'} seen.'];
   final notes = <String>[];
   if (r.tilt > 0.35) notes.add('Steaming after losing a big pot: expect wild plays.');
   final type = playerType(r, players: players);
   if (type != null) notes.add(type);
-  // How many hands they play: only once there's a fair sample.
+  // How many hands they play. From the third hand there's the plain count;
+  // from the fourth a label, judged on the rate pulled towards a normal
+  // player's (as if six more average hands had been seen), so a few hands
+  // can't swing it. Under [readHands] it says "Early:".
   final (lots, most, picky) = _vpipBands(players);
-  final soFar = r.hands < readHands * 2 ? 'So far: ' : '';
-  if (r.hands >= 12) {
-    if (r.vpipRate >= most) {
-      notes.add(soFar.isEmpty ? 'Plays most hands.' : '${soFar}plays most hands.');
-    } else if (r.vpipRate >= lots) {
-      notes.add(soFar.isEmpty ? 'Plays a lot of hands.' : '${soFar}plays a lot of hands.');
-    } else if (r.vpipRate <= picky) {
-      notes.add(
-        soFar.isEmpty
-            ? 'Very picky: when they play, they have something.'
-            : '${soFar}very picky: when they play, they have something.',
-      );
+  final typical = (lots + picky) / 2;
+  final vpip = (r.vpip + typical * 6) / (r.hands + 6);
+  if (r.hands < readHands) notes.add('Played ${r.vpip} of ${r.hands} hands so far.');
+  if (r.hands >= 4) {
+    final early = r.hands < readHands;
+    String say(String t) => early ? 'Early: ${t[0].toLowerCase()}${t.substring(1)}' : t;
+    if (vpip >= most) {
+      notes.add(say('Plays most hands.'));
+    } else if (vpip >= lots) {
+      notes.add(say('Plays a lot of hands.'));
+    } else if (vpip <= picky) {
+      notes.add(say('Very picky: when they play, they have something.'));
     }
   }
-  if (r.hands >= 12 && r.vpipRate > lots * 0.75 && r.pfrRate < r.vpipRate * 0.35) {
+  if (r.hands >= 6 && vpip > lots * 0.75 && r.pfrRate < r.vpipRate * 0.35) {
     notes.add('Limps and calls before the flop more than they raise.');
-  } else if (r.pfrRate >= 0.25) {
+  } else if (r.hands >= 6 && r.pfrRate >= 0.25) {
     notes.add('Raises a lot before the flop.');
   }
   final moves = r.bets + r.raises + r.calls;
