@@ -7,10 +7,12 @@ import 'package:duel_engine/poker/bot.dart';
 import 'package:duel_engine/poker/coach.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/reads.dart';
+import 'package:duel_engine/poker/tournament.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/cards/card_view.dart';
 import '../../../core/theme/toon.dart';
 import '../../../core/table/table_bits.dart';
+import 'lounge_games.dart';
 import 'poker_controller.dart';
 import '../../../core/theme/sheet.dart';
 
@@ -84,8 +86,22 @@ class TableInfo extends StatelessWidget {
         ],
       ),
     );
+    // A tournament: your place among everyone still in, and the prize line.
+    final tour = c is TournamentController ? c as TournamentController : null;
+    final field = tour?.tournament;
+    final fieldRank = field == null
+        ? 0
+        : field.standings.where((e) => e.live).toList().indexWhere((e) => e.you) + 1;
+    final paid = Tournament.paid.length;
     final pills = [
-      if (mine > 0 && !c.isCash)
+      if (mine > 0 && field != null && fieldRank > 0)
+        pill(
+          '${_ordinal(fieldRank)} of ${field.left}',
+          key: const Key('your place'),
+          icon: fieldRank == 1 ? Icons.emoji_events_rounded : null,
+          color: fieldRank == 1 ? Toon.yellow : null,
+        )
+      else if (mine > 0 && !c.isCash)
         pill(
           '${_ordinal(rank)} of ${alive.length}',
           key: const Key('your place'),
@@ -94,7 +110,20 @@ class TableInfo extends StatelessWidget {
         ),
       if (mine > 0 || !c.isCash)
         pill('You ${(mine / bb).toStringAsFixed(mine >= bb * 10 ? 0 : 1)} BB', key: const Key('your bb')),
-      pill('Avg ${chips(avg)}', key: const Key('average')),
+      if (field != null)
+        pill(
+          field.left <= paid
+              ? 'In the money!'
+              : field.left == paid + 1
+              ? 'Bubble: $paid paid'
+              : 'Top $paid paid',
+          key: const Key('prize line'),
+          color: field.left <= paid ? Toon.green : null,
+        )
+      // In a closed game (Sit & Go, a boss) the average says little: only
+      // cash tables show it.
+      else if (c.isCash)
+        pill('Avg ${chips(avg)}', key: const Key('average')),
     ];
     final history = ToonButton(
       key: const Key('history'),
@@ -149,20 +178,66 @@ class TableInfo extends StatelessWidget {
 
 // --- Read cards ----------------------------------------------------------------
 
+/// Hands it takes to have a real read on someone.
+const readHands = 15;
+
+/// How many hands a player plays is judged against the table: heads-up you
+/// play most hands, six-handed far fewer. (lots, most, picky) by players
+/// dealt in.
+(double, double, double) _vpipBands(int players) => switch (players) {
+  <= 2 => (0.7, 0.85, 0.35),
+  <= 3 => (0.55, 0.7, 0.25),
+  <= 4 => (0.45, 0.6, 0.2),
+  _ => (0.33, 0.45, 0.14),
+};
+
+/// What kind of player the numbers say, in a line, once there's a read:
+/// tight or loose (for this table size), aggressive or passive.
+String? playerType(PlayerReads r, {required int players}) {
+  if (r.hands < readHands) return null;
+  final (lots, _, picky) = _vpipBands(players);
+  final loose = r.vpipRate >= lots, tight = r.vpipRate <= (lots + picky) / 2;
+  final moves = r.bets + r.raises + r.calls;
+  final aggro = moves >= 6 && r.aggression >= 1.8, passive = moves >= 6 && r.aggression <= 0.9;
+  const la = 'Loose and aggressive: plays lots of hands and keeps betting. Hard to put on a hand.';
+  const lp = "Loose and passive: plays lots, calls lots, rarely raises. Bet your good hands; don't bluff.";
+  const ta = 'Tight and aggressive: picks good hands and bets them. A solid player.';
+  const tp = 'Tight and passive: careful, calls more than bets. When they raise, believe it.';
+  if (loose && aggro) return la;
+  if (loose && passive) return lp;
+  if (tight && aggro) return ta;
+  if (tight && passive) return tp;
+  if (loose) return 'Loose: gets involved in a lot of pots.';
+  if (tight) return 'Tight: waits for good cards.';
+  return null;
+}
+
 /// What anyone at the table could have worked out about a player: plain
-/// words from the numbers, once there's enough to go on.
-List<String> readNotes(PlayerReads r) {
+/// words from the numbers, once there's enough to go on, judged against
+/// the table's size ([players] dealt in).
+List<String> readNotes(PlayerReads r, {int players = 6}) {
   if (r.hands < 6) return ['Too soon to tell: ${r.hands} hand${r.hands == 1 ? '' : 's'} seen.'];
   final notes = <String>[];
   if (r.tilt > 0.35) notes.add('Steaming after losing a big pot: expect wild plays.');
-  if (r.vpipRate >= 0.5) {
-    notes.add('Plays most hands.');
-  } else if (r.vpipRate >= 0.33) {
-    notes.add('Plays a lot of hands.');
-  } else if (r.vpipRate <= 0.16) {
-    notes.add('Very picky: when they play, they have something.');
+  final type = playerType(r, players: players);
+  if (type != null) notes.add(type);
+  // How many hands they play: only once there's a fair sample.
+  final (lots, most, picky) = _vpipBands(players);
+  final soFar = r.hands < readHands * 2 ? 'So far: ' : '';
+  if (r.hands >= 12) {
+    if (r.vpipRate >= most) {
+      notes.add(soFar.isEmpty ? 'Plays most hands.' : '${soFar}plays most hands.');
+    } else if (r.vpipRate >= lots) {
+      notes.add(soFar.isEmpty ? 'Plays a lot of hands.' : '${soFar}plays a lot of hands.');
+    } else if (r.vpipRate <= picky) {
+      notes.add(
+        soFar.isEmpty
+            ? 'Very picky: when they play, they have something.'
+            : '${soFar}very picky: when they play, they have something.',
+      );
+    }
   }
-  if (r.vpipRate > 0.25 && r.pfrRate < r.vpipRate * 0.35) {
+  if (r.hands >= 12 && r.vpipRate > lots * 0.75 && r.pfrRate < r.vpipRate * 0.35) {
     notes.add('Limps and calls before the flop more than they raise.');
   } else if (r.pfrRate >= 0.25) {
     notes.add('Raises a lot before the flop.');
@@ -197,7 +272,12 @@ List<String> readNotes(PlayerReads r) {
     notes.add('Small bets have been strong hands: a trap?');
   }
   if (r.allIns >= 3) notes.add('Has gone all in ${r.allIns} times.');
-  if (notes.isEmpty) notes.add('Nothing stands out yet: a solid, balanced player?');
+  if (r.hands < readHands) {
+    final more = readHands - r.hands;
+    notes.add('A proper read in about $more more hand${more == 1 ? '' : 's'}.');
+  } else if (notes.isEmpty) {
+    notes.add('Nothing stands out: a solid, balanced player?');
+  }
   return notes;
 }
 
@@ -266,13 +346,41 @@ class _ReadCard extends StatelessWidget {
             ),
           ],
         ),
+        // What the marks by their name mean.
+        for (final b in _badges(c, seat))
+          Container(
+            key: Key('badge ${b.key}'),
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.all(10),
+            decoration: Toon.box(Toon.card, radius: 12, shadow: 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(b.icon, color: b.color, size: 26),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(b.title, style: Toon.text(16, weight: FontWeight.w700)),
+                      Text(b.text, style: Toon.text(13, weight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 14),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
             stat('Stack', chips(stack), hint: '${(stack / bb).toStringAsFixed(1)} big blinds'),
-            stat('Hands seen', '${r.hands}', hint: 'won ${r.handsWon}'),
+            stat(
+              'Hands seen',
+              '${r.hands}',
+              hint: r.hands < readHands ? 'a read in ~${readHands - r.hands} more' : 'won ${r.handsWon}',
+            ),
             stat('Plays', _pct(r.vpipRate), hint: 'hands they put chips in'),
             stat('Raises first', _pct(r.pfrRate), hint: 'raised before the flop'),
             stat('Aggression', r.aggression.toStringAsFixed(1), hint: 'bets + raises per call'),
@@ -284,7 +392,7 @@ class _ReadCard extends StatelessWidget {
         const SizedBox(height: 16),
         Text(you ? 'How you come across' : 'Notes', style: Toon.text(18, weight: FontWeight.w700)),
         const SizedBox(height: 6),
-        for (final n in readNotes(r))
+        for (final n in readNotes(r, players: c.game.players.where((p) => !p.empty && p.stack > 0).length))
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Row(
@@ -311,6 +419,47 @@ class _ReadCard extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The marks by a seat's name, explained: the bounty (target), the rival or
+/// the boss (flame).
+List<({String key, IconData icon, Color color, String title, String text})> _badges(
+  PokerController c,
+  int seat,
+) {
+  final out = <({String key, IconData icon, Color color, String title, String text})>[];
+  final busted = c.game.players[seat].stack == 0 && c.handPlayer(seat) == null;
+  if (c.bountySeat == seat && !busted) {
+    out.add((
+      key: 'bounty',
+      icon: Icons.gps_fixed_rounded,
+      color: Toon.red,
+      title: 'Bounty',
+      text: 'There\'s a price on their head: knock them out yourself for a bonus of half your stake.',
+    ));
+  }
+  if (seat == 1 && c.boss != null) {
+    final b = c.boss!;
+    out.add((
+      key: 'boss',
+      icon: Icons.local_fire_department_rounded,
+      color: Toon.orange,
+      title: 'Boss ${b.rung + 1} of ${Boss.ladder.length}',
+      text: '${b.habit} Finish ahead of them to beat them. They remember how you play.',
+    ));
+  } else if (seat == 1 && c.rival != null) {
+    final r = c.rivalRecord;
+    out.add((
+      key: 'rival',
+      icon: Icons.local_fire_department_rounded,
+      color: Toon.orange,
+      title: 'Your rival',
+      text:
+          '${c.personas[1].name} keeps coming back, plays a level harder than the table and remembers how you play. '
+          '${r.yours + r.theirs == 0 ? 'Your first game against them.' : 'Your record: ${r.yours}–${r.theirs}.'}',
+    ));
+  }
+  return out;
 }
 
 // --- Hand history --------------------------------------------------------------

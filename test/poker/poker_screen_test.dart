@@ -368,7 +368,9 @@ void main() {
     await tester.tap(find.byKey(const Key('next hand')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const Key('your bb')), findsOneWidget);
-    expect(find.byKey(const Key('average')), findsOneWidget);
+    // A Sit & Go is a closed game: your place, not an average.
+    expect(find.byKey(const Key('average')), findsNothing);
+    expect(find.byKey(const Key('your place')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('read 2')));
     for (var i = 0; i < 6; i++) {

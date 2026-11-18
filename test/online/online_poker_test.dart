@@ -24,7 +24,7 @@ void main() {
       tester,
     ) async {
       usePhone(tester, size);
-      final srv = FakeServer(seed: 3);
+      final srv = FakeServer(seed: 5);
       final account = Account()..name = 'Luca';
       final party = PartyService(srv.player('luca'), account: account);
       final sam = PartyService(srv.player('sam'), account: Account()..name = 'Sam');

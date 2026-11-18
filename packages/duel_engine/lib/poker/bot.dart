@@ -224,6 +224,90 @@ enum BotStyle {
     limps: 0.10,
     sizing: Sizing.honest,
     tell: Tell.classic,
+  ),
+
+  /// Folds almost everything; when it plays, it has it, and it rarely
+  /// lets go.
+  nit(
+    'Nit',
+    loose: -0.14,
+    aggression: 0.45,
+    bluff: 0.02,
+    sticky: 0.05,
+    cbet: 0.40,
+    barrel: 0.20,
+    checkRaise: 0.05,
+    slowplay: 0.05,
+    tiltProne: 0.2,
+    adapt: 0.3,
+    suspicion: 0.0,
+    bullying: 0.0,
+    limps: 0.0,
+    sizing: Sizing.honest,
+    tell: Tell.steady,
+  ),
+
+  /// Lives for big pots: plays small ones tight, then can't let a big one
+  /// go.
+  gambler(
+    'Gambler',
+    loose: 0.04,
+    aggression: 0.70,
+    bluff: 0.18,
+    sticky: 0.30,
+    cbet: 0.70,
+    barrel: 0.60,
+    checkRaise: 0.15,
+    slowplay: 0.10,
+    tiltProne: 0.8,
+    adapt: 0.2,
+    suspicion: 0.20,
+    bullying: 0.2,
+    limps: 0.05,
+    sizing: Sizing.big,
+    tell: Tell.fast,
+  ),
+
+  /// Watches the player in seat 0 (you, at your table) and copies them:
+  /// as loose, as aggressive, as bluffy.
+  copycat(
+    'Copycat',
+    loose: 0.0,
+    aggression: 0.5,
+    bluff: 0.08,
+    sticky: 0.12,
+    cbet: 0.6,
+    barrel: 0.35,
+    checkRaise: 0.1,
+    slowplay: 0.1,
+    tiltProne: 0.4,
+    adapt: 0.7,
+    suspicion: 0.1,
+    bullying: 0.0,
+    limps: 0.08,
+    sizing: Sizing.balanced,
+    tell: Tell.random,
+  ),
+
+  /// Changes gear every few hands: tight, then wild, then passive, round
+  /// and round. Hard to pin down.
+  wildcard(
+    'Wildcard',
+    loose: 0.02,
+    aggression: 0.5,
+    bluff: 0.10,
+    sticky: 0.15,
+    cbet: 0.6,
+    barrel: 0.4,
+    checkRaise: 0.12,
+    slowplay: 0.12,
+    tiltProne: 0.4,
+    adapt: 0.4,
+    suspicion: 0.1,
+    bullying: 0.1,
+    limps: 0.08,
+    sizing: Sizing.wild,
+    tell: Tell.random,
   );
 
   const BotStyle(
@@ -389,9 +473,37 @@ class _Spot {
     me = h.players[i];
     final mood = (reads?.players[seats[i]].tilt ?? 0) * style.tiltProne;
     tilt = mood;
-    loose = style.loose + mood * 0.12 + bot.difficulty.leak;
-    aggression = (style.aggression + mood * 0.25).clamp(0.0, 1.0);
-    bluff = style.bluff + mood * 0.12;
+    var (l, a, b) = (style.loose, style.aggression, style.bluff);
+    switch (style) {
+      case BotStyle.gambler:
+        // Small pots: not interested. Big ones: all in on them.
+        final big = h.pot >= h.bigBlind * 12;
+        l += big ? 0.12 : -0.08;
+        a += big ? 0.15 : 0;
+      case BotStyle.copycat:
+        // Plays like seat 0, once it has seen enough of them.
+        final r = reads?.players[0];
+        if (r != null && r.hands >= 10 && seats[i] != 0) {
+          l = ((r.vpipRate - 0.25) * 0.6).clamp(-0.12, 0.2);
+          a = (r.aggression / 3).clamp(0.15, 0.9);
+          b = (r.bluffRate * 0.4 + r.pfrRate * 0.1).clamp(0.02, 0.3);
+        }
+      case BotStyle.wildcard:
+        // A new gear every six hands it's dealt.
+        switch ((reads?.players[seats[i]].hands ?? 0) ~/ 6 % 3) {
+          case 0:
+            (l, a, b) = (-0.1, 0.45, 0.03);
+          case 1:
+            (l, a, b) = (0.14, 0.85, 0.25);
+          default:
+            (l, a, b) = (0.06, 0.2, 0.04);
+        }
+      default:
+        break;
+    }
+    loose = l + mood * 0.12 + bot.difficulty.leak;
+    aggression = (a + mood * 0.25).clamp(0.0, 1.0);
+    bluff = b + mood * 0.12;
     opponents = [
       for (var k = 0; k < h.players.length; k++)
         if (k != i && !h.players[k].folded) k,
