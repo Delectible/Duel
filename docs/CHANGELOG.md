@@ -838,7 +838,7 @@ bosses remember how you play.
   New ones: re-raises before the flop, opening size (big / min-raise),
   bet size after the flop (big / small), gives up the flop after raising,
   goes to showdown a lot, wins / loses showdowns, winning a lot of pots.
-  → 0.11.6 · 2026-11-18
+  → 0.11.6 · 2026-11-18 · be21a7c
 
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
