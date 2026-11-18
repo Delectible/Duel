@@ -759,6 +759,7 @@ bosses remember how you play.
   near-black). Every Android size (adaptive, themed, legacy), iOS, and the
   Play icon and feature graphic, from `tool/icon/make_icons.py`; Android
   12+'s splash puts it on a dark circle over Duel's yellow.
+  → 0.11.5 · 2026-11-18 · f248814
 
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
