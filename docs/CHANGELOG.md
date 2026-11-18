@@ -783,6 +783,7 @@ bosses remember how you play.
   job now picks the newest Xcode release on the runner itself (not the
   default) and puts a warning on the run while the SDK is under 27;
   deadline noted in CLAUDE.md and `docs/RELEASE.md`. CI only.
+  → (no app change) · 2026-11-18 · b1cd824
 
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
