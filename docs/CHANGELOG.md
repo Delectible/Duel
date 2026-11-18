@@ -761,6 +761,20 @@ bosses remember how you play.
   12+'s splash puts it on a dark circle over Duel's yellow.
   → 0.11.5 · 2026-11-18 · f248814
 
+### 40. Cash tables, quicker (reported 2026-11-18)
+
+- [x] **40.1 Next hand sooner**: after a hand it could take 10 s or more
+  to move on. The phone asks for the next hand once it has shown the
+  result; if that was before the referee's 5 s pause it was told "not
+  yet" and only asked again 5 s later. The pause is now 2 s (phones keep
+  showing a hand the table has moved past, so it isn't needed longer)
+  and a phone asks again every second.
+- [x] **40.2 No clock under a bot**: the countdown shown while a bot
+  "thinks" was really your own 30 s ticking (the referee plays bots at
+  once). It now shows only on the person whose turn it is, once the
+  phone has got there; and the referee allows for the deal and the new
+  cards too, so your 30 s start when your turn shows.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
 - [x] **25.1 Online cash tables, open to everyone**: a set of public

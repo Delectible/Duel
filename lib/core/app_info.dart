@@ -23,7 +23,9 @@ class AppInfo {
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
-  static const latest = 'A new app icon: the Duel ghost.';
+  static const latest =
+      'A new app icon: the Duel ghost. Online cash tables move on to the next hand sooner, and the turn clock only '
+      'shows for a person, never under a bot.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

@@ -17,8 +17,10 @@ extension CashTables on Referee {
   /// How long a person has for a move.
   static const cashTurn = Duration(seconds: 30);
 
-  /// How long a finished hand stays up before the next is dealt.
-  static const cashPause = Duration(seconds: 5);
+  /// How long a finished hand stays up before the next can be dealt. Short:
+  /// each phone asks only once it has shown the hand (and keeps showing a
+  /// hand the table has moved past), so this only stops a deal in a rush.
+  static const cashPause = Duration(seconds: 2);
 
   /// Every table, caught up to now, and the table you're sitting at.
   Future<Doc> cashLobby(Player p) => store.transaction((tx) async {
@@ -307,8 +309,11 @@ extension CashTables on Referee {
   /// Plays bots (and people standing up) until a person is to act or the
   /// hand is over; then sets the clock, or settles the hand.
   Future<void> _cashPlayOn(Tx tx, CashStake stake, Doc doc, CashTableState t, int seed) async {
+    final dealt = _movesOf(doc) == 0;
+    Street? from;
     for (var guard = 0; guard < 500; guard++) {
       final (g, h) = _replay(stake, doc, seed);
+      from ??= h.street;
       _publishBoard(doc, h, g);
       if (h.result != null) {
         _settle(doc, t, g, h);
@@ -329,8 +334,12 @@ extension CashTables on Referee {
       } else {
         doc['turn'] = seat;
         doc['turnAt'] = _now;
-        // The phones show the bots thinking first: their time on top.
-        doc['deadline'] = _now + cashTurn.inMilliseconds + _pendingShow(doc);
+        // The phones show the deal, the bots thinking and the new cards
+        // first: their time on top, so the person's 30 seconds start when
+        // their turn shows.
+        final streets = h.street.index - from.index;
+        final show = _pendingShow(doc) + streets * 1200 + (dealt ? 2500 : 0);
+        doc['deadline'] = _now + cashTurn.inMilliseconds + min(show, 40000);
         return;
       }
     }

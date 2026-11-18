@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:async';
 
 import 'package:duel/core/account/account.dart';
@@ -185,6 +186,76 @@ void main() {
     expect(account.balance, greaterThan(2000), reason: 'cashed out what was left');
     c.dispose();
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('online table at real pace: the next hand comes quickly; no clock under a bot; your 30 s start '
+      'when your turn shows', (tester) async {
+    usePhone(tester, phones['small']!);
+    final srv = FakeServer(seed: 9);
+    final account = Account()..name = 'Luca';
+    account.bonus('test', 2900);
+    final party = PartyService(srv.player('luca'), account: account);
+    final service = CashService(party);
+    Future<void> wait([int ms = 400]) async {
+      for (var i = 0; i < 4; i++) {
+        srv.now = srv.now.add(Duration(milliseconds: ms ~/ 4));
+        unawaited(srv.publish());
+        await tester.pump(Duration(milliseconds: ms ~/ 4));
+      }
+    }
+
+    await wait(1500);
+    late Doc doc;
+    var sat = false;
+    unawaited(
+      service.sit(CashStake.kitchen, 1000).then((d) {
+        doc = d;
+        sat = true;
+      }),
+    );
+    for (var i = 0; i < 50 && !sat; i++) {
+      await wait(100);
+    }
+    final c = OnlineCashController.forTable(service, doc, you: account.persona, clock: () => srv.now);
+    c.start();
+    var turns = 0, lastHand = c.handNumber;
+    int? turnAt, resultAt;
+    final myClock = <int>[], gaps = <int>[];
+    var botClock = 0;
+    for (var i = 0; i < 12000 && gaps.length < 8; i++) {
+      await wait(100);
+      final ms = srv.now.millisecondsSinceEpoch;
+      final seat = c.actingSeat;
+      if (seat != null && seat != 0 && c.turnSecondsLeft != null) botClock++;
+      if (c.phase == TablePhase.payout && resultAt == null) resultAt = ms;
+      if (c.handNumber != lastHand) {
+        lastHand = c.handNumber;
+        if (resultAt != null) gaps.add(ms - resultAt);
+        resultAt = null;
+      }
+      if (c.yourTurn) {
+        turnAt ??= ms;
+        if (ms - turnAt == 0) myClock.add(c.turnSecondsLeft ?? 0);
+        // A person takes a moment, then calls (or checks), or folds now and then.
+        if (ms - turnAt >= 1500) {
+          c.act(turns % 3 == 2 ? const Move.fold() : const Move.call());
+          turns++;
+          turnAt = null;
+        }
+      }
+    }
+    expect(gaps.length, 8, reason: 'kept playing');
+    expect(botClock, 0, reason: 'a countdown only on a person');
+    expect(
+      myClock.reduce(min),
+      greaterThanOrEqualTo(25),
+      reason: 'your time starts when your turn shows: $myClock',
+    );
+    // From the result going up to the next deal: the result's own few seconds, then straight on.
+    expect(gaps.reduce(max), lessThanOrEqualTo(6000), reason: 'gaps $gaps');
+    c.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 
   for (final silent in [false, true]) {

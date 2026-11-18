@@ -412,9 +412,11 @@ class OnlineCashController extends PokerController {
       due = true;
     } else if (_handOver) {
       // The next hand once this phone has shown this one (the server
-      // waits its few seconds), or after a while whatever this phone's up to.
+      // waits its two seconds), or after a while whatever this phone's up to.
       final since = now.difference(_endedHeard).inMilliseconds;
       due = (_finishedNo == _handNo && since > 2000) || since > 15000;
+      // Asked a little early: again next second, not in five.
+      if (due && _asked == v && now.difference(_askedAt).inMilliseconds >= 1000) _asked = null;
     } else {
       final d = _doc['deadline'] as int?, at = _doc['turnAt'] as int?;
       if (d != null && at != null) due = (d - at) - now.difference(_heard).inMilliseconds < -1500;
@@ -444,11 +446,14 @@ class OnlineCashController extends PokerController {
     unawaited(service.tick(stake).then((d) => _onDoc(d), onError: (Object _) => _troubled()));
   }
 
-  /// Seconds left for whoever is to act (people only).
+  /// Seconds left for whoever is to act: people only, once this phone has
+  /// reached their turn (never under a bot it's still showing).
   @override
   int? get turnSecondsLeft {
     final d = _doc['deadline'] as int?, at = _doc['turnAt'] as int?;
-    if (d == null || at == null || _handOver) return null;
+    if (d == null || at == null || _handOver || _movedOn) return null;
+    final seat = actingSeat;
+    if (seat == null || _server(seat) != _doc['turn'] || _logged() != null) return null;
     final ms = (d - at) - _clock().difference(_heard).inMilliseconds;
     return (ms / 1000).ceil().clamp(0, 30);
   }
