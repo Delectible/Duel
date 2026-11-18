@@ -793,13 +793,14 @@ bosses remember how you play.
   down; **Show cards** throws them face up onto the felt (a lob and a
   spin, a thud) and moves on to the next hand after a beat. Everyone
   folded to you: the same two buttons, and after 5 s it moves on, cards
-  down.
+  down. → 0.11.6 · 2026-11-18 · 3aa9bd2
 - [x] **42.2 The bots react and remember**: a compelling show gets a line
   (a bluff they folded to, a monster they folded to, a strong hand that
   lost, a bluff they caught; each bot in its own voice). A shown bluff
   goes into their read of you (they call you lighter, and rivals and
   bosses keep it between games) and stings whoever folded to it (tilt:
   they play looser for a while). Online, the server's bots don't talk.
+  → 0.11.6 · 2026-11-18 · 3aa9bd2
 
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
