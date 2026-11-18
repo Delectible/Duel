@@ -115,7 +115,8 @@ together, GamePigeon-easy. Let it guide design and development choices.
   The store listing (title, descriptions, icon, feature graphic) lives in
   `fastlane/metadata/android/en-AU/`; `play-listing.yml` publishes it when
   it changes (fastlane supply, same service account). Icon and feature
-  graphic come from `tool/icon/make_icons.py` (placeholder art). Privacy
+  graphic come from `tool/icon/make_icons.py` (the ghost: white, scanlines,
+  RGB split on near-black, Darkroom's treatment; spade glints in its eyes). Privacy
   policy for the listing: `docs/PRIVACY.md` — update it (and Play's Data
   safety form) whenever what the app collects changes.
 - Release builds are signed with Luca's **private upload key** (alias

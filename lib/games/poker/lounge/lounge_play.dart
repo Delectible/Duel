@@ -12,7 +12,7 @@ import '../ui/poker_screen.dart';
 import 'lounge_modes.dart';
 
 /// Opens a lounge game: a new one ([stake] taken now), or the saved one.
-Future<void> openLoungeGame(BuildContext context, LoungeGame game, {int? stake, double pace = 1}) {
+Future<void> openLoungeGame(BuildContext context, LoungeGame game, {int? stake, double pace = 1, int? seed}) {
   final account = AccountScope.read(context);
   final ticket = stake == null
       ? null
@@ -27,34 +27,40 @@ Future<void> openLoungeGame(BuildContext context, LoungeGame game, {int? stake, 
   Sound.play(Sfx.tap, gain: 0.6);
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => PokerScreen.lounge(lounge: game, stake: ticket, pace: pace),
+      builder: (_) => PokerScreen.lounge(lounge: game, stake: ticket, pace: pace, seed: seed),
     ),
   );
 }
 
 /// The Tournament page: pick a buy-in.
 class TournamentScreen extends StatelessWidget {
-  const TournamentScreen({super.key, this.pace = 1});
+  const TournamentScreen({super.key, this.pace = 1, this.seed});
 
   final double pace;
+
+  /// Fixed shuffles (tests).
+  final int? seed;
 
   @override
   Widget build(BuildContext context) => LoungeModeScreen(
     mode: LoungeMode.tournament,
-    play: _Tiers(pace: pace),
+    play: _Tiers(pace: pace, seed: seed),
   );
 }
 
 /// The Boss Tables page: the ladder.
 class BossTablesScreen extends StatelessWidget {
-  const BossTablesScreen({super.key, this.pace = 1});
+  const BossTablesScreen({super.key, this.pace = 1, this.seed});
 
   final double pace;
+
+  /// Fixed shuffles (tests).
+  final int? seed;
 
   @override
   Widget build(BuildContext context) => LoungeModeScreen(
     mode: LoungeMode.bosses,
-    play: _Ladder(pace: pace),
+    play: _Ladder(pace: pace, seed: seed),
   );
 }
 
@@ -154,9 +160,10 @@ class _Row extends StatelessWidget {
 }
 
 class _Tiers extends StatelessWidget {
-  const _Tiers({required this.pace});
+  const _Tiers({required this.pace, this.seed});
 
   final double pace;
+  final int? seed;
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +218,13 @@ class _Tiers extends StatelessWidget {
               button: why ?? (tier.buyIn == 0 ? 'Play free' : 'Buy in'),
               onPlay: why != null
                   ? null
-                  : () => openLoungeGame(context, LoungeGame.tournament(tier), stake: tier.buyIn, pace: pace),
+                  : () => openLoungeGame(
+                      context,
+                      LoungeGame.tournament(tier),
+                      stake: tier.buyIn,
+                      pace: pace,
+                      seed: seed,
+                    ),
             );
           }(),
       ],
@@ -220,9 +233,10 @@ class _Tiers extends StatelessWidget {
 }
 
 class _Ladder extends StatelessWidget {
-  const _Ladder({required this.pace});
+  const _Ladder({required this.pace, this.seed});
 
   final double pace;
+  final int? seed;
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +277,7 @@ class _Ladder extends StatelessWidget {
               button: why ?? (beaten ? 'Rematch' : 'Challenge'),
               onPlay: why != null
                   ? null
-                  : () => openLoungeGame(context, LoungeGame.boss(b), stake: b.stake, pace: pace),
+                  : () => openLoungeGame(context, LoungeGame.boss(b), stake: b.stake, pace: pace, seed: seed),
             );
           }(),
       ],

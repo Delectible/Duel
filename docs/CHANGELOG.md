@@ -749,6 +749,17 @@ bosses remember how you play.
 - [x] **38.7 Fix**: a "Blinds up!" notice could pop up twice in one hand
   (at speed it tripped an error); it shows once, as the hand is dealt. → 0.11.4 · 2026-11-17 · 300e8ae
 
+### 39. A new app icon (requested 2026-11-18)
+
+- [x] **39.1 The Duel ghost**: picked from four rounds of ideas (the
+  ideas page: https://claude.ai/artifact/5dxUSff229DUukcXZBHvoe, ghosts:
+  https://claude.ai/artifact/NBy436ND8j9hmGtpcDSuX2). A ghost glancing
+  sideways with a tiny spade for the glint in each eye, drawn like
+  Darkroom's rabbit (white with scanlines, red / blue colour split, on
+  near-black). Every Android size (adaptive, themed, legacy), iOS, and the
+  Play icon and feature graphic, from `tool/icon/make_icons.py`; Android
+  12+'s splash puts it on a dark circle over Duel's yellow.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
 - [x] **25.1 Online cash tables, open to everyone**: a set of public

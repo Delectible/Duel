@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.11.4';
+  static const version = '0.11.5';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -23,10 +23,7 @@ class AppInfo {
 
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
-  static const latest =
-      'Poker Lounge: Tournaments (18 players, three tables, top three paid) and the Boss Tables (beat five '
-      'bosses, each with a habit to learn). Rivals and bosses now remember how you play. Trophy shelf, new '
-      'achievements, and a lounge game picks up where you left it.';
+  static const latest = 'A new app icon: the Duel ghost.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -39,6 +36,7 @@ class AppInfo {
         'Boss Tables: a ladder of five bosses',
         'Rivals and bosses remember how you play',
         'Trophy shelf and new achievements',
+        'New app icon: the Duel ghost',
       ],
     ),
     (

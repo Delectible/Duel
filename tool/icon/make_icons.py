@@ -1,9 +1,12 @@
 """Generates every Duel launcher icon and the Play store art from one drawing.
 
-    python3 tool/icon/make_icons.py        (needs Pillow)
+    python3 tool/icon/make_icons.py        (needs Pillow + numpy)
 
-The mark: two playing cards fanned against each other, a spade and a heart,
-on dark card-table green. A placeholder until the app has real art.
+The mark: a ghost glancing sideways, a tiny spade for the glint in each eye,
+drawn the way Darkroom draws its rabbit: white with scanlines, split into
+red / green / blue copies like a mis-converged CRT (red and yellow fringe on
+the left, cyan and blue on the right), on near-black with a soft light from
+the top left.
 
 Writes:
   Android  adaptive icon (background colour, foreground, monochrome for
@@ -15,89 +18,133 @@ Writes:
 import json
 import os
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SS = 4                                   # supersampling factor
-BG = (11, 46, 35)                        # #0B2E23, adaptive background colour
-BG_TOP, BG_BOT = (18, 66, 50), (6, 30, 23)
-CARD, EDGE = (246, 242, 232), (200, 192, 176)
-RED, INK = (200, 36, 44), (22, 22, 26)
+BG = (14, 14, 18)                        # #0E0E12, adaptive background colour
+BG_TOP, BG_BOT = (24, 25, 31), (9, 9, 12)
+SPLIT = 5                                # RGB offset in design units (192 grid)
+SCAN = 0.84                              # scanline brightness on the ghost
+GHOST = 1.14                             # the ghost's scale on the full icon
 
 
-def _gradient(w, h, top, bot):
-    g = Image.new('RGB', (1, h))
-    for y in range(h):
-        t = y / max(1, h - 1)
-        g.putpixel((0, y), tuple(round(a + (b - a) * t) for a, b in zip(top, bot)))
-    return g.resize((w, h))
+class _Pen:
+    """Draws on the 192-unit design grid (the ghost's own scale) into a mask."""
+
+    def __init__(self, S, cx, cy, D, dx=0.0):
+        self.u = D / 192 * GHOST
+        self.cx, self.cy, self.dx = cx, cy, dx * D / 192
+        self.m = Image.new('L', (S, S), 0)
+        self.d = ImageDraw.Draw(self.m)
+
+    def P(self, x, y):
+        return self.cx + (x - 96) * self.u + self.dx, self.cy + (y - 96 - 4) * self.u
+
+    def ellipse(self, x, y, rx, ry):
+        a, b = self.P(x - rx, y - ry), self.P(x + rx, y + ry)
+        self.d.ellipse((a[0], a[1], b[0], b[1]), fill=255)
+
+    def rect(self, x0, y0, x1, y1):
+        a, b = self.P(x0, y0), self.P(x1, y1)
+        self.d.rectangle((a[0], a[1], b[0], b[1]), fill=255)
+
+    def poly(self, pts):
+        self.d.polygon([self.P(*p) for p in pts], fill=255)
+
+    def spade(self, cx, cy, r):
+        self.ellipse(cx - r * 0.5, cy + r * 0.2, r * 0.55, r * 0.55)
+        self.ellipse(cx + r * 0.5, cy + r * 0.2, r * 0.55, r * 0.55)
+        self.poly([(cx - r * 1.02, cy + 0.3 * r), (cx + r * 1.02, cy + 0.3 * r), (cx, cy - r)])
+        self.poly([(cx, cy + 0.3 * r), (cx - r * 0.35, cy + r * 1.05), (cx + r * 0.35, cy + r * 1.05)])
+
+    def array(self):
+        return np.asarray(self.m, dtype=np.float32) / 255
 
 
-def _heart(d, cx, cy, r, fill):
-    d.ellipse((cx - 2 * r, cy - r * 1.6, cx, cy + r * 0.4), fill=fill)
-    d.ellipse((cx, cy - r * 1.6, cx + 2 * r, cy + r * 0.4), fill=fill)
-    d.polygon([(cx - 1.93 * r, cy - 0.2 * r), (cx, cy - 0.9 * r), (cx + 1.93 * r, cy - 0.2 * r), (cx, cy + 2.1 * r)], fill=fill)
-
-
-def _spade(d, cx, cy, r, fill):
-    d.ellipse((cx - 2 * r, cy - r * 0.4, cx, cy + r * 1.6), fill=fill)
-    d.ellipse((cx, cy - r * 0.4, cx + 2 * r, cy + r * 1.6), fill=fill)
-    d.polygon([(cx - 1.93 * r, cy + 0.2 * r), (cx, cy + 0.9 * r), (cx + 1.93 * r, cy + 0.2 * r), (cx, cy - 2.1 * r)], fill=fill)
-    d.polygon([(cx, cy + 0.6 * r), (cx - 0.9 * r, cy + 2.4 * r), (cx + 0.9 * r, cy + 2.4 * r)], fill=fill)
-
-
-def _card(size, suit, mono=None):
-    """One upright card, size = card height in px (2.5:3.5), as RGBA."""
-    h = size
-    w = round(h * 5 / 7)
-    pad = round(h * 0.04)
-    im = Image.new('RGBA', (w + 2 * pad, h + 2 * pad), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    rad = round(h * 0.08)
-    face = mono or CARD
-    if mono is None:
-        d.rounded_rectangle((pad, pad, pad + w, pad + h), rad, fill=EDGE)
-        inset = max(1, round(h * 0.012))
-        d.rounded_rectangle((pad + inset, pad + inset, pad + w - inset, pad + h - inset), rad - inset, fill=face)
+def _mask(S, cx, cy, D, part, dx=0.0):
+    """One part of the ghost as a float mask 0..1: 'body', 'eyes' or 'glints'."""
+    p = _Pen(S, cx, cy, D, dx)
+    if part == 'body':
+        p.ellipse(96, 92, 56, 56)                      # head
+        p.rect(40, 92, 152, 150)
+        for x in (54, 82, 110, 138):                   # the wavy hem
+            p.ellipse(x, 150, 14, 16)
+    elif part == 'eyes':
+        for x in (72, 108):                            # glancing to the left
+            p.ellipse(x, 94, 10, 14)
     else:
-        d.rounded_rectangle((pad, pad, pad + w, pad + h), rad, fill=face)
-    ink = (0, 0, 0, 0) if mono else (RED if suit == 'heart' else INK)
-    draw = _heart if suit == 'heart' else _spade
-    draw(d, pad + w / 2, pad + h / 2, h * 0.11, ink)
-    # Corner pips.
-    draw(d, pad + w * 0.2, pad + h * 0.13, h * 0.035, ink)
-    draw(d, pad + w * 0.8, pad + h * 0.87, h * 0.035, ink)
-    return im
+        for x in (69, 105):                            # a spade for each glint
+            p.spade(x, 88, 4.2)
+    return p.array()
 
 
-def mark(size, mono=None):
-    """The two fanned cards centred on a transparent size x size canvas."""
-    S = size * SS
-    out = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-    ch = round(S * 0.58)
-    for suit, angle, dx in (('spade', 16, -0.16), ('heart', -16, 0.16)):
-        c = _card(ch, suit, mono).rotate(angle, resample=Image.BICUBIC, expand=True)
-        x = round(S / 2 + dx * S - c.width / 2)
-        y = round(S / 2 - c.height / 2 + S * 0.02)
-        if mono is None:
-            shadow = Image.new('RGBA', c.size, (0, 0, 0, 0))
-            shadow.putalpha(c.getchannel('A').point(lambda a: a * 0.35))
-            out.alpha_composite(shadow, (x + round(S * 0.012), y + round(S * 0.018)))
-        else:
-            # Single-colour: cut a gap round the front card so the two read apart.
-            gap = Image.new('L', out.size, 0)
-            gap.paste(c.getchannel('A'), (x, y))
-            gap = gap.filter(ImageFilter.MaxFilter(2 * round(S * 0.012) + 1))
-            out.putalpha(ImageChops.subtract(out.getchannel('A'), gap))
-        out.alpha_composite(c, (x, y))
-    return out.resize((size, size), Image.LANCZOS)
+def _scanlines(S, D):
+    period = 4 * D / 192
+    rows = (np.arange(S) % period) < period * 0.4
+    return np.where(rows, SCAN, 1.0).astype(np.float32)[:, None, None]
 
 
-def full_icon(size):
-    """Opaque square icon: table green + the mark."""
-    im = _gradient(size, size, BG_TOP, BG_BOT).convert('RGBA')
-    im.alpha_composite(mark(round(size * 0.92)), (round(size * 0.04), round(size * 0.04)))
-    return im.convert('RGB')
+def _background(W, H=None):
+    H = H or W
+    t = np.linspace(0, 1, H, dtype=np.float32)[:, None, None]
+    top, bot = np.array(BG_TOP, np.float32), np.array(BG_BOT, np.float32)
+    img = np.broadcast_to(top + (bot - top) * t, (H, W, 3)).copy()
+    # A soft light from the top left.
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    yy, xx = yy / H, xx / W
+    img += (np.clip(1 - np.hypot(xx - 0.2, yy - 0.15) / 0.75, 0, 1) ** 2 * 18)[..., None]
+    return img
+
+
+def mark(S, cx, cy, D, canvas=None):
+    """The RGB-split ghost as premultiplied colour (0..255) + alpha (0..1)."""
+    shape = canvas or (S, S)
+    r, g, b = (_mask(max(shape), cx, cy, D, 'body', d)[: shape[0], : shape[1]] for d in (-SPLIT, 0, SPLIT))
+    scan = _scanlines(max(shape), D)[: shape[0]]
+    rgb = np.stack([r, g, b], -1) * 255 * scan
+    alpha = np.maximum(np.maximum(r, g), b)
+    eyes = _mask(max(shape), cx, cy, D, 'eyes')[: shape[0], : shape[1]]
+    glints = _mask(max(shape), cx, cy, D, 'glints')[: shape[0], : shape[1]]
+    rgb = rgb * (1 - eyes)[..., None]
+    rgb = rgb * (1 - glints)[..., None] + (glints * 255)[..., None] * scan
+    alpha = np.maximum(alpha * (1 - eyes), glints)
+    return rgb, alpha
+
+
+def _out(px, rgb, alpha=None, size=None):
+    if alpha is None:
+        img = Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8), 'RGB')
+    else:   # un-premultiply for a straight-alpha PNG
+        a = np.clip(alpha, 0, 1)
+        col = np.where(a[..., None] > 1e-4, rgb / np.maximum(a, 1e-4)[..., None], 0)
+        img = Image.fromarray(np.dstack([np.clip(col, 0, 255), a * 255]).astype(np.uint8), 'RGBA')
+    return img.resize(size or (px, px), Image.LANCZOS)
+
+
+def full_icon(px):
+    """Opaque square icon (iOS, Play, legacy Android): the ghost on the dark background."""
+    S = px * SS
+    rgb, a = mark(S, S / 2, S / 2, S)
+    return _out(px, _background(S) * (1 - a[..., None]) + rgb)
+
+
+def foreground(px):
+    """Adaptive icon foreground (108 dp): the ghost inside the 66 dp safe zone."""
+    S = px * SS
+    rgb, a = mark(S, S / 2, S / 2, S * 0.74)
+    return _out(px, rgb, a)
+
+
+def monochrome(px):
+    """Android 13+ themed icon: one colour, eyes cut out (the system tints it)."""
+    S = px * SS
+    D = S * 0.74
+    body = _mask(S, S / 2, S / 2, D, 'body')
+    eyes = _mask(S, S / 2, S / 2, D, 'eyes')
+    a = body * (1 - eyes)
+    return _out(px, np.full((S, S, 3), 255, np.float32) * a[..., None], a)
 
 
 def _save(im, *path):
@@ -107,7 +154,8 @@ def _save(im, *path):
 
 
 def _font(px):
-    for f in ('/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf', 'DejaVuSerif-Bold.ttf'):
+    for f in (os.path.join(ROOT, 'assets', 'fonts', 'Fredoka-Bold.ttf'),
+              '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'):
         try:
             return ImageFont.truetype(f, px)
         except OSError:
@@ -115,17 +163,33 @@ def _font(px):
     return ImageFont.load_default()
 
 
+def feature_graphic():
+    """1024 x 500 for the store listing: the ghost, then "Duel" split the same way."""
+    W, H = 1024 * SS, 500 * SS
+    img = _background(W, H)
+    D = H * 1.02
+    rgb, a = mark(W, W * 0.27, H * 0.5, D, canvas=(H, W))
+    img = img * (1 - a[..., None]) + rgb
+    # The name, in three offset copies that add up to white.
+    font = _font(190 * SS)
+    planes = []
+    for d in (-SPLIT, 0, SPLIT):
+        m = Image.new('L', (W, H), 0)
+        ImageDraw.Draw(m).text((W * 0.52 + d * SS * 1.6, H * 0.5), 'Duel', font=font, fill=255, anchor='lm')
+        planes.append(np.asarray(m, np.float32) / 255)
+    text = np.stack(planes, -1) * 255
+    ta = np.max(np.stack(planes, -1), -1)
+    img = img * (1 - ta[..., None]) + text
+    return _out(0, img, size=(1024, 500))
+
+
 def main():
     res = ('android', 'app', 'src', 'main', 'res')
     for dpi, scale in (('mdpi', 1), ('hdpi', 1.5), ('xhdpi', 2), ('xxhdpi', 3), ('xxxhdpi', 4)):
         _save(full_icon(round(48 * scale)), *res, f'mipmap-{dpi}', 'ic_launcher.png')
-        # Adaptive layers are 108 dp; the mark fits the 66 dp safe circle.
-        fg = round(108 * scale)
-        inner = round(72 * scale)
-        for name, mono in (('ic_launcher_foreground', None), ('ic_launcher_monochrome', (255, 255, 255))):
-            layer = Image.new('RGBA', (fg, fg), (0, 0, 0, 0))
-            layer.alpha_composite(mark(inner, mono), ((fg - inner) // 2, (fg - inner) // 2))
-            _save(layer, *res, f'mipmap-{dpi}', f'{name}.png')
+        layer = round(108 * scale)
+        _save(foreground(layer), *res, f'mipmap-{dpi}', 'ic_launcher_foreground.png')
+        _save(monochrome(layer), *res, f'mipmap-{dpi}', 'ic_launcher_monochrome.png')
     _save_text('\n'.join([
         '<?xml version="1.0" encoding="utf-8"?>',
         '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">',
@@ -150,11 +214,7 @@ def main():
 
     play = ('fastlane', 'metadata', 'android', 'en-AU', 'images')
     _save(full_icon(512), *play, 'icon.png')
-    fg = _gradient(1024, 500, BG_TOP, BG_BOT).convert('RGBA')
-    fg.alpha_composite(mark(460), (90, 20))
-    d = ImageDraw.Draw(fg)
-    d.text((600, 250), 'Duel', font=_font(150), fill=CARD, anchor='lm')
-    _save(fg.convert('RGB'), *play, 'featureGraphic.png')
+    _save(feature_graphic(), *play, 'featureGraphic.png')
 
 
 def _save_text(text, *path):

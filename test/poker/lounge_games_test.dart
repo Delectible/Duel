@@ -35,9 +35,14 @@ Future<void> _play(WidgetTester tester, {bool Function()? done, bool shove = tru
     if (shove && raise.onPressed != null) {
       await tester.tap(find.byKey(const Key('raise')));
       await settleButtons(tester);
-      await tester.tap(find.byKey(const Key('quick All-in')));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('confirm raise')));
+      // No shortcut when all-in is the only raise left: the panel's already there.
+      if (find.byKey(const Key('quick All-in')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('quick All-in')));
+        await tester.pump();
+      }
+      if (find.byKey(const Key('confirm raise')).evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('confirm raise')));
+      }
     } else {
       await tester.tap(find.byKey(const Key('fold')));
     }
@@ -58,7 +63,7 @@ void main() {
     ) async {
       usePhone(tester, phones[phone]!);
       final account = Account()..setBalance(1000);
-      await tester.pumpWidget(_app(account, const BossTablesScreen(pace: 0.05)));
+      await tester.pumpWidget(_app(account, const BossTablesScreen(pace: 0.05, seed: 3)));
       await tester.pump();
       await shot(tester, 'lounge_bosses_$phone');
       // Only the first boss is open.
@@ -90,7 +95,7 @@ void main() {
   ) async {
     usePhone(tester, phones['pixel9pro']!);
     final account = Account()..setBalance(1000);
-    await tester.pumpWidget(_app(account, const BossTablesScreen(pace: 0.05)));
+    await tester.pumpWidget(_app(account, const BossTablesScreen(pace: 0.05, seed: 3)));
     await tester.pump();
     await tester.tap(find.byKey(const Key('play boss 0')));
     await _open(tester);
@@ -105,7 +110,7 @@ void main() {
     // The app closes.
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
-    await tester.pumpWidget(_app(account, const BossTablesScreen(pace: 0.05)));
+    await tester.pumpWidget(_app(account, const BossTablesScreen(pace: 0.05, seed: 3)));
     await tester.pump();
     expect(find.byKey(const Key('lounge continue')), findsOneWidget);
     expect(tester.widget(find.byKey(const Key('play boss 0'))), isA<Text>());
@@ -126,7 +131,7 @@ void main() {
     (tester) async {
       usePhone(tester, phones['pixel9pro']!);
       final account = Account()..setBalance(1000);
-      await tester.pumpWidget(_app(account, const TournamentScreen(pace: 0.05)));
+      await tester.pumpWidget(_app(account, const TournamentScreen(pace: 0.05, seed: 3)));
       await tester.pump();
       await shot(tester, 'lounge_tournament');
       expect(tester.widget(find.byKey(const Key('play main'))), isA<Text>(), reason: 'locked');
