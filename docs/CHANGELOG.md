@@ -806,28 +806,28 @@ bosses remember how you play.
 
 - [x] **43.1 Marks explained**: tapping a bot with the target (bounty) or
   flame (rival / boss) shows the same icon on its read card with what it
-  means (the rival with your record, the boss with its habit).
+  means (the rival with your record, the boss with its habit). → 0.11.6 · 2026-11-18 · 9dbe6fd
 - [x] **43.2 Fair reads**: "Plays most hands" came after just 6 hands
   with fixed cut-offs (3 of 6 = "most"). How many hands someone plays is
   now judged on 12+ hands and against the table size (heads-up you play
   most), says "So far:" while thin, and a player type follows once
   there's a read (loose / tight × aggressive / passive). The read card
-  says how many more hands until a read.
+  says how many more hands until a read. → 0.11.6 · 2026-11-18 · 9dbe6fd
 - [x] **43.3 Four new styles**: Nit (folds almost everything), Gambler
   (small pots tight, big pots can't let go), Copycat (plays like the
   player in seat 0: you, at your table), Wildcard (a new gear every six
-  hands). Each has its own lines.
+  hands). Each has its own lines. → 0.11.6 · 2026-11-18 · 9dbe6fd
 - [x] **43.4 Tournament strip**: your place among everyone left in the
   tournament and the prize line (Top 3 paid / Bubble / In the money!)
   instead of Avg; Sit & Go and bosses show your place (Avg stays at cash
-  tables).
+  tables). → 0.11.6 · 2026-11-18 · 9dbe6fd
 - [x] **43.5 Shared cash tables**: Sit out (pause button; seat and chips
   kept, dealt out, folded if it was your turn; I'm back; stood up after
   30 min away), pre-moves (tick Check / Fold, Call or Call any while
   others act; it goes the moment it's your turn), and chat: tap your face
   for a list of lines everyone at the table sees by your face (no typing;
   one every 2 s; doesn't disturb anyone's move). The bots talk as they do
-  offline, the same lines on every phone.
+  offline, the same lines on every phone. → 0.11.6 · 2026-11-18 · 8412852
 
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
