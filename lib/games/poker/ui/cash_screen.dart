@@ -404,32 +404,50 @@ class _CashHud extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Toon.text(20, weight: FontWeight.w700),
               ),
-              Row(
+              // The Online / Local marker drops under the blinds when it's tight.
+              Wrap(
+                spacing: 6,
+                runSpacing: 2,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Flexible(
-                    child: Text(
-                      trouble
-                          ? 'Reconnecting…'
-                          : 'Blinds ${chips(c.game.blinds.$1)} / ${chips(c.game.blinds.$2)}'
-                                '${pending > 0 ? ' · +${chips(pending)} next hand' : ''}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
-                    ),
+                  Text(
+                    trouble
+                        ? 'Reconnecting…'
+                        : 'Blinds ${chips(c.game.blinds.$1)} / ${chips(c.game.blinds.$2)}'
+                              '${pending > 0 ? ' · +${chips(pending)} next hand' : ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
                   ),
-                  const SizedBox(width: 6),
                   CashWhere(online: online),
                 ],
               ),
             ],
           ),
         ),
+        if (online && !c.sittingOut) ...[
+          ToonButton(
+            key: const Key('sit out'),
+            color: Toon.card,
+            padding: const EdgeInsets.all(8),
+            tooltip: 'Sit out: keep your seat, skip hands',
+            onPressed: () => c.setSittingOut(true),
+            child: const Icon(Icons.pause_rounded, size: 20),
+          ),
+          const SizedBox(width: 6),
+        ],
+        // In the narrow side panel (phone on its side), Top up is an icon.
         ToonButton(
           key: const Key('top up'),
           color: Toon.yellow,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: SidePanel.of(context)
+              ? const EdgeInsets.all(8)
+              : const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          tooltip: 'Top up',
           onPressed: onTopUp,
-          child: Text('Top up', style: Toon.text(14)),
+          child: SidePanel.of(context)
+              ? const Icon(Icons.add_circle_outline_rounded, size: 20)
+              : Text('Top up', style: Toon.text(14)),
         ),
         const SizedBox(width: 6),
         GuideButton(title: "Texas Hold'em", stages: pokerGuide, current: () => pokerStage(c)),
@@ -461,11 +479,14 @@ class CashWhere extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(online ? Icons.public_rounded : Icons.phone_android_rounded, size: 11, color: Colors.white),
-          const SizedBox(width: 3),
-          Text(
-            online ? 'Online' : 'Local',
-            style: Toon.text(11, weight: FontWeight.w700, color: Colors.white),
-          ),
+          // Just the icon in the narrow side panel (phone on its side).
+          if (!SidePanel.of(context)) ...[
+            const SizedBox(width: 3),
+            Text(
+              online ? 'Online' : 'Local',
+              style: Toon.text(11, weight: FontWeight.w700, color: Colors.white),
+            ),
+          ],
         ],
       ),
     ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:duel_engine/cards.dart';
 import 'package:duel_engine/poker/bot.dart';
+import 'package:duel_engine/poker/cash.dart';
 import 'package:duel_engine/poker/coach.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/reads.dart';
@@ -461,6 +462,59 @@ List<({String key, IconData icon, Color color, String title, String text})> _bad
   }
   return out;
 }
+
+/// Shared tables: say something to the table (a line from a list), or see
+/// how you come across.
+Future<void> showChatSheet(BuildContext context, PokerController c) => showToonSheet<void>(
+  context,
+  height: 0.6,
+  builder: (sheet) => ListView(
+    key: const Key('chat sheet'),
+    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+    children: [
+      Text('Say to the table', style: Toon.text(22, weight: FontWeight.w700)),
+      const SizedBox(height: 4),
+      Text('Everyone at the table sees it by your face.', style: Toon.text(14, color: Toon.muted)),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final (i, line) in cashChatLines.indexed)
+            ToonButton(
+              key: Key('say $i'),
+              color: Toon.card,
+              radius: 12,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              onPressed: () {
+                c.say(i);
+                Navigator.of(sheet).pop();
+              },
+              child: Text(line, style: Toon.text(15)),
+            ),
+        ],
+      ),
+      const SizedBox(height: 16),
+      ToonButton(
+        key: const Key('your read'),
+        color: Toon.blue,
+        radius: 12,
+        onPressed: () {
+          Navigator.of(sheet).pop();
+          showReadCard(context, c, 0);
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.visibility_rounded, size: 20),
+            const SizedBox(width: 6),
+            Text('How you come across', style: Toon.text(15)),
+          ],
+        ),
+      ),
+    ],
+  ),
+);
 
 // --- Hand history --------------------------------------------------------------
 

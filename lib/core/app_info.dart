@@ -24,8 +24,10 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      "Hold'em: after a hand, Next hand keeps your cards down; Show cards throws them face up on the table. Show a "
-      'bluff and the bots remember it (and the one you fooled takes it badly).';
+      "Hold'em: Show cards throws yours on the table, and the bots react and remember. Read cards explain the "
+      'bounty and rival marks, say how soon you\'ll have a read, and judge players fairly for the table size. Four new '
+      'bot styles. Tournaments show your place and the prize line. Shared cash tables: sit out, tick your move '
+      'ahead, and tap your face to say something (the bots talk too).';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -40,6 +42,8 @@ class AppInfo {
         'Trophy shelf and new achievements',
         'New app icon: the Duel ghost',
         'Show cards: throw them on the table',
+        'Four new bot styles; fairer read cards',
+        'Cash tables: sit out, pre-moves, table chat',
       ],
     ),
     (

@@ -49,6 +49,7 @@ class CashSeat {
     this.leaving = false,
     this.timeouts = 0,
     this.topUp = 0,
+    this.outSince,
   });
 
   final String id;
@@ -74,6 +75,12 @@ class CashSeat {
   /// Chips added mid-hand, joining the stack after it.
   int topUp;
 
+  /// Sitting out since (ms since epoch): keeps the seat and chips, dealt
+  /// out of hands (and folded if it was their turn) until they're back.
+  int? outSince;
+
+  bool get sittingOut => outSince != null;
+
   bool get bot => id.startsWith('bot:');
 
   BotStyle get botStyle => BotStyle.values.asNameMap()[style] ?? BotStyle.shark;
@@ -89,6 +96,7 @@ class CashSeat {
     if (leaving) 'leaving': true,
     if (timeouts > 0) 'timeouts': timeouts,
     if (topUp > 0) 'topUp': topUp,
+    'out': ?outSince,
   };
 
   static CashSeat fromJson(Map<Object?, Object?> j) => CashSeat(
@@ -102,8 +110,26 @@ class CashSeat {
     leaving: j['leaving'] == true,
     timeouts: j['timeouts'] as int? ?? 0,
     topUp: j['topUp'] as int? ?? 0,
+    outSince: j['out'] as int?,
   );
 }
+
+/// What people at a shared table can say (picked from a list: no typing,
+/// nothing to moderate). The referee only takes an index into this.
+const cashChatLines = [
+  'Nice hand!',
+  'Good luck!',
+  'Well played',
+  'Ouch!',
+  'Lucky!',
+  'Wow',
+  'Ha!',
+  'Hmm…',
+  'Your turn!',
+  'Good game',
+  'Back soon',
+  'Bye all!',
+];
 
 /// One cash table between hands: who sits where with how much, where the
 /// button is, and when the bots last played (they keep playing while

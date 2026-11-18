@@ -19,10 +19,18 @@ class ActionBar extends StatefulWidget {
   State<ActionBar> createState() => _ActionBarState();
 }
 
+/// A move ticked ahead of your turn (shared tables).
+enum _Pre { checkFold, call, callAny }
+
 class _ActionBarState extends State<ActionBar> {
   var _raising = false;
   var _amount = 0;
   var _turnSeen = false;
+
+  /// The move ticked ahead, the bet it was ticked at, and the hand.
+  _Pre? _pre;
+  var _preBet = 0;
+  var _preHand = -1;
 
   PokerController get c => widget.c;
 
@@ -40,15 +48,108 @@ class _ActionBarState extends State<ActionBar> {
 
   /// A fresh turn starts with the raise panel shut at the minimum.
   void _syncTurn() {
+    if (_pre != null && _preHand != c.handNumber) _pre = null;
+    // "Call" was for a bet that's since been raised: untick it.
+    if (_pre == _Pre.call && c.hand != null && c.hand!.currentBet != _preBet) _pre = null;
     if (c.yourTurn && !_turnSeen) {
       _turnSeen = true;
       _raising = false;
-      _amount = c.hand!.legalMoves().minRaiseTo;
-      HapticFeedback.mediumImpact();
+      final legal = c.hand!.legalMoves();
+      _amount = legal.minRaiseTo;
+      final pre = _pre;
+      _pre = null;
+      final Move? m = switch (pre) {
+        _Pre.checkFold => legal.canCheck ? const Move.check() : const Move.fold(),
+        _Pre.call || _Pre.callAny => legal.canCheck ? const Move.check() : const Move.call(),
+        null => null,
+      };
+      if (m != null) {
+        // Your ticked move, as soon as your turn comes.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && c.yourTurn) _act(m);
+        });
+      } else {
+        HapticFeedback.mediumImpact();
+      }
     } else if (!c.yourTurn) {
       _turnSeen = false;
     }
   }
+
+  /// In the hand, waiting your turn (shared tables): tick a move ahead.
+  bool get _canPre {
+    final h = c.hand, me = c.handPlayer(0);
+    return c.preActions &&
+        h != null &&
+        h.result == null &&
+        me != null &&
+        !me.folded &&
+        me.stack > 0 &&
+        !c.yourTurn;
+  }
+
+  Widget _preActions() {
+    final h = c.hand!, me = c.handPlayer(0)!;
+    final toCall = h.currentBet - me.bet;
+    Widget tick(_Pre p, String label) {
+      final on = _pre == p;
+      return Expanded(
+        child: ToonButton(
+          key: Key('pre ${p.name}'),
+          color: on ? Toon.yellow : Toon.card,
+          radius: 10,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          onPressed: () => setState(() {
+            _pre = on ? null : p;
+            _preBet = h.currentBet;
+            _preHand = c.handNumber;
+          }),
+          child: FittedBox(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(on ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded, size: 16),
+                const SizedBox(width: 4),
+                Text(label, maxLines: 1, style: Toon.text(13, weight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        tick(_Pre.checkFold, toCall > 0 ? 'Fold' : 'Check / Fold'),
+        const SizedBox(width: 6),
+        tick(_Pre.call, toCall > 0 ? 'Call ${chips(toCall)}' : 'Check'),
+        const SizedBox(width: 6),
+        tick(_Pre.callAny, 'Call any'),
+      ],
+    );
+  }
+
+  /// Sitting out: your seat's kept; back from the next hand.
+  Widget _sittingOut() => SizedBox(
+    height: 60,
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            "You're sitting out. Your seat and chips are kept.",
+            style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
+          ),
+        ),
+        const SizedBox(width: 8),
+        ToonButton(
+          key: const Key('back in'),
+          color: Toon.green,
+          onPressed: () => c.setSittingOut(false),
+          child: Text("I'm back", style: Toon.text(17, weight: FontWeight.w700)),
+        ),
+      ],
+    ),
+  );
 
   void _act(Move m) {
     setState(() => _raising = false);
@@ -80,6 +181,8 @@ class _ActionBarState extends State<ActionBar> {
                   child: Text('You showed your cards.', style: Toon.text(17, color: Toon.muted)),
                 ),
               )
+            : c.sittingOut
+            ? _sittingOut()
             : c.phase == TablePhase.shuffle
             ? _dealButton()
             : (c.yourTurn ? (_raising ? _raisePanel() : _buttons()) : _status()),
@@ -178,6 +281,24 @@ class _ActionBarState extends State<ActionBar> {
       text = 'You folded. Next hand soon…';
     } else {
       text = '';
+    }
+    if (_canPre) {
+      return SizedBox(
+        height: 60,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Toon.text(13, color: Toon.muted),
+            ),
+            const SizedBox(height: 4),
+            _preActions(),
+          ],
+        ),
+      );
     }
     return SizedBox(
       height: 60,

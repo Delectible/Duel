@@ -137,4 +137,57 @@ void main() {
     final t = CashTableState.fromJson(await ref.cashSit(luca, 'kitchen', 1000, seat: open.last));
     expect(t.seats[open.last]?.id, 'luca');
   });
+
+  test('sitting out: dealt out with seat and chips kept, folded on their turn; back in from the next hand; '
+      'stood up after half an hour away', () async {
+    var t = await ref.cashSit(luca, 'kitchen', 1000);
+    final seat = (t['seats']! as List).indexWhere((s) => (s as Map?)?['id'] == 'luca');
+    t = await ref.cashSitOut(luca, 'kitchen', true);
+    expect(((t['seats']! as List)[seat] as Map)['out'], isNotNull);
+    expect(t['turn'], isNot(seat), reason: 'not waiting on someone sitting out');
+    // The next hands go on without Luca.
+    for (var k = 0; k < 3; k++) {
+      now = now.add(const Duration(seconds: 6));
+      t = await ref.cashTick(luca, 'kitchen');
+    }
+    final hand = t['hand']! as Map;
+    if ((hand['no'] as int) > 1) expect((hand['seats']! as List), isNot(contains(seat)));
+    expect(await balance('luca'), 2000, reason: 'chips still at the table');
+    // Back: dealt in again.
+    t = await ref.cashSitOut(luca, 'kitchen', false);
+    expect(((t['seats']! as List)[seat] as Map)['out'], isNull);
+    for (var k = 0; k < 6 && !((t['hand']! as Map)['seats']! as List).contains(seat); k++) {
+      now = now.add(const Duration(seconds: 6));
+      t = await play(1);
+    }
+    expect(((t['hand']! as Map)['seats']! as List), contains(seat));
+    // Away too long: stood up, chips back.
+    await ref.cashSitOut(luca, 'kitchen', true);
+    final chips = (((await store.get('cash/kitchen'))!['seats']! as List)[seat] as Map)['stack']! as int;
+    now = now.add(const Duration(minutes: 31));
+    for (var k = 0; k < 4; k++) {
+      now = now.add(const Duration(seconds: 6));
+      await ref.cashTick(sam, 'kitchen').catchError((Object _) => <String, Object?>{});
+      await ref.cashLobby(luca);
+    }
+    t = (await store.get('cash/kitchen'))!;
+    expect((t['seats']! as List).any((s) => (s as Map?)?['id'] == 'luca'), isFalse);
+    expect(await balance('luca'), greaterThanOrEqualTo(2000 + chips - 10));
+  });
+
+  test('saying a line: shown to the table without moving its version; one at a time', () async {
+    var t = await ref.cashSit(luca, 'kitchen', 1000);
+    final v = t['version'];
+    t = await ref.cashSay(luca, 'kitchen', 0);
+    expect((t['said']! as Map)['line'], 0);
+    expect(t['version'], v, reason: 'a move in flight still lands');
+    t = await ref.cashSay(luca, 'kitchen', 3);
+    expect((t['said']! as Map)['line'], 0, reason: 'too soon after the last');
+    now = now.add(const Duration(seconds: 3));
+    t = await ref.cashSay(luca, 'kitchen', 3);
+    expect((t['said']! as Map)['line'], 3);
+    expect((t['said']! as Map)['n'], 2);
+    await expectLater(ref.cashSay(luca, 'kitchen', 99), throwsA(isA<RefereeError>()));
+    await expectLater(ref.cashSay(sam, 'kitchen', 1), throwsA(isA<RefereeError>()), reason: 'not seated');
+  });
 }

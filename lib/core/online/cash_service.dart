@@ -45,6 +45,13 @@ class CashService {
   Future<Doc> topUp(CashStake stake, int pips) =>
       backend.call('/v1/cash/${stake.name}/topup', {'pips': pips});
 
+  /// Sit out (keep the seat and chips, dealt out) or come back.
+  Future<Doc> sitOut(CashStake stake, bool out) =>
+      backend.call('/v1/cash/${stake.name}/sitout', {'out': out});
+
+  /// Says [cashChatLines][line] to the table.
+  Future<Doc> say(CashStake stake, int line) => backend.call('/v1/cash/${stake.name}/say', {'line': line});
+
   Stream<Doc?> watch(CashStake stake) => backend.watch('cash/${stake.name}');
 
   Stream<Doc?> mine(CashStake stake) => backend.watch('cash/${stake.name}/hands/$uid');

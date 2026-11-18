@@ -17,6 +17,12 @@ extension CashTables on Referee {
   /// How long a person has for a move.
   static const cashTurn = Duration(seconds: 30);
 
+  /// Sitting out longer than this and you're stood up (chips back).
+  static const cashAway = Duration(minutes: 30);
+
+  /// At most one line said per person this often.
+  static const cashChatGap = Duration(seconds: 2);
+
   /// How long a finished hand stays up before the next can be dealt. Short:
   /// each phone asks only once it has shown the hand (and keeps showing a
   /// hand the table has moved past), so this only stops a deal in a rush.
@@ -212,6 +218,51 @@ extension CashTables on Referee {
     return doc;
   });
 
+  /// [p] sits out ([out]: keeps the seat and chips, dealt out of hands; on
+  /// their turn now they fold) or is back (dealt in from the next hand).
+  Future<Doc> cashSitOut(Player p, String stakeName, bool out) => store.transaction((tx) async {
+    final stake = _stake(stakeName);
+    final doc = await _cashTable(tx, stake);
+    final t = CashTableState.fromJson(doc);
+    final seat = t.seats.indexWhere((s) => s?.id == p.uid);
+    if (seat < 0) throw const RefereeError(403, "You're not at this table");
+    final s = t.seats[seat]!;
+    if (out == s.sittingOut) return doc;
+    s.outSince = out ? _now : null;
+    s.timeouts = 0;
+    doc.addAll(t.toJson());
+    if (out && doc['turn'] == seat && _handLive(doc)) {
+      final secret = await tx.get('cashSecrets/${stake.name}');
+      _append(doc, const Move.fold());
+      await _cashPlayOn(tx, stake, doc, t, secret!['seed']! as int);
+    }
+    // Back at a table that had stopped dealing: deal.
+    if (!out && !_handLive(doc)) await _cashStep(tx, stake, doc, t);
+    _bump(doc);
+    _putCash(tx, stake, doc);
+    return doc;
+  });
+
+  /// [p] says one of [cashChatLines] to the table. Doesn't change the
+  /// table's version, so nobody's move is turned away for it.
+  Future<Doc> cashSay(Player p, String stakeName, int line) => store.transaction((tx) async {
+    final stake = _stake(stakeName);
+    if (line < 0 || line >= cashChatLines.length) throw const RefereeError(400, 'No such line');
+    final doc = await _cashTable(tx, stake);
+    final t = CashTableState.fromJson(doc);
+    final seat = t.seats.indexWhere((s) => s?.id == p.uid);
+    if (seat < 0) throw const RefereeError(403, "You're not at this table");
+    final said = (doc['said'] as Map?)?.cast<String, Object?>();
+    if (said != null &&
+        said['seat'] == seat &&
+        _now - (said['at'] as int? ?? 0) < cashChatGap.inMilliseconds) {
+      return doc;
+    }
+    doc['said'] = {'seat': seat, 'line': line, 'at': _now, 'n': ((said?['n'] as int?) ?? 0) + 1};
+    _putCash(tx, stake, doc);
+    return doc;
+  });
+
   /// More chips from [p]'s pips (up to the table's full buy-in): now if
   /// they're not in a hand, else from the next one.
   Future<Doc> cashTopUp(Player p, String stakeName, int pips) => store.transaction((tx) async {
@@ -329,7 +380,7 @@ extension CashTables on Referee {
           rng: Random(seed ^ (h.board.length * 131 + _movesOf(doc) * 7919)),
         ).think(h, reads: TableReads(cashSeats), seats: g.handSeats);
         _append(doc, d.move, tempo: (d.tempo * 100).round());
-      } else if (s.leaving) {
+      } else if (s.leaving || s.sittingOut) {
         _append(doc, const Move.fold());
       } else {
         doc['turn'] = seat;
@@ -393,7 +444,8 @@ extension CashTables on Referee {
       final s = t.seats[i];
       if (s == null) continue;
       if (!s.bot) {
-        if (s.leaving || s.stack + s.topUp == 0) {
+        final away = s.sittingOut && _now - s.outSince! > cashAway.inMilliseconds;
+        if (s.leaving || s.stack + s.topUp == 0 || away) {
           await _cashOut(tx, s);
           t.seats[i] = null;
           continue;
@@ -424,7 +476,7 @@ extension CashTables on Referee {
     // The button moves on to the next seat with chips.
     final playing = [
       for (var i = 0; i < cashSeats; i++)
-        if (t.seats[i] != null && t.seats[i]!.stack > 0) i,
+        if (t.seats[i] != null && t.seats[i]!.stack > 0 && !t.seats[i]!.sittingOut) i,
     ];
     if (playing.length < 2) {
       doc.addAll(t.toJson());

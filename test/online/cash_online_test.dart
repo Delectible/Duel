@@ -7,6 +7,7 @@ import 'package:duel/core/online/party.dart';
 import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/games/poker/lounge/cash_lobby.dart';
+import 'package:duel/games/poker/ui/action_bar.dart';
 import 'package:duel/games/poker/ui/cash_screen.dart';
 import 'package:duel/games/poker/ui/poker_controller.dart';
 import 'package:duel/games/poker/ui/table_view.dart';
@@ -257,6 +258,152 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
   });
+
+  testWidgets(
+    'online table: say a line (a friend sees it), the bots talk, tick a move ahead, sit out and come back',
+    (tester) async {
+      usePhone(tester, phones['small']!);
+      final srv = FakeServer(seed: 9);
+      final account = Account()..name = 'Luca';
+      account.bonus('test', 2900);
+      final party = PartyService(srv.player('luca'), account: account);
+      final service = CashService(party);
+      final samParty = PartyService(
+        srv.player('sam'),
+        account: Account()
+          ..name = 'Sam'
+          ..bonus('test', 2900),
+      );
+      final sam = CashService(samParty);
+      Future<void> wait([int ms = 400]) async {
+        for (var i = 0; i < 4; i++) {
+          srv.now = srv.now.add(Duration(milliseconds: ms ~/ 4));
+          unawaited(srv.publish());
+          await tester.pump(Duration(milliseconds: ms ~/ 4));
+        }
+      }
+
+      Future<T> run<T>(Future<T> Function() f) async {
+        late T result;
+        var done = false;
+        unawaited(
+          f().then((v) {
+            result = v;
+            done = true;
+          }),
+        );
+        for (var i = 0; i < 300 && !done; i++) {
+          await tester.pump(const Duration(milliseconds: 20));
+        }
+        expect(done, isTrue);
+        return result;
+      }
+
+      await wait(1500);
+      final doc = await run(() => service.sit(CashStake.kitchen, 1000));
+      await run(() => sam.sit(CashStake.kitchen, 1000));
+      final c = OnlineCashController.forTable(
+        service,
+        doc,
+        you: account.persona,
+        pace: 0.05,
+        clock: () => srv.now,
+      );
+      c.start();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: Toon.theme(),
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              // As the table screen does: rebuilt whenever the table changes.
+              child: ListenableBuilder(
+                listenable: c,
+                builder: (context, _) => ActionBar(c: c),
+              ),
+            ),
+          ),
+        ),
+      );
+      await wait();
+      int samSeat() => c.state.seats.indexWhere((s) => s?.id == 'sam');
+      int local(int server) => (server - c.state.seats.indexWhere((s) => s?.id == 'luca')) % cashSeats;
+
+      // Sam says something: a bubble by Sam on Luca's table.
+      await run(() => sam.say(CashStake.kitchen, 0));
+      await wait();
+      expect(c.talk[local(samSeat())]?.text, cashChatLines[0]);
+      // Luca says something: everyone's table hears it.
+      c.say(3);
+      await wait();
+      expect(c.talk[0]?.text, cashChatLines[3]);
+      expect(((await run(() => srv.store.get('cash/kitchen')))!['said']! as Map)['line'], 3);
+
+      // Play a while: Sam calls; Luca ticks Check / Fold ahead and never taps.
+      // Luca's moves as the table saw them.
+      int moves() {
+        final r = c.reads.players[0];
+        return r.folds + r.checks + r.calls + r.bets + r.raises;
+      }
+
+      var botTalked = false, autoActed = 0, ticked = false, tickedAt = 0, turnFrames = 0;
+      for (var i = 0; i < 3000 && (autoActed < 3 || !botTalked); i++) {
+        await wait(100);
+        for (final e in c.talk.entries) {
+          final s = c.state.seats[(e.key + c.state.seats.indexWhere((x) => x?.id == 'luca')) % cashSeats];
+          if (s != null && s.bot) botTalked = true;
+        }
+        final turn = (await run(() => srv.store.get('cash/kitchen')))!['turn'];
+        if (turn == samSeat()) {
+          final d = (await run(() => srv.store.get('cash/kitchen')))!;
+          await run(
+            () => sam
+                .move(CashStake.kitchen, d['version']! as int, {'kind': 'call'})
+                .catchError((Object _) => d),
+          );
+        }
+        // A move made since the tick, without a tap: the tick made it.
+        if (ticked && moves() > tickedAt) {
+          autoActed++;
+          ticked = false;
+        }
+        if (!ticked && find.byKey(const Key('pre checkFold')).evaluate().isNotEmpty) {
+          await tester.tap(find.byKey(const Key('pre checkFold')));
+          ticked = true;
+          tickedAt = moves();
+        }
+        // Your turn: with a tick it goes by itself at once; without, answer it.
+        turnFrames = c.yourTurn ? turnFrames + 1 : 0;
+        if (c.yourTurn && ticked) {
+          expect(turnFrames, lessThan(4), reason: 'the ticked move should go at once');
+        }
+        if (c.yourTurn && !ticked) c.act(const Move.fold());
+        if (c.waitingForYou) c.nextHand();
+      }
+      expect(c.state.seats.firstWhere((x) => x?.id == 'luca')!.timeouts, 0, reason: 'no turn ran out');
+      expect(autoActed, greaterThan(0), reason: 'the ticked move was made on its own');
+      expect(botTalked, isTrue, reason: 'bots talk online too');
+
+      // Sit out: dealt out, the seat kept; I'm back.
+      await run(() => c.setSittingOut(true));
+      await wait();
+      expect(c.sittingOut, isTrue);
+      // Once this hand's result is read, the bar says so.
+      for (var i = 0; i < 100 && find.byKey(const Key('back in')).evaluate().isEmpty; i++) {
+        if (c.waitingForYou) c.nextHand();
+        await wait(100);
+      }
+      expect(find.byKey(const Key('back in')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('back in')));
+      await wait();
+      await wait();
+      expect(c.sittingOut, isFalse);
+      expect(tester.takeException(), isNull);
+      c.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+    },
+  );
 
   for (final silent in [false, true]) {
     testWidgets('online table: a phone slower than the server (bots shown thinking) keeps up'

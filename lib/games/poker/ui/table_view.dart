@@ -1102,7 +1102,8 @@ class _YourSeat extends StatelessWidget {
               children: [
                 GestureDetector(
                   key: const Key('read 0'),
-                  onTap: () => showReadCard(context, c, 0),
+                  // Shared tables: your face is how you talk to the table.
+                  onTap: () => c.canChat ? showChatSheet(context, c) : showReadCard(context, c, 0),
                   child: _Avatar(persona: c.personas[0], size: 54, acting: c.yourTurn, winner: winner),
                 ),
                 const SizedBox(height: 4),

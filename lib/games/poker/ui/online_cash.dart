@@ -48,6 +48,8 @@ class OnlineCashController extends PokerController {
       clock: clock,
     );
     c._seatFrom(t, null);
+    // Lines said before you sat down aren't news.
+    c._saidSeen = ((doc['said'] as Map?)?['n'] as int?) ?? 0;
     c._listen();
     return c;
   }
@@ -286,6 +288,7 @@ class OnlineCashController extends PokerController {
       return;
     }
     final raw = _playedMoves[_cursor];
+    final youBet = _youAreAggressor(h);
     final tempo = raw.length > 2 ? (raw[2]! as int) / 100 : null;
     final think = seat == 0
         ? 0
@@ -297,8 +300,63 @@ class OnlineCashController extends PokerController {
     _after(think, () {
       _cursor++;
       _play(h, m);
+      // The bots talk as they do at a table on the phone.
+      if (seat != 0) _talkAbout(seat, h, youBet: youBet);
       _afterMove();
     });
+  }
+
+  // --- Talk, chat, sitting out ----------------------------------------------
+
+  @override
+  BotStyle? _talkStyle(int seat) {
+    final s = state.seats[_server(seat)];
+    return s != null && s.bot ? s.botStyle : null;
+  }
+
+  /// The same lines on every phone at the table: seeded by the hand, the
+  /// move and the seat.
+  @override
+  Random _talkRandom(int seat) => Random((_dealtNo ?? 0) * 7919 + _cursor * 131 + _server(seat));
+
+  @override
+  bool get canChat => true;
+
+  @override
+  bool get preActions => true;
+
+  /// The last line said at the table that this phone has shown.
+  int _saidSeen = 0;
+
+  @override
+  void say(int line) {
+    if (line < 0 || line >= cashChatLines.length) return;
+    _showLine(0, cashChatLines[line], real: true);
+    unawaited(service.say(stake, line).then((d) => _onDoc(d), onError: (Object _) {}));
+  }
+
+  /// Someone said something: a bubble by their seat (yours shows at once).
+  void _heardSaid(Doc d) {
+    final said = (d['said'] as Map?)?.cast<String, Object?>();
+    final n = said?['n'] as int? ?? 0;
+    if (said == null || n <= _saidSeen) return;
+    _saidSeen = n;
+    final seat = said['seat'] as int?, line = said['line'] as int?;
+    if (seat == null || line == null || line < 0 || line >= cashChatLines.length) return;
+    if (seat == mySeat) return;
+    _showLine(_local(seat), cashChatLines[line], real: true);
+  }
+
+  @override
+  bool get sittingOut => state.seats[mySeat]?.sittingOut ?? false;
+
+  @override
+  Future<void> setSittingOut(bool out) async {
+    try {
+      _onDoc(await service.sitOut(stake, out));
+    } on Object {
+      _troubled();
+    }
   }
 
   @override
@@ -368,6 +426,7 @@ class OnlineCashController extends PokerController {
     if (d['version'] != _doc['version']) _stuckSince = null;
     _doc = d;
     trouble = false;
+    _heardSaid(d);
     if (_hand?['no'] == _dealtNo && _dealtNo != null) _played = _hand;
     if (d['turnAt'] != _turnAt) {
       _turnAt = d['turnAt'];

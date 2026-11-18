@@ -419,9 +419,16 @@ class PokerController extends ChangeNotifier {
   /// A bot says [text] (its own words, not from the table talk).
   void _sayLine(int seat, String text) {
     if (_bots[seat] == null) return;
+    _showLine(seat, text);
+  }
+
+  /// [text] in a bubble by [seat] for a few seconds (anyone: bots, people).
+  /// [real]: up for real seconds whatever the table's pace (what people
+  /// say).
+  void _showLine(int seat, String text, {bool real = false}) {
     talk[seat] = (text: text, id: ++_talkId);
     _talkTimers[seat]?.cancel();
-    _talkTimers[seat] = Timer(Duration(milliseconds: (4500 * pace).round()), () {
+    _talkTimers[seat] = Timer(Duration(milliseconds: real ? 4500 : (4500 * pace).round()), () {
       if (_disposed) return;
       talk.remove(seat);
       _notify();
@@ -638,6 +645,27 @@ class PokerController extends ChangeNotifier {
         (label == ActionLabel.bet || label == ActionLabel.raise || label == ActionLabel.allIn);
   }
 
+  /// How the bot at [seat] talks (null: a person, or nobody: no lines).
+  BotStyle? _talkStyle(int seat) => _bots[seat]?.style;
+
+  /// The dice for what a bot says (online: the same on every phone).
+  Random _talkRandom(int seat) => _rng;
+
+  /// Shared tables: you can say a line to the table (tap your face).
+  bool get canChat => false;
+
+  /// Says [line] of the table's lines (see [canChat]).
+  void say(int line) {}
+
+  /// Tick a move ahead of your turn (shared tables).
+  bool get preActions => false;
+
+  /// Sitting out (shared tables): dealt out, seat kept.
+  bool get sittingOut => false;
+
+  /// Sit out or come back (shared tables).
+  Future<void> setSittingOut(bool out) async {}
+
   /// A bot's move might get a word in.
   void _talkAbout(int seat, PokerHand h, {required bool youBet}) {
     final p = handPlayer(seat);
@@ -657,10 +685,11 @@ class PokerController extends ChangeNotifier {
   /// [seat] (a bot) says something in its own voice, now and then, and
   /// never more than two at once.
   void _say(int seat, Talk what, {double chance = 1}) {
-    final bot = _bots[seat];
-    if (bot == null || _rng.nextDouble() > chance) return;
+    final style = _talkStyle(seat);
+    final rng = _talkRandom(seat);
+    if (style == null || rng.nextDouble() > chance) return;
     if (talk.length >= 2 && !talk.containsKey(seat)) return;
-    talk[seat] = (text: talkLine(bot.style, what, _rng), id: ++_talkId);
+    talk[seat] = (text: talkLine(style, what, rng), id: ++_talkId);
     _talkTimers[seat]?.cancel();
     _talkTimers[seat] = Timer(Duration(milliseconds: (3200 * pace).round()), () {
       if (_disposed) return;

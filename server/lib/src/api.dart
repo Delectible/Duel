@@ -26,6 +26,8 @@ import 'store.dart';
 /// - POST /v1/cash/<stake>/tick                              -> table
 /// - POST /v1/cash/<stake>/leave                             -> table
 /// - POST /v1/cash/<stake>/topup     {pips}                  -> table
+/// - POST /v1/cash/<stake>/sitout    {out}                   -> table
+/// - POST /v1/cash/<stake>/say       {line}                  -> table
 ///
 /// Errors: {error: "…"} with 400 (bad move), 401 (sign in), 403, 404, 409.
 Handler api(Referee referee, TokenVerifier verifier) {
@@ -149,6 +151,15 @@ Handler api(Referee referee, TokenVerifier verifier) {
       '/v1/cash/<stake>/topup',
       (Request q, String stake) =>
           call(q, (p, b) => referee.cashTopUp(p, stake, b['pips'] is int ? b['pips']! as int : 0)),
+    )
+    ..post(
+      '/v1/cash/<stake>/sitout',
+      (Request q, String stake) => call(q, (p, b) => referee.cashSitOut(p, stake, b['out'] == true)),
+    )
+    ..post(
+      '/v1/cash/<stake>/say',
+      (Request q, String stake) =>
+          call(q, (p, b) => referee.cashSay(p, stake, b['line'] is int ? b['line']! as int : -1)),
     )
     ..post(
       '/v1/wallet',

@@ -333,7 +333,10 @@ weights cut from the variable font.
   blinds, empty seats, `nextButton`)). Referee `server/lib/src/
   cash_tables.dart` (part of referee.dart, `CashTables` extension:
   `cash/{stake}` docs never expire, `cashSecrets/{stake}` seed,
-  `cash/{stake}/hands/{uid}`; lobby / sit / move / tick / leave / topup;
+  `cash/{stake}/hands/{uid}`; lobby / sit / move / tick / leave / topup /
+  sitout (`CashSeat.outSince`: dealt out, folded on their turn, stood up
+  after `cashAway`) / say (an index into `cashChatLines`, kept in the
+  doc's `said` without a version bump);
   real hands while a person sits, `_cashStep` / `_cashCatchUp` stand up
   people who've gone; `sit` takes the open `seat` the player picked in
   the lobby's `chooseSeat`, a full table bumps a random bot). App: `CashService` (`core/online/cash_service.dart`),
@@ -342,7 +345,10 @@ weights cut from the variable font.
   (local: `CashController`, chips via `Account.cashIn` / `cashChips` /
   `cashOut`, cashed out on next launch if the app closed; online:
   `OnlineCashController`, replays the referee's hands like the online
-  Sit & Go). Named characters' faces: `core/avatars/characters.dart`
+  Sit & Go; bots talk via `_talkStyle` / `_talkRandom` (seeded, same on
+  every phone); `canChat` / `say` (tap your face: `showChatSheet`),
+  `preActions` (ActionBar's ticked moves), `sittingOut` /
+  `setSittingOut`). Named characters' faces: `core/avatars/characters.dart`
   (`CharacterFaces.byName`: rivals and bosses).
 - **Poker Lounge** (`lib/games/poker/lounge/`): home's first tile opens
   `LoungeScreen` (its own evening colours, `Lounge`; connection bar; the
@@ -382,7 +388,8 @@ weights cut from the variable font.
   (best five of seven, descriptions), `poker_hand.dart` (one no-limit hand:
   blinds, betting rules incl. incomplete all-in raises, side pots, odd
   chips), `sit_and_go.dart` (button, blind levels per table size, places),
-  `bot.dart` (9 `BotStyle`s: ranges per opponent, position, c-bets /
+  `bot.dart` (13 `BotStyle`s, incl. Nit, Gambler, Copycat (copies seat 0),
+  Wildcard (gear every 6 hands); ranges per opponent, position, c-bets /
   barrels / check-raises / traps, `Sizing`, timing `Tell`s via
   `think()` → `Decision.tempo`, tilt, ICM; `classify`, `outs`,
   `preflopRank`), `reads.dart` (`TableReads`: per-player stats from every
@@ -404,8 +411,10 @@ weights cut from the variable font.
   and winners), `action_bar.dart`, `hand_chart.dart` (the hands cheat sheet, opened from your hand's
   name; `handRanks`), `shuffle_deck.dart` (your deal: the controller's
   `TablePhase.shuffle` waits for a shuffle and Deal; tests use
-  `shuffleAndDeal`), `table_stats.dart` (`TableInfo` strip, read cards
-  (tap a seat), hand history, `oddsLine` (`Account.pokerOdds`),
+  `shuffleAndDeal`), `table_stats.dart` (`TableInfo` strip (tournament: overall
+  place + prize line; Avg only at cash tables), read cards
+  (tap a seat; `readNotes` / `playerType` judged by table size, `readHands`;
+  badges for bounty / rival / boss), hand history, `oddsLine` (`Account.pokerOdds`),
   `GameSummary` with `pickQuotes`). Showdown results wait for Next hand
   (`waitingForYou` / `nextHand()`; Show / Muck: `canShowCards`,
   `showCards()` / `muckCards()`); `resultTimeout` (online: 10 s) moves
