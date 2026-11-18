@@ -83,6 +83,12 @@ together, GamePigeon-easy. Let it guide design and development choices.
   upload (90035); frameworks without a dSYM get one from `dsymutil` (so
   the symbol upload has no gaps). Started by hand with `testflight` ticked, a branch build
   uploads to TestFlight too.
+- **iOS SDK deadline: April 2027.** App Store Connect will only take builds
+  made with the iOS 27 SDK (Xcode 27) or later (Apple's ITMS-90725 warning
+  on build 41, made with iOS 26.5). The `ios` job picks the newest Xcode
+  release on the runner on purpose (step "Pick Xcode") and warns while the
+  SDK is under 27; once a runner image with Xcode 27 exists, make sure the
+  job runs on it (change `runs-on` if `macos-latest` lags).
 - iOS: deployment target 15.0 (patched into the generated Xcode project by
   CI). **No Podfile**: plugins must be Swift Packages; adding a Podfile
   makes Flutter run CocoaPods and the build dies with "sandbox is not in

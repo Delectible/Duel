@@ -84,6 +84,23 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      # Xcode chosen on purpose, not the runner's default: the newest release
+      # installed (betas skipped). From April 2027 App Store Connect only
+      # takes builds made with the iOS 27 SDK (Xcode 27) or later; until the
+      # SDK is 27+ the build says so as a warning (ITMS-90725).
+      - name: Pick Xcode (iOS 27 SDK needed from April 2027)
+        run: |
+          want=27
+          best=$(ls -d /Applications/Xcode_*.app 2>/dev/null \
+            | sed -E 's|.*/Xcode_([0-9.]+)\.app$|\1|' | grep -E '^[0-9]+(\.[0-9]+)*$' \
+            | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+          if [ -n "$best" ]; then sudo xcode-select -s "/Applications/Xcode_$best.app"; fi
+          xcodebuild -version
+          sdk=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "iOS SDK $sdk"
+          if [ "${sdk%%.*}" -lt "$want" ]; then
+            echo "::warning title=iOS SDK $sdk::Built with the iOS $sdk SDK. From April 2027 App Store Connect needs the iOS $want SDK (Xcode $want) or later: move this job to a runner image that has Xcode $want."
+          fi
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: 3.47.8, cache: true }
       - name: Fill in the Xcode project

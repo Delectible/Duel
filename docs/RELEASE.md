@@ -119,6 +119,11 @@ upload key on Play.
   Connect, and the repo secrets APPSTORE_KEY_ID / APPSTORE_ISSUER_ID /
   APPSTORE_KEY (the .p8 text, Admin role) / APPLE_TEAM_ID (the same key
   as Darkroom's works).
+- [ ] **Before April 2027: build with the iOS 27 SDK (Xcode 27).** Apple
+  warned on build 41 (ITMS-90725, made with iOS 26.5) that uploads after
+  that need it. The ios job already picks the newest Xcode on the runner
+  and warns while the SDK is under 27; check the warning is gone (move
+  `runs-on` to an image with Xcode 27 if `macos-latest` lags). (C)
 - [ ] TestFlight testers: internal first, then external (needs a light
   beta review). (L)
 - [ ] App Store Connect listing, privacy labels matching

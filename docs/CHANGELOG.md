@@ -776,6 +776,14 @@ bosses remember how you play.
   cards too, so your 30 s start when your turn shows.
   → 0.11.5 · 2026-11-18 · 2ab7862
 
+### 41. iOS SDK deadline (Apple's warning on build 41, 2026-11-18)
+
+- [x] **41.1** Apple's ITMS-90725: build 41 was made with the iOS 26.5
+  SDK; from April 2027 uploads need the iOS 27 SDK (Xcode 27). The ios
+  job now picks the newest Xcode release on the runner itself (not the
+  default) and puts a warning on the run while the SDK is under 27;
+  deadline noted in CLAUDE.md and `docs/RELEASE.md`. CI only.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
 - [x] **25.1 Online cash tables, open to everyone**: a set of public
