@@ -20,7 +20,8 @@ import 'go_fish/ui/fish_screen.dart';
 import 'poker/at_home.dart';
 import 'poker/ui/poker_screen.dart';
 import 'spades/at_home.dart';
-import 'gops/at_home.dart';
+import 'goofspiel/at_home.dart';
+import 'goofspiel/ui/gops_screen.dart';
 import 'blackjack/at_home.dart';
 import 'bank/at_home.dart';
 import 'previews.dart';
@@ -364,7 +365,7 @@ final games = <GameInfo>[
   ),
   GameInfo(
     id: 'gops',
-    name: 'GOPS',
+    name: 'Goofspiel',
     blurb: 'Bid for the prizes',
     minPlayers: 2,
     maxPlayers: 3,
@@ -381,7 +382,8 @@ final games = <GameInfo>[
     ],
     // 13 quick turns.
     minutes: (_) => 5,
-    atHome: gopsAtHome,
+    atHome: goofspielAtHome,
+    open: (setup, stake, _) => GopsScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
   ),
   GameInfo(
     id: 'blackjack',

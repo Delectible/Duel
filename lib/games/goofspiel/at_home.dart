@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/help/home_guide.dart';
 
-/// GOPS (Goofspiel) with a real deck.
-const gopsAtHome = HomeGuide(
+/// Goofspiel (GOPS) with a real deck.
+const goofspielAtHome = HomeGuide(
   needs: [
     (Icons.style_rounded, standardDeck),
     (Icons.groups_rounded, '2 or 3 players.'),
