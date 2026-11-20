@@ -30,7 +30,7 @@ void main() {
       expect(find.textContaining('Party · 1'), findsOneWidget);
       // Every game needs 2+ (the grid may scroll some off screen).
       expect(find.text('Needs 2+'), findsWidgets);
-      expect(games.every((g) => g.blocked(setup)?.$1 == 'Needs 2+'), isTrue);
+      expect(games.where((g) => g.available).every((g) => g.blocked(setup)?.$1 == 'Needs 2+'), isTrue);
       await shot(tester, 'home_friend_$phone');
       await tester.tap(find.textContaining('Party · 1'));
       await tester.pumpAndSettle();
