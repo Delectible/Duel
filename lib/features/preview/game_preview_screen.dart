@@ -82,11 +82,50 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
           color: Toon.yellow,
           radius: 12,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => HomeGuideScreen(name: game.name, color: game.color, guide: game.atHome),
-            ),
-          ),
+          onPressed: () async {
+            // A game with a helper for playing in person: rules or helper.
+            final helper = game.companion;
+            final pick = helper == null
+                ? 'rules'
+                : await showModalBottomSheet<String>(
+                    context: context,
+                    backgroundColor: Toon.paper,
+                    builder: (context) => SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text('Play ${game.name} at home', style: Toon.text(22, weight: FontWeight.w700)),
+                            const SizedBox(height: 12),
+                            ToonButton(
+                              key: const Key('home helper'),
+                              color: Toon.green,
+                              onPressed: () => Navigator.pop(context, 'helper'),
+                              child: const Text('Start a game: dice and scores'),
+                            ),
+                            const SizedBox(height: 10),
+                            ToonButton(
+                              key: const Key('home rules'),
+                              color: Toon.card,
+                              onPressed: () => Navigator.pop(context, 'rules'),
+                              child: const Text('Read the rules'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+            if (pick == null || !context.mounted) return;
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => pick == 'helper'
+                    ? helper!(context)
+                    : HomeGuideScreen(name: game.name, color: game.color, guide: game.atHome),
+              ),
+            );
+          },
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

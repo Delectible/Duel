@@ -26,6 +26,7 @@ import 'blackjack/at_home.dart';
 import 'blackjack/ui/bj_screen.dart';
 import 'bank/at_home.dart';
 import 'bank/ui/bank_screen.dart';
+import 'bank/ui/bank_companion.dart';
 import 'previews.dart';
 import 'tile_art.dart';
 import 'spades/ui/spades_screen.dart';
@@ -440,6 +441,7 @@ final games = <GameInfo>[
     atHome: bankAtHome,
     open: (setup, stake, rounds) =>
         BankScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, rounds: rounds ?? 15),
+    companion: (_) => const BankCompanionSetup(),
     choice: const GameChoice(
       label: 'Rounds',
       values: [10, 15, 20],
