@@ -393,8 +393,9 @@ final games = <GameInfo>[
     art: (_) => const BlackjackArt(),
     board: (_) => const BlackjackPreview(),
     rules: const [
-      'Everyone plays against the dealer. Bet, then get two cards; the dealer shows one of theirs.',
-      'Get closer to 21 than the dealer without going over. Picture cards are 10, an Ace is 1 or 11.',
+      'Casino rules: everyone plays against the dealer, betting pips straight from your balance. Stay as long as '
+          'you like and leave whenever you want.',
+      'Get closer to 21 than the dealer without going over. Face cards are 10, an Ace is 1 or 11.',
       'Hit for another card or stand. Double: twice the bet, one more card. Split two of a kind into two hands.',
       'The dealer draws to 17, then stops. Beat them to double your bet; an Ace and a 10 first up is Blackjack, '
           'paying 3 to 2.',
