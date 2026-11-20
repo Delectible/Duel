@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../core/cards/card_view.dart';
 import '../core/theme/toon.dart';
+import 'bank/dice.dart';
 
 /// The game picker's tile pictures: small cartoon scenes in the app's look
 /// (bold ink outlines, flat Toon colours, real cards). Each fills about
@@ -409,4 +410,48 @@ class _PlanePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PlanePainter old) => false;
+}
+
+// --- GOPS: a diamond prize, two face-down bids reaching for it ---------------
+
+class GopsArt extends StatelessWidget {
+  const GopsArt({super.key});
+
+  @override
+  Widget build(BuildContext context) => _scene([
+    Transform.translate(
+      offset: const Offset(-22, 8),
+      child: Transform.rotate(angle: -0.3, child: const CardView(card: null, width: 24, faceUp: false)),
+    ),
+    Transform.translate(
+      offset: const Offset(22, 8),
+      child: Transform.rotate(angle: 0.3, child: const CardView(card: null, width: 24, faceUp: false)),
+    ),
+    _card('Kd', 34, at: const Offset(0, -4)),
+  ]);
+}
+
+// --- Blackjack: an Ace and a King, and the chips ----------------------------
+
+class BlackjackArt extends StatelessWidget {
+  const BlackjackArt({super.key});
+
+  @override
+  Widget build(BuildContext context) => _scene([
+    _card('Ac', 34, angle: -0.18, at: const Offset(-18, -2)),
+    _card('Kh', 34, angle: 0.1, at: const Offset(-2, -4)),
+    Positioned(right: 0, bottom: -2, child: _paint(_ChipsPainter(), size: const Size(34, 34))),
+  ]);
+}
+
+// --- Bank!: two dice mid-roll ------------------------------------------------
+
+class BankArt extends StatelessWidget {
+  const BankArt({super.key});
+
+  @override
+  Widget build(BuildContext context) => _scene([
+    const Positioned(left: 8, top: 10, child: Die(6, size: 30, angle: -0.3)),
+    const Positioned(right: 10, bottom: 4, child: Die(6, size: 30, angle: 0.35)),
+  ]);
 }

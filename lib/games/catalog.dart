@@ -20,6 +20,9 @@ import 'go_fish/ui/fish_screen.dart';
 import 'poker/at_home.dart';
 import 'poker/ui/poker_screen.dart';
 import 'spades/at_home.dart';
+import 'gops/at_home.dart';
+import 'blackjack/at_home.dart';
+import 'bank/at_home.dart';
 import 'previews.dart';
 import 'tile_art.dart';
 import 'spades/ui/spades_screen.dart';
@@ -357,6 +360,72 @@ final games = <GameInfo>[
       party: party,
       gameId: 'blitz',
       builder: (link, ticket) => BlitzScreen.online(link: link, stake: ticket),
+    ),
+  ),
+  GameInfo(
+    id: 'gops',
+    name: 'GOPS',
+    blurb: 'Bid for the prizes',
+    minPlayers: 2,
+    maxPlayers: 3,
+    color: Toon.yellow,
+    art: (_) => const GopsArt(),
+    board: (_) => const GopsPreview(),
+    rules: const [
+      'The 13 diamonds are the prizes. Everyone else gets a full suit, Ace to King, to bid with.',
+      'A prize is turned up. Everyone picks a card from their hand in secret; they are shown together, and the '
+          'highest wins the prize. Ace is low, King is high.',
+      'Every card bids once, then it\'s gone. A tie for the highest bid: nobody wins it, and it goes with the next '
+          'prize to whoever wins that.',
+      'After all 13 prizes, the most points wins (Ace 1 up to King 13).',
+    ],
+    // 13 quick turns.
+    minutes: (_) => 5,
+    atHome: gopsAtHome,
+  ),
+  GameInfo(
+    id: 'blackjack',
+    name: 'Blackjack',
+    blurb: 'Get to 21, beat the dealer',
+    minPlayers: 1,
+    maxPlayers: 6,
+    color: Toon.green,
+    art: (_) => const BlackjackArt(),
+    board: (_) => const BlackjackPreview(),
+    rules: const [
+      'Everyone plays against the dealer. Bet, then get two cards; the dealer shows one of theirs.',
+      'Get closer to 21 than the dealer without going over. Picture cards are 10, an Ace is 1 or 11.',
+      'Hit for another card or stand. Double: twice the bet, one more card. Split two of a kind into two hands.',
+      'The dealer draws to 17, then stops. Beat them to double your bet; an Ace and a 10 first up is Blackjack, '
+          'paying 3 to 2.',
+    ],
+    minutes: (players) => 8 + players,
+    atHome: blackjackAtHome,
+  ),
+  GameInfo(
+    id: 'bank',
+    name: 'Bank!',
+    blurb: 'Push your luck with two dice',
+    minPlayers: 2,
+    maxPlayers: 6,
+    color: Toon.purple,
+    art: (_) => const BankArt(),
+    board: (_) => const BankPreview(),
+    rules: const [
+      'Every roll of the two dice adds to the bank. Anyone can tap Bank! at any time to keep its total and sit '
+          'the rest of the round out.',
+      'The first three rolls are safe: a 7 adds 70. After that, a 7 ends the round and whoever hasn\'t banked gets '
+          'nothing.',
+      'Doubles after the first three rolls double the bank.',
+      'Highest score after the last round wins.',
+    ],
+    minutes: (players) => 6 + players,
+    atHome: bankAtHome,
+    choice: const GameChoice(
+      label: 'Rounds',
+      values: [10, 15, 20],
+      names: ['Quick', 'Normal', 'Long'],
+      initial: 1,
     ),
   ),
 ];

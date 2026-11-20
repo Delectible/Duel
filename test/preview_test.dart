@@ -48,10 +48,8 @@ void main() {
         await tester.tap(find.byKey(const Key('nevermind')));
         await tester.pumpAndSettle();
         // Back where it came from: home, or the Poker Lounge for Hold'em.
-        expect(
-          game.id == 'holdem' ? find.byKey(const Key('lounge sitgo')) : find.text('Pick a game'),
-          findsOneWidget,
-        );
+        expect(find.byType(GamePreviewScreen), findsNothing);
+        if (game.id == 'holdem') expect(find.byKey(const Key('lounge sitgo')), findsOneWidget);
       });
     }
   }

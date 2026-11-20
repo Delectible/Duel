@@ -6,6 +6,7 @@ import '../core/cards/card_view.dart';
 import 'package:duel_engine/cards.dart';
 import '../core/theme/toon.dart';
 import '../core/avatars/faces.dart';
+import 'bank/dice.dart';
 
 /// Sample boards for the game previews: a still picture of each game in
 /// play, drawn with the same pieces as the games.
@@ -364,6 +365,203 @@ class BlitzPreview extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A small dark label on the felt ("Prize", "Bid 4").
+Widget _tag(String text, {Color? color}) => Container(
+  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+  decoration: BoxDecoration(
+    color: color ?? Toon.inkLight.withValues(alpha: 0.75),
+    borderRadius: BorderRadius.circular(8),
+  ),
+  child: Text(text, style: Toon.text(12, color: color == null ? Colors.white : Toon.on(color))),
+);
+
+/// GOPS: the prize up for grabs, a bot's face-down bid, your clubs to bid with.
+class GopsPreview extends StatelessWidget {
+  const GopsPreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bot = Persona.bots(1, Random(5)).single;
+    return _Felt(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Face(bot, size: 30),
+                const SizedBox(width: 8),
+                _tag('Won 21'),
+                const SizedBox(width: 10),
+                const CardView(card: null, width: 26, faceUp: false),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _tag('Prize', color: Toon.yellow),
+                    const SizedBox(height: 3),
+                    CardView(card: PlayingCard.parse('Qd'), width: 38),
+                  ],
+                ),
+                const SizedBox(width: 14),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _tag('Next: both'),
+                    const SizedBox(height: 3),
+                    // A tie last time: that prize carries over.
+                    Opacity(opacity: 0.85, child: CardView(card: PlayingCard.parse('5d'), width: 28)),
+                  ],
+                ),
+              ],
+            ),
+            _Fan(_cards('Ac 4c 7c Tc Qc Kc'), width: 28, spread: 0.5, tilt: 0.08),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Blackjack: the dealer with one card hidden, two players' hands with
+/// their bets, yours on 21.
+class BlackjackPreview extends StatelessWidget {
+  const BlackjackPreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bot = Persona.bots(1, Random(9)).single;
+    Widget hand(String cards, String total, String bet, {Color? glow}) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (i, c) in _cards(cards).indexed)
+              Transform.translate(
+                offset: Offset(i * -12.0, 0),
+                child: CardView(card: c, width: 30),
+              ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        _tag(total, color: glow),
+        const SizedBox(height: 2),
+        Text(bet, style: Toon.text(12, color: Colors.white)),
+      ],
+    );
+    return _Felt(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _tag('Dealer'),
+                const SizedBox(width: 8),
+                CardView(card: PlayingCard.parse('9s'), width: 30),
+                const SizedBox(width: 3),
+                const CardView(card: null, width: 30, faceUp: false),
+              ],
+            ),
+            Text('Dealer stands on 17', style: Toon.text(11, color: Colors.white70)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [Face(bot, size: 28), const SizedBox(width: 4), hand('8d 5c 4h', '17', 'Bet 50')],
+                ),
+                hand('As Kh', 'Blackjack!', 'Bet 100', glow: Toon.yellow),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bank!: the dice, the bank's total and the roll count, who's banked.
+class BankPreview extends StatelessWidget {
+  const BankPreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bots = Persona.bots(3, Random(11));
+    Widget player(Persona p, String note, {bool banked = false}) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Opacity(opacity: banked ? 0.55 : 1, child: Face(p, size: 28)),
+        const SizedBox(height: 2),
+        _tag(note, color: banked ? Toon.green : null),
+      ],
+    );
+    return Container(
+      decoration: Toon.box(Toon.purple, radius: 18, shadow: 4),
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              player(bots[0], 'Banked 140', banked: true),
+              player(bots[1], '310'),
+              player(bots[2], '95'),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Die(4, size: 40, angle: -0.2),
+              const SizedBox(width: 10),
+              const Die(4, size: 40, angle: 0.25),
+              const SizedBox(width: 16),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'BANK',
+                    style: Toon.text(13, weight: FontWeight.w700, color: Colors.white70),
+                  ),
+                  Text(
+                    '480',
+                    style: Toon.text(30, weight: FontWeight.w700, color: Colors.white),
+                  ),
+                  Text('Doubles: x2!', style: Toon.text(12, color: Toon.yellow)),
+                ],
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _tag('Round 4 of 15 · Roll 6'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: Toon.box(Toon.yellow, radius: 12, shadow: 2),
+                child: Text(
+                  'BANK!',
+                  style: Toon.text(15, weight: FontWeight.w700, color: Toon.inkLight),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
