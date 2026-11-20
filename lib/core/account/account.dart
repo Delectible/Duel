@@ -382,6 +382,32 @@ class Account extends ChangeNotifier {
     return net;
   }
 
+  // --- Table games bet straight from the balance (Blackjack) ---------------
+
+  /// Puts [pips] on the table from your balance (a bet, a double, a split).
+  void wager(int pips) {
+    if (pips <= 0) return;
+    _change(() => _unsynced -= pips);
+  }
+
+  /// A round's over: [back] of the [staked] pips come back (0 = lost,
+  /// staked = push, more = won). Counts in [gameId]'s stats.
+  void payout(String gameId, {required int staked, required int back}) {
+    _change(() {
+      _unsynced += back;
+      final st = stats(gameId);
+      st.played++;
+      if (back > staked) {
+        st.won++;
+      } else if (back < staked) {
+        st.lost++;
+      } else {
+        st.tied++;
+      }
+      st.net += back - staked;
+    });
+  }
+
   /// Debug menu: your balance becomes [amount] (sent to the server like a
   /// bot game's result, so it sticks online too).
   void setBalance(int amount) => _change(() => _unsynced += amount - balance);

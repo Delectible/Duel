@@ -149,7 +149,7 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
             ),
             const SizedBox(height: 8),
           ],
-          if (blocked == null) ...[
+          if (blocked == null && game.staked) ...[
             _StakePicker(
               stake: _stake,
               account: account,
@@ -245,7 +245,7 @@ class _GamePreviewScreenState extends State<GamePreviewScreen> {
                                 final ticket = StakeTicket(
                                   account: account,
                                   gameId: game.id,
-                                  stake: account.placeStake(_stake),
+                                  stake: account.placeStake(game.staked ? _stake : 0),
                                   opponents: game.opponents(setup.players),
                                   difficulty: setup.difficulty,
                                 );

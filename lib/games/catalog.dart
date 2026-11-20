@@ -23,6 +23,7 @@ import 'spades/at_home.dart';
 import 'goofspiel/at_home.dart';
 import 'goofspiel/ui/gops_screen.dart';
 import 'blackjack/at_home.dart';
+import 'blackjack/ui/bj_screen.dart';
 import 'bank/at_home.dart';
 import 'previews.dart';
 import 'tile_art.dart';
@@ -50,7 +51,17 @@ class GameInfo {
     this.opponentsFor,
     this.openOnline,
     this.note,
+    this.staked = true,
+    this.companion,
   });
+
+  /// False: no stake in the preview; the game bets your pips itself
+  /// (Blackjack).
+  final bool staked;
+
+  /// "Play at home" can also start this: a helper for playing in person
+  /// (Bank!: the dice and the scores).
+  final WidgetBuilder? companion;
 
   /// Something about this table size worth knowing up front (Blitz: how
   /// many decks), shown as a chip in the preview.
@@ -404,6 +415,8 @@ final games = <GameInfo>[
     ],
     minutes: (players) => 8 + players,
     atHome: blackjackAtHome,
+    staked: false,
+    open: (setup, _, _) => BjLobby(bots: setup.botCount, difficulty: setup.difficulty),
   ),
   GameInfo(
     id: 'bank',

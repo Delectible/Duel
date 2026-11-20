@@ -243,8 +243,9 @@ class GopsController extends ChangeNotifier {
     if (phase == GopsPhase.over) {
       final w = g.winners;
       final top = g.scores[w.first];
-      if (w.length > 1)
+      if (w.length > 1) {
         return '${w.contains(0) ? "It's a tie" : 'A tie'}: ${w.map(_name).join(' & ')} on $top.';
+      }
       return w.single == 0 ? 'You win with $top points!' : '${_name(w.single)} wins with $top points.';
     }
     final s = shown;
@@ -265,8 +266,9 @@ class GopsController extends ChangeNotifier {
       ];
       return 'You bid ${gopsLabel(yourBid!)}. Waiting for ${waiting.join(' and ')}…';
     }
-    if (selected != null)
+    if (selected != null) {
       return 'Bid ${gopsLabel(selected!)} for $worth$carried? Tap Bid, or pick another card.';
+    }
     return 'Up for grabs: $worth point${worth == 1 ? '' : 's'}$carried. Pick a card to bid.';
   }
 
