@@ -44,7 +44,9 @@ together, GamePigeon-easy. Let it guide design and development choices.
   few-word bullet to the newest `AppInfo.revisions` entry (About shows
   them as bullets; keep them short).
 - **Open threads** (see `docs/CHANGELOG.md` for detail): Tournament and
-  Boss Tables are bots only (friends later); cash stakes / unlocks, boss
+  Boss Tables are bots only (friends later); Goofspiel, Blackjack and
+  Bank! are bots only for now (online next; Blackjack table limits are a
+  first guess); cash stakes / unlocks, boss
   stakes / quirks and tournament buy-ins are first guesses Luca may
   change; Play's Data safety form still needs the online pips balance
   (App activity > Other actions) and User IDs as required; the release
@@ -454,6 +456,31 @@ weights cut from the variable font.
   `blitzGuide`, `blitzWarsInfo`, `WarScene`: a war's clash over the felt
   while the controller is `fighting`). `GameChoice` Wars (on / off, `info` (i),
   `showValues: false`), `GameInfo.note` (decks chip).
+- `lib/games/goofspiel/` (shown as Goofspiel, id `gops`): engine
+  `goofspiel/goofspiel.dart` (`Goofspiel`: 2–3 players, `gopsValue` Ace
+  = 1, ties carry the pot, `GopsRound` history) + `gops_bot.dart`;
+  `ui/gops_controller.dart` (bots bid in their own time, reveal pause,
+  talk), `ui/gops_screen.dart` (`goofspielGuide`; opponents' cards left
+  shown).
+- `lib/games/blackjack/`: engine `blackjack/blackjack.dart` (`Shoe` 6
+  decks + cut card + Hi-Lo count, `BjRound` (deal, peek, hit / stand /
+  double / split, dealer to 17 S17, settle, events), `bjTotal`) +
+  `bj_bot.dart` (`basicStrategy`, `BjStyle`s, Hard bots count). No stake:
+  `GameInfo.staked: false`; bets go straight off the balance
+  (`Account.wager` / `payout`, stats 'blackjack'). `ui/bj_tables.dart`
+  (`bjTables` limits, open at the max bet, first on credit),
+  `ui/bj_controller.dart` (plays the round's events back one at a time
+  with pauses; bots with chips come and go), `ui/bj_talk.dart`,
+  `ui/bj_screen.dart` (`BjLobby`, `BjScreen`, `blackjackGuide`).
+- `lib/games/bank/`: engine `bank/bank.dart` (`BankGame`: rounds, safe
+  rolls, doubles double, 7 busts, `bankFor`, roller skips the banked) +
+  `bank_bot.dart` (`BankStyle`s); `dice.dart` (`Die`), `ui/bank_bits.dart`
+  (`RollingDice`, `BankTotal`, `rollReaction`, `RollPop`, `Flash`,
+  `safetyChip`), `ui/bank_controller.dart` + `ui/bank_screen.dart`
+  (`bankGuide`; rounds = the preview's choice), `ui/bank_companion.dart`
+  (`BankCompanionSetup` / `BankCompanion`: playing in person, dice on the
+  phone or scores only, undo by replaying steps). `GameInfo.companion`
+  makes Play at home ask: helper or rules.
 - `lib/core/help/home_guide.dart`: "Play at home" (preview button):
   `HomeGuide` (what you need, setup, gameplay, winning) per game in
   `lib/games/<game>/at_home.dart`, `GameInfo.atHome`. Written for someone

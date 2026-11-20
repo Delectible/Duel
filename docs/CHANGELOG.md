@@ -840,6 +840,45 @@ bosses remember how you play.
   goes to showdown a lot, wins / loses showdowns, winning a lot of pots.
   → 0.11.6 · 2026-11-18 · be21a7c
 
+### 44. Three new games: Goofspiel, Blackjack, Bank! (requested 2026-11-20)
+
+Bots first; online with a party comes later (each needs the referee).
+
+- [x] **44.1 Previews** for all three (rules, sample board, tile art, Play
+  at home guide). GOPS shows as **Goofspiel** (its proper name).
+- [x] **44.2 Goofspiel**: 2–3 players; diamonds are the prizes, each player
+  bids with a full suit; bids turn over together; a tie carries the prize
+  over to the next winner (a tie on the last one is thrown away). Normal
+  stake. Liberties: the cards each opponent has left are shown under them
+  (public anyway); tap a card then Bid (no misplays). Bots: Easy guesses,
+  Normal matches the prize's rank, Hard watches what you have left, takes
+  big prizes as cheaply as it can and dumps its lowest on small ones.
+- [x] **44.3 Blackjack**: casino rules, play until you leave; bets come
+  straight off your balance (no stake). Four tables (10–100, 50–500,
+  250–2,500, 1,000–10,000) open once your balance covers the max bet; the
+  first lets you bet on credit. Rules: 6-deck shoe with a cut card,
+  dealer stands on all 17s and peeks for blackjack, 3:2, double on any two
+  (after splits too), split to four hands, split Aces one card each; no
+  insurance or surrender. Up to five bots with their own chips and
+  styles (by the book / timid / cowboy / gut; Hard ones count cards and
+  bet up on a rich shoe); a broke bot leaves and someone new sits down.
+  Drama: cards dealt one by one, a pause before the hole card turns,
+  slower dealer draws when it's close, sounds and pops for blackjack and
+  big wins / losses, confetti, a dealer (Dot) and bots who talk.
+- [x] **44.4 Bank!**: 10 / 15 / 20 rounds, normal stake. Bots roll by
+  themselves; you tap Roll on your turn and BANK! any time you're in;
+  bots decide one by one after each roll (styles: chicken / steady /
+  daredevil; they push harder when behind, Hard ones bank the moment it
+  wins the game). Tumbling dice, Safe / Danger chip, the table warms red
+  when the bank is big, pops for a lucky 7, doubles and a seven (with a
+  red flash and shake at high stakes); bots shout Bank! and groan.
+  Liberty: the dice pass to the next player still in.
+- [x] **44.5 Bank! at the table**: Play at home asks: start a game or read
+  the rules. Names (2–12), rounds, and either **Roll on the phone** (huge
+  dice, tap to roll, the same reactions) or **Our own dice** (tap in the
+  total and whether it was doubles). Tap a name to bank them, hold a name
+  to fix a score by hand, Undo for anything, standings after each round.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
 - [x] **25.1 Online cash tables, open to everyone**: a set of public

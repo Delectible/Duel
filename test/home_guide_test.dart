@@ -37,6 +37,12 @@ void main() {
         await openFromHome(tester, game.id, game.name);
         await tester.tap(find.byKey(const Key('play at home')));
         await tester.pumpAndSettle();
+        // Bank! asks first: the dice-and-scores helper or the rules.
+        if (game.companion != null) {
+          await shot(tester, 'at_home_choice_$phone');
+          await tester.tap(find.byKey(const Key('home rules')));
+          await tester.pumpAndSettle();
+        }
         expect(find.text('Play at home'), findsOneWidget);
         expect(find.text('What you need'), findsOneWidget);
         expect(find.text(game.atHome.setup.first), findsOneWidget);
