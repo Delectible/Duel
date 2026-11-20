@@ -881,6 +881,24 @@ Bots first; online with a party comes later (each needs the referee).
   the guide); checked in dark mode. Tap a name to bank them, hold a name
   to fix a score by hand, Undo for anything, standings after each round.
 
+### 45. New games, second pass (requested 2026-11-21)
+
+- [x] **45.1 Bank!**: the bank only moves once the dice are down (bots and
+  at home). A new throw: the dice fly in on an arc, tumbling, shadows
+  shrinking as they rise, slam down with a squash and a puff of dust,
+  bounce and settle; doubles glow. Rules checked: in the first three
+  rolls doubles just add and a 7 adds 70 (engine + tests).
+- [x] **45.2 Goofspiel**: bot lines sit under their name, clear of the bids;
+  bids go down and turn over with the same motions as poker (shared
+  `DealCard` / `TurnOver`); a live leaderboard in the commentary strip.
+- [x] **45.3 Blackjack**: cards dealt from the shoe like poker's deal
+  (spinning across face down, turning over as they land; the hole card
+  turns the same way); the controls keep one height so the table never
+  resizes; a proper table (rail, lamp-lit felt, dealer's arc) with your
+  betting circle painted on it; bigger totals.
+- [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
+  (poker uses them too), noted in CLAUDE.md for every new game.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
 - [x] **25.1 Online cash tables, open to everyone**: a set of public

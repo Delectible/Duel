@@ -525,3 +525,120 @@ class FaceRing extends StatelessWidget {
     child: Face(persona, size: size),
   );
 }
+
+/// Every card game's reveal: turns a card over as it lands (horizontal squash and stretch).
+class FlipIn extends StatelessWidget {
+  const FlipIn({super.key, required this.child, this.delay = 0});
+
+  final Widget child;
+  final int delay;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = 320 + delay;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: total),
+      curve: Interval(delay / total, 1, curve: Curves.easeOutBack),
+      builder: (context, t, child) => Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.diagonal3Values(t.clamp(0.0, 1.2), 1, 1),
+        child: Opacity(opacity: t.clamp(0.0, 1.0), child: child),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Every card game's deal: one card waits its turn, spins across face down from the
+/// dealer and lands; [flip] turns it over once it's down (yours).
+class DealCard extends StatelessWidget {
+  const DealCard({
+    super.key,
+    required this.child,
+    required this.from,
+    required this.delay,
+    required this.width,
+    this.flip = false,
+  });
+
+  final Widget child;
+  final Offset from;
+  final int delay;
+  final double width;
+  final bool flip;
+
+  static const _flight = 330, _turn = 240;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = delay + _flight + (flip ? _turn : 0);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: total),
+      builder: (context, t, child) {
+        final ms = t * total;
+        if (ms < delay) return Opacity(opacity: 0, child: child);
+        final fly = Curves.easeOutCubic.transform(((ms - delay) / _flight).clamp(0.0, 1.0));
+        if (fly < 1 || flip && ms < delay + _flight + _turn / 2) {
+          // In the air (or the first half of turning over): its back.
+          final squash = flip && fly >= 1 ? 1 - ((ms - delay - _flight) / (_turn / 2)).clamp(0.0, 1.0) : 1.0;
+          return Transform.translate(
+            offset: from * (1 - fly),
+            child: Transform.rotate(
+              angle: (1 - fly) * 2.4,
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.diagonal3Values(max(squash, 0.001), 1, 1),
+                child: CardView(card: null, width: width, faceUp: false),
+              ),
+            ),
+          );
+        }
+        if (!flip || ms >= total) return child!;
+        // The second half of turning over: the face opens out.
+        final open = ((ms - delay - _flight - _turn / 2) / (_turn / 2)).clamp(0.0, 1.0);
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(max(open, 0.001), 1, 1),
+          child: child,
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+/// A card already down turning face up (a hole card, a bid): its back
+/// squashes away and the face opens out, at the same speed as a dealt
+/// card turning over.
+class TurnOver extends StatelessWidget {
+  const TurnOver({super.key, required this.card, required this.width, this.delay = 0, this.glow = false});
+
+  final PlayingCard card;
+  final double width;
+  final int delay;
+  final bool glow;
+
+  static const _turn = 240;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = delay + _turn;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: total),
+      builder: (context, t, _) {
+        final ms = t * total;
+        final u = ((ms - delay) / _turn).clamp(0.0, 1.0);
+        final up = u >= 0.5;
+        final squash = up ? (u - 0.5) * 2 : 1 - u * 2;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.diagonal3Values(max(squash, 0.001), 1, 1),
+          child: CardView(card: card, width: width, faceUp: up, glow: up && glow),
+        );
+      },
+    );
+  }
+}

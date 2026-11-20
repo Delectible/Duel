@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.11.7';
+  static const version = '0.11.8';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,9 +24,9 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Three new games against bots: Goofspiel (bid for the prizes), Blackjack (casino tables with limits, bets '
-      'straight from your pips, as long as you like) and Bank! (push your luck with two dice). Playing Bank! at '
-      'home? Play at home now rolls big dice on the phone and keeps everyone\'s score.';
+      'Three new games against bots: Goofspiel (bid for the prizes, with a live leaderboard), Blackjack (casino '
+      'tables dealt like poker, bets straight from your pips) and Bank! (push your luck with two dice, now with a '
+      'real dice throw). Playing Bank! at home? Play at home rolls big dice on the phone and keeps the score.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

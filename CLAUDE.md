@@ -275,7 +275,14 @@ weights cut from the variable font.
   side: table left, the rest in a right-hand `SidePanel`;
   `GameLayout.wide(context)` for table code), `GameTopBar`,
   `CommentaryStrip`, `SpeechBubble`, `GameOverCard`, `FlyingCards`,
-  `FeltPanel`, `DealIn`, `Pop`, `SuitConfetti`.
+  `FeltPanel`, `DealIn`, `Pop`, `SuitConfetti`, and the shared card
+  motions: `DealCard` (dealt from somewhere, spinning, turns over as it
+  lands), `FlipIn`, `TurnOver` (a card already down turning up),
+  `FaceRing` (a seat's face in its ring).
+- **Consistency across games:** a new game reuses these (deals, reveals,
+  faces, speech bubbles, pops, sounds, live scores in the commentary
+  strip) so every game feels the same; don't write a new animation for
+  something another game already does.
 - **Landscape:** every screen must work both ways (tests run each phone
   upright and on its side: `phones` in `test/screens.dart`).
   `core/theme/split_page.dart` (`SplitPage`: two columns on its side) for
@@ -464,8 +471,8 @@ weights cut from the variable font.
   `goofspiel/goofspiel.dart` (`Goofspiel`: 2–3 players, `gopsValue` Ace
   = 1, ties carry the pot, `GopsRound` history) + `gops_bot.dart`;
   `ui/gops_controller.dart` (bots bid in their own time, reveal pause,
-  talk), `ui/gops_screen.dart` (`goofspielGuide`; opponents' cards left
-  shown).
+  talk), `ui/gops_screen.dart` (`goofspielGuide`; leaderboard in the
+  commentary strip; nothing shows what anyone has left).
 - `lib/games/blackjack/`: engine `blackjack/blackjack.dart` (`Shoe` 6
   decks + cut card + Hi-Lo count, `BjRound` (deal, peek, hit / stand /
   double / split, dealer to 17 S17, settle, events), `bjTotal`) +

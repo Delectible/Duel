@@ -160,7 +160,7 @@ class _GopsScreenState extends State<GopsScreen> {
                 commentary: CommentaryStrip(
                   text: _c.commentary(),
                   yourMove: _c.canBid,
-                  leading: _Score(points: _c.game.scores[0]),
+                  leading: _Leaders(c: _c),
                 ),
                 table: _Table(c: _c),
                 controls: _Actions(c: _c),
@@ -198,58 +198,92 @@ class _GopsScreenState extends State<GopsScreen> {
   }
 }
 
-class _Score extends StatelessWidget {
-  const _Score({required this.points});
-
-  final int points;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 46,
-    padding: const EdgeInsets.symmetric(vertical: 3),
-    decoration: Toon.box(Toon.cardFace, radius: 10, shadow: 0),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '$points',
-          style: Toon.text(18, weight: FontWeight.w700, color: Toon.inkLight),
-        ),
-        Text('points', style: Toon.text(10, color: Toon.inkLight)),
-      ],
-    ),
-  );
-}
-
 PlayingCard _card(int value, Suit suit) => PlayingCard(gopsRank(value), suit);
 
 /// A bid on the table: face down until the reveal, then turned over.
 class _Bid extends StatelessWidget {
-  const _Bid({required this.card, required this.width, required this.flip, this.win = false});
+  const _Bid({
+    required this.card,
+    required this.width,
+    required this.flip,
+    required this.from,
+    this.win = false,
+  });
 
   final PlayingCard? card;
   final double width;
   final int flip;
+
+  /// Where a bid comes from as it's put down (the bidder).
+  final Offset from;
   final bool win;
 
   @override
   Widget build(BuildContext context) {
     final c = card;
+    // Put down face down, the way cards are dealt everywhere; turned over
+    // together at the reveal.
     if (c == null) {
-      return Pop(child: CardView(card: null, width: width, faceUp: false));
+      return DealCard(
+        key: ValueKey('bid$flip-$from'),
+        from: from,
+        delay: 0,
+        width: width,
+        child: CardView(card: null, width: width, faceUp: false),
+      );
     }
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('flip$flip-${c.id}'),
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 450),
-      builder: (context, t, _) {
-        final up = t >= 0.5;
-        return Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.identity()..scaleByDouble((t - 0.5).abs() * 2, 1, 1, 1),
-          child: CardView(card: c, width: width, faceUp: up, glow: up && win),
-        );
-      },
+    return TurnOver(key: ValueKey('turn$flip-${c.id}'), card: c, width: width, glow: win);
+  }
+}
+
+/// Everyone's points as you go, the leader first.
+class _Leaders extends StatelessWidget {
+  const _Leaders({required this.c});
+
+  final GopsController c;
+
+  @override
+  Widget build(BuildContext context) {
+    final g = c.game;
+    final order = [for (var p = 0; p < g.players; p++) p]..sort((a, b) => g.scores[b].compareTo(g.scores[a]));
+    return Container(
+      key: const Key('leaders'),
+      width: 96,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: Toon.box(Toon.cardFace, radius: 10, shadow: 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (i, p) in order.indexed)
+            Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  child: Text(
+                    '${g.scores.where((s) => s > g.scores[p]).length + 1}',
+                    style: Toon.text(11, weight: FontWeight.w700, color: Toon.inkLight),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    p == 0 ? 'You' : c.personas[p].name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Toon.text(
+                      11,
+                      weight: p == 0 ? FontWeight.w700 : FontWeight.w500,
+                      color: Toon.inkLight,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${g.scores[p]}',
+                  style: Toon.text(12, weight: FontWeight.w700, color: i == 0 ? Toon.red : Toon.inkLight),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }
@@ -275,10 +309,21 @@ class _Table extends StatelessWidget {
 
       Widget? slot(int p) {
         if (shown != null) {
-          return _Bid(card: bidOf(p), width: card * 0.9, flip: c.reveals, win: shown.winner == p);
+          return _Bid(
+            card: bidOf(p),
+            width: card * 0.9,
+            flip: c.reveals,
+            from: p == 0 ? const Offset(0, 220) : const Offset(-70, 0),
+            win: shown.winner == p,
+          );
         }
         if (c.ready.contains(p) || (p == 0 && c.yourBid != null)) {
-          return _Bid(card: null, width: card * 0.9, flip: c.reveals);
+          return _Bid(
+            card: null,
+            width: card * 0.9,
+            flip: c.reveals,
+            from: p == 0 ? const Offset(0, 220) : const Offset(-70, 0),
+          );
         }
         return null;
       }
@@ -463,18 +508,7 @@ class _Opponent extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                FaceRing(c.personas[player], size: 38, color: c.ready.contains(player) ? Toon.green : null),
-                if (said != null)
-                  Positioned(
-                    left: 40,
-                    top: -4,
-                    child: SpeechBubble(said, key: ValueKey('say$player-${c.speechId}')),
-                  ),
-              ],
-            ),
+            FaceRing(c.personas[player], size: 38, color: c.ready.contains(player) ? Toon.green : null),
             const SizedBox(height: 2),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -486,6 +520,16 @@ class _Opponent extends StatelessWidget {
                   Text('${g.scores[player]} pts', style: Toon.text(12, weight: FontWeight.w700)),
                 ],
               ),
+            ),
+            // What they say, under their name (clear of the bids).
+            SizedBox(
+              height: 40,
+              child: said == null
+                  ? null
+                  : Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: SpeechBubble(said, key: ValueKey('say$player-${c.speechId}')),
+                    ),
             ),
           ],
         ),

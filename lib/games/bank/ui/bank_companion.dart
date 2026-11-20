@@ -212,6 +212,16 @@ class _BankCompanionState extends State<BankCompanion> {
   late BankGame _g = _rebuild();
   var _rollId = 0;
 
+  /// The dice are in the air (the bank waits for them).
+  var _rolling = false;
+  Timer? _land;
+
+  @override
+  void dispose() {
+    _land?.cancel();
+    super.dispose();
+  }
+
   BankGame _rebuild() {
     final g = BankGame(players: widget.names.length, rounds: widget.rounds);
     for (final s in _steps) {
@@ -251,6 +261,13 @@ class _BankCompanionState extends State<BankCompanion> {
     b ??= 1 + _rng.nextInt(6);
     _rollId++;
     Sound.play(Sfx.shuffle);
+    if (widget.dice) {
+      _rolling = true;
+      _land?.cancel();
+      _land = Timer(const Duration(milliseconds: diceRollMs), () {
+        if (mounted) setState(() => _rolling = false);
+      });
+    }
     _do(_Roll(a, b));
     final r = _g.last!;
     Sound.later(switch (r.kind) {
@@ -258,7 +275,7 @@ class _BankCompanionState extends State<BankCompanion> {
       BankRollKind.doubled => r.after >= 400 ? Sfx.winMedium : Sfx.collect,
       BankRollKind.safeSeven => Sfx.chips,
       BankRollKind.add => Sfx.place,
-    }, widget.dice ? 750 : 0);
+    }, widget.dice ? diceRollMs : 0);
   }
 
   /// Tap a number in scoring-only mode (any two dice making it).
@@ -374,7 +391,7 @@ class _BankCompanionState extends State<BankCompanion> {
                       child: IgnorePointer(
                         child: _Delayed(
                           key: ValueKey('pop$_rollId'),
-                          ms: widget.dice ? 780 : 0,
+                          ms: widget.dice ? diceRollMs : 0,
                           child: RollPop(
                             text: reaction.$1,
                             color: reaction.$2,
@@ -384,7 +401,7 @@ class _BankCompanionState extends State<BankCompanion> {
                         ),
                       ),
                     ),
-                  if (g.roundOver) Positioned.fill(child: _roundOver()),
+                  if (g.roundOver && !_rolling) Positioned.fill(child: _roundOver()),
                 ],
               );
             },
@@ -444,7 +461,7 @@ class _BankCompanionState extends State<BankCompanion> {
               if (widget.dice)
                 GestureDetector(
                   key: const Key('tap dice'),
-                  onTap: g.roundOver ? null : _roll,
+                  onTap: g.roundOver || _rolling ? null : _roll,
                   child: RollingDice(a: r?.a ?? 6, b: r?.b ?? 6, roll: _rollId, size: dice),
                 )
               else
@@ -454,7 +471,7 @@ class _BankCompanionState extends State<BankCompanion> {
                 'BANK',
                 style: Toon.text(18, weight: FontWeight.w700, color: Colors.white70),
               ),
-              BankTotal(value: g.bank, size: wide ? 64 : 84),
+              BankTotal(value: _rolling ? (r?.before ?? 0) : g.bank, size: wide ? 64 : 84),
               Text(
                 g.roundOver ? '' : '${widget.names[g.roller]}\'s roll · roll ${g.rolls + 1}',
                 style: Toon.text(16, weight: FontWeight.w600, color: Colors.white),
@@ -465,7 +482,7 @@ class _BankCompanionState extends State<BankCompanion> {
                   key: const Key('roll'),
                   color: Toon.green,
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                  onPressed: g.roundOver ? null : _roll,
+                  onPressed: g.roundOver || _rolling ? null : _roll,
                   child: Text('Roll', style: Toon.text(22, weight: FontWeight.w700)),
                 ),
               ],
@@ -603,7 +620,7 @@ class _BankCompanionState extends State<BankCompanion> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: _Delayed(
-                ms: widget.dice && r?.kind == BankRollKind.bust ? 1500 : 300,
+                ms: r?.kind == BankRollKind.bust ? 900 : 300,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 380),
                   child: ToonBox(

@@ -206,15 +206,24 @@ class _Table extends StatelessWidget {
       Offset px(Offset f) => Offset(f.dx * size.width, f.dy * size.height);
       final left = c.youSeat, right = c.seats.length - 1 - c.youSeat;
       final spots = _botSpots(left, right, wide: wide);
-      final big = min(size.width * 0.15, size.height * (wide ? 0.2 : 0.11)).clamp(40.0, 64.0);
+      final big = min(size.width * 0.15, size.height * (wide ? 0.15 : 0.11)).clamp(40.0, 64.0);
       final small = big * 0.62;
+      // Where the cards come from, and your betting circle on the felt.
+      final shoe = Offset(size.width - 46, 44);
+      final dealerAt = px(Offset(0.5, wide ? 0.2 : 0.15));
+      final betSpot = Offset(size.width / 2, size.height - (wide ? 52 : 62));
+      final youAt = Offset(size.width / 2, betSpot.dy - 72 - big * 0.7);
       final children = <Widget>[
-        const Positioned.fill(child: FeltPanel()),
+        Positioned.fill(
+          child: RepaintBoundary(
+            child: CustomPaint(painter: _FeltPainter(bet: betSpot)),
+          ),
+        ),
         // The shoe.
-        Positioned(right: 16, top: 12, child: _ShoeView(c: c)),
+        Positioned(right: 26, top: 22, child: _ShoeView(c: c)),
         At(
-          px(Offset(0.5, wide ? 0.2 : 0.14)),
-          child: _Dealer(c: c, width: big * 0.9),
+          dealerAt,
+          child: _Dealer(c: c, width: big * 0.9, from: shoe - dealerAt + Offset(big * 0.9, 0)),
         ),
       ];
       var b = 0;
@@ -223,24 +232,26 @@ class _Table extends StatelessWidget {
         children.add(
           At(
             px(spots[b++]),
-            child: _BotSeat(c: c, seat: i, width: small),
+            child: _BotSeat(
+              c: c,
+              seat: i,
+              width: small,
+              from: shoe - px(spots[b - 1]) + const Offset(40, 40),
+            ),
           ),
         );
       }
       children.add(
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 6,
-          child: Center(
-            child: _YourSeat(c: c, width: big),
-          ),
+        At(
+          youAt,
+          child: _YourCards(c: c, width: big, from: shoe - youAt + Offset(big * 0.5, big * 0.7)),
         ),
       );
+      children.add(At(betSpot, child: _YourBet(c: c)));
       // Speech: the dealer's under the dealer, the bots' beside them.
       final said = c.speech[-1];
       if (said != null) {
-        final at = px(Offset(0.5, wide ? 0.2 : 0.14));
+        final at = dealerAt;
         children.add(
           Positioned(
             left: 0,
@@ -259,9 +270,10 @@ class _Table extends StatelessWidget {
         final at = px(f);
         children.add(
           Positioned(
-            top: at.dy + 10,
-            left: f.dx < 0.5 ? at.dx + 48 : null,
-            right: f.dx > 0.5 ? size.width - at.dx + 48 : null,
+            // Above them (over their cards), clear of yours.
+            top: max(4, at.dy - (wide ? 70 : 96)),
+            left: f.dx < 0.5 ? max(14, at.dx - 40) : null,
+            right: f.dx > 0.5 ? max(14, size.width - at.dx - 40) : null,
             child: SpeechBubble(line, key: ValueKey('say$i-${c.speechId}')),
           ),
         );
@@ -329,22 +341,27 @@ class _ShoeView extends StatelessWidget {
 }
 
 /// A row of overlapping cards, the newest dealt in.
+/// A hand's cards, each dealt from the shoe the way poker deals: spinning
+/// across face down, turning over as it lands. The dealer's hole card
+/// stays down until it turns.
 class _CardRow extends StatelessWidget {
   const _CardRow({
     required this.cards,
     required this.width,
     required this.keyBase,
+    required this.from,
     this.hideSecond = false,
-    this.flips = false,
+    this.dealer = false,
   });
-
-  /// The second card turns over (the dealer's).
-  final bool flips;
 
   final List<PlayingCard> cards;
   final double width;
   final String keyBase;
+
+  /// The shoe, from the first card's spot.
+  final Offset from;
   final bool hideSecond;
+  final bool dealer;
 
   @override
   Widget build(BuildContext context) {
@@ -353,48 +370,23 @@ class _CardRow extends StatelessWidget {
       width: width + step * max(0, cards.length - 1),
       height: width * 1.4,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           for (final (i, card) in cards.indexed)
             Positioned(
               left: i * step,
-              child: DealIn(
-                key: ValueKey('$keyBase-$i-${card.id}'),
-                from: const Offset(0, -140),
-                child: _Flip(
-                  key: ValueKey('$keyBase-f$i-${card.id}'),
-                  card: card,
-                  up: !(hideSecond && i == 1),
-                  width: width,
-                  flips: flips && i == 1,
-                ),
-              ),
+              child: dealer && i == 1 && !hideSecond
+                  ? TurnOver(key: ValueKey('$keyBase-turn-${card.id}'), card: card, width: width)
+                  : DealCard(
+                      key: ValueKey('$keyBase-$i-${card.id}'),
+                      from: from - Offset(i * step, 0),
+                      delay: 0,
+                      width: width,
+                      flip: !(dealer && i == 1),
+                      child: CardView(card: card, width: width, faceUp: !(hideSecond && i == 1)),
+                    ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// A card that can turn over (the dealer's hole card): flips when it does.
-class _Flip extends StatelessWidget {
-  const _Flip({super.key, required this.card, required this.up, required this.width, this.flips = false});
-
-  final PlayingCard card;
-  final bool up;
-  final double width;
-  final bool flips;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!flips || !up) return CardView(card: card, width: width, faceUp: up);
-    return TweenAnimationBuilder<double>(
-      key: const ValueKey('turned'),
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 420),
-      builder: (context, t, _) => Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scaleByDouble((t - 0.5).abs() * 2, 1, 1, 1),
-        child: CardView(card: card, width: width, faceUp: t >= 0.5),
       ),
     );
   }
@@ -414,7 +406,9 @@ Widget _pill(String text, {Color? color, double size = 12}) => Container(
 );
 
 class _Dealer extends StatelessWidget {
-  const _Dealer({required this.c, required this.width});
+  const _Dealer({required this.c, required this.width, required this.from});
+
+  final Offset from;
 
   final BjController c;
   final double width;
@@ -442,8 +436,9 @@ class _Dealer extends StatelessWidget {
                       cards: cards,
                       width: width,
                       keyBase: 'd${c.rounds}',
+                      from: from,
                       hideSecond: !c.holeUp,
-                      flips: true,
+                      dealer: true,
                     ),
             ),
             const SizedBox(height: 3),
@@ -457,20 +452,31 @@ class _Dealer extends StatelessWidget {
 }
 
 /// A hand's result badge.
-Widget? _result(BjController c, BjHand h) {
+Widget? _result(BjController c, BjHand h, double size) {
   if (!c.resultsUp || h.result == null) return null;
   final m = c.account.money;
   return switch (h.result!) {
-    BjResult.blackjack => _pill('Blackjack +${m(h.net)}', color: Toon.yellow),
-    BjResult.win => _pill('Win +${m(h.net)}', color: Toon.green),
-    BjResult.push => _pill('Push', color: Toon.card),
-    BjResult.lose => _pill('Lose', color: Toon.red),
-    BjResult.bust => _pill('Bust', color: Toon.red),
+    BjResult.blackjack => _pill('Blackjack +${m(h.net)}', color: Toon.yellow, size: size),
+    BjResult.win => _pill('Win +${m(h.net)}', color: Toon.green, size: size),
+    BjResult.push => _pill('Push', color: Toon.cardFace, size: size),
+    BjResult.lose => _pill('Lose', color: Toon.red, size: size),
+    BjResult.bust => _pill('Bust', color: Toon.red, size: size),
   };
 }
 
 class _Hands extends StatelessWidget {
-  const _Hands({required this.c, required this.seat, required this.width});
+  const _Hands({
+    required this.c,
+    required this.seat,
+    required this.width,
+    required this.from,
+    this.big = false,
+  });
+
+  final Offset from;
+
+  /// Yours: bigger totals.
+  final bool big;
 
   final BjController c;
   final int seat;
@@ -505,16 +511,22 @@ class _Hands extends StatelessWidget {
                         height: width * 1.4,
                         child: cards.isEmpty
                             ? SizedBox(width: width)
-                            : _CardRow(cards: cards, width: width, keyBase: 's${c.rounds}-$seat-$i'),
+                            : _CardRow(
+                                cards: cards,
+                                width: width,
+                                keyBase: 's${c.rounds}-$seat-$i',
+                                from: from,
+                              ),
                       ),
                     ),
                     const SizedBox(height: 2),
-                    _result(c, h) ??
+                    _result(c, h, big ? 17 : 13) ??
                         (cards.isEmpty
-                            ? const SizedBox(height: 16)
+                            ? SizedBox(height: big ? 26 : 20)
                             : _pill(
                                 '${c.totalLabel(cards, fromSplit: h.fromSplit)}${h.doubled ? ' ×2' : ''}',
                                 color: bjTotal(cards).total > 21 ? Toon.red : null,
+                                size: big ? 18 : 14,
                               )),
                   ],
                 );
@@ -527,7 +539,9 @@ class _Hands extends StatelessWidget {
 }
 
 class _BotSeat extends StatelessWidget {
-  const _BotSeat({required this.c, required this.seat, required this.width});
+  const _BotSeat({required this.c, required this.seat, required this.width, required this.from});
+
+  final Offset from;
 
   final BjController c;
   final int seat;
@@ -547,7 +561,7 @@ class _BotSeat extends StatelessWidget {
         children: [
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: _Hands(c: c, seat: seat, width: width),
+            child: _Hands(c: c, seat: seat, width: width, from: from),
           ),
           const SizedBox(height: 2),
           Row(
@@ -583,44 +597,97 @@ class _BotSeat extends StatelessWidget {
   }
 }
 
-class _YourSeat extends StatelessWidget {
-  const _YourSeat({required this.c, required this.width});
+/// Your cards, big, above your betting circle (last round's stay up
+/// while you bet).
+class _YourCards extends StatelessWidget {
+  const _YourCards({required this.c, required this.width, required this.from});
 
   final BjController c;
   final double width;
+  final Offset from;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width - 60),
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: _Hands(c: c, seat: c.youSeat, width: width, from: from, big: true),
+    ),
+  );
+}
+
+/// Your chips in the betting circle painted on the felt.
+class _YourBet extends StatelessWidget {
+  const _YourBet({required this.c});
+
+  final BjController c;
 
   @override
   Widget build(BuildContext context) {
     final r = c.round;
     final betting = c.phase == BjPhase.betting;
     final amount = betting ? c.bet : (r?.staked(c.youSeat) ?? 0);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (!betting)
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width - 40),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: _Hands(c: c, seat: c.youSeat, width: width),
-            ),
-          ),
-        const SizedBox(height: 4),
-        // Your betting circle.
-        Container(
-          key: const Key('your bet'),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withValues(alpha: betting ? 0.8 : 0.4), width: 2),
-          ),
-          child: amount > 0
-              ? ChipPile(amount: amount, stacks: 3, perStack: 5)
-              : Text('Bet', style: Toon.text(14, color: Colors.white70)),
-        ),
-      ],
+    return SizedBox(
+      key: const Key('your bet'),
+      width: 120,
+      height: 56,
+      child: Center(
+        child: amount > 0
+            ? ChipPile(amount: amount, stacks: 3, perStack: 5)
+            : Text(
+                'BET',
+                style: Toon.text(14, weight: FontWeight.w700, color: Colors.white70),
+              ),
+      ),
     );
   }
+}
+
+/// The table: a wooden rail, felt with a lamp-lit middle (like poker's),
+/// the dealer's arc and your betting circle.
+class _FeltPainter extends CustomPainter {
+  _FeltPainter({required this.bet});
+
+  final Offset bet;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outer = Rect.fromLTRB(6, 4, size.width - 6, size.height - 6);
+    final rail = RRect.fromRectAndRadius(outer, const Radius.circular(40));
+    final ink = Paint()
+      ..color = Toon.ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = Toon.outline;
+    canvas.drawRRect(rail.shift(const Offset(0, 5)), Paint()..color = Toon.ink);
+    canvas.drawRRect(rail, Paint()..color = Toon.wood);
+    canvas.drawRRect(rail, ink);
+    final felt = rail.deflate(12);
+    canvas.drawRRect(felt, Paint()..color = Toon.felt);
+    canvas.drawRRect(felt.deflate(size.shortestSide * 0.06), Paint()..color = const Color(0xFF47B067));
+    canvas.drawRRect(felt, ink);
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: 0.2)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    // The dealer's arc.
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height * 0.02),
+        width: size.width * 0.78,
+        height: size.height * 0.62,
+      ),
+      0.35,
+      pi - 0.7,
+      false,
+      line,
+    );
+    // Your betting circle.
+    canvas.drawCircle(bet, 34, Paint()..color = Colors.black.withValues(alpha: 0.08));
+    canvas.drawCircle(bet, 34, line..color = Colors.white.withValues(alpha: 0.5));
+  }
+
+  @override
+  bool shouldRepaint(_FeltPainter old) => old.bet != bet;
 }
 
 class _Controls extends StatelessWidget {
@@ -725,7 +792,14 @@ class _Controls extends StatelessWidget {
         ),
       );
     }
-    return Padding(padding: const EdgeInsets.fromLTRB(12, 6, 12, 8), child: body);
+    // One height whatever's showing, so the table never changes size.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+      child: SizedBox(
+        height: 108,
+        child: Align(alignment: Alignment.bottomCenter, child: body),
+      ),
+    );
   }
 }
 

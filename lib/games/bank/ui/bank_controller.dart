@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/avatars/faces.dart';
 import '../../../core/sound/sound.dart';
+import 'bank_bits.dart';
 
 enum BankPhase { rolling, roundOver, over }
 
@@ -135,7 +136,7 @@ class BankController extends ChangeNotifier {
     Sound.play(Sfx.shuffle);
     _notify();
     // The dice land, then the news.
-    _after(780, () {
+    _after(diceRollMs + 30, () {
       tumbling = false;
       _land(r);
     });

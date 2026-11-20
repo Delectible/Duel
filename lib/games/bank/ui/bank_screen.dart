@@ -275,7 +275,8 @@ class _Table extends StatelessWidget {
                       'BANK',
                       style: Toon.text(15, weight: FontWeight.w700, color: Colors.white70),
                     ),
-                    BankTotal(value: g.bank, size: wide ? 46 : 58),
+                    // The bank moves once the dice are down.
+                    BankTotal(value: c.tumbling ? (r?.before ?? 0) : g.bank, size: wide ? 46 : 58),
                     Text(
                       g.rolls == 0 ? 'First roll coming' : 'Roll ${g.rolls}',
                       style: Toon.text(13, color: Colors.white70),

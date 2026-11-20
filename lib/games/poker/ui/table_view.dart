@@ -501,7 +501,7 @@ class _Board extends StatelessWidget {
           for (var i = 0; i < 5; i++) ...[
             if (i > 0) const SizedBox(width: 6),
             i < cards.length
-                ? _FlipIn(
+                ? FlipIn(
                     key: ValueKey('board$hand-$i'),
                     delay: i < 3 ? i * 90 : 0,
                     child: CardView(
@@ -526,30 +526,6 @@ class _Board extends StatelessWidget {
   }
 }
 
-/// Turns a card over as it lands (horizontal squash and stretch).
-class _FlipIn extends StatelessWidget {
-  const _FlipIn({super.key, required this.child, this.delay = 0});
-
-  final Widget child;
-  final int delay;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = 320 + delay;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: total),
-      curve: Interval(delay / total, 1, curve: Curves.easeOutBack),
-      builder: (context, t, child) => Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.diagonal3Values(t.clamp(0.0, 1.2), 1, 1),
-        child: Opacity(opacity: t.clamp(0.0, 1.0), child: child),
-      ),
-      child: child,
-    );
-  }
-}
-
 /// How a seat's two cards are dealt: from where (relative to the first
 /// card's spot) and when each goes out.
 class _Deal {
@@ -558,65 +534,6 @@ class _Deal {
   final Offset from;
   final List<int> delays;
   final int hand;
-}
-
-/// One card dealt: it waits its turn, spins across face down from the
-/// dealer and lands; [flip] turns it over once it's down (yours).
-class _DealCard extends StatelessWidget {
-  const _DealCard({
-    super.key,
-    required this.child,
-    required this.from,
-    required this.delay,
-    required this.width,
-    this.flip = false,
-  });
-
-  final Widget child;
-  final Offset from;
-  final int delay;
-  final double width;
-  final bool flip;
-
-  static const _flight = 330, _turn = 240;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = delay + _flight + (flip ? _turn : 0);
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: total),
-      builder: (context, t, child) {
-        final ms = t * total;
-        if (ms < delay) return Opacity(opacity: 0, child: child);
-        final fly = Curves.easeOutCubic.transform(((ms - delay) / _flight).clamp(0.0, 1.0));
-        if (fly < 1 || flip && ms < delay + _flight + _turn / 2) {
-          // In the air (or the first half of turning over): its back.
-          final squash = flip && fly >= 1 ? 1 - ((ms - delay - _flight) / (_turn / 2)).clamp(0.0, 1.0) : 1.0;
-          return Transform.translate(
-            offset: from * (1 - fly),
-            child: Transform.rotate(
-              angle: (1 - fly) * 2.4,
-              child: Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.diagonal3Values(max(squash, 0.001), 1, 1),
-                child: CardView(card: null, width: width, faceUp: false),
-              ),
-            ),
-          );
-        }
-        if (!flip || ms >= total) return child!;
-        // The second half of turning over: the face opens out.
-        final open = ((ms - delay - _flight - _turn / 2) / (_turn / 2)).clamp(0.0, 1.0);
-        return Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.diagonal3Values(max(open, 0.001), 1, 1),
-          child: child,
-        );
-      },
-      child: child,
-    );
-  }
 }
 
 class _ResultNote extends StatelessWidget {
@@ -1060,7 +977,7 @@ extension on _HoleCards {
   Widget _dealt(int k, Widget card) {
     final d = deal;
     if (d == null) return card;
-    return _DealCard(
+    return DealCard(
       key: ValueKey('deal${d.hand}-$seat-$k'),
       from: d.from - Offset(k * width * 0.45, 0),
       delay: d.delays[k],
@@ -1149,7 +1066,7 @@ class _YourSeat extends StatelessWidget {
                             );
                             final d = deal;
                             if (d == null) return card;
-                            return _DealCard(
+                            return DealCard(
                               key: ValueKey('deal${d.hand}-0-$k'),
                               from: d.from - Offset(k * 70.0, 0),
                               delay: d.delays[k],
