@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
-import '../../../core/avatars/faces.dart';
 import '../../../core/cards/card_view.dart';
 import '../../../core/help/game_guide.dart';
 import '../../../core/table/table_bits.dart';
@@ -46,8 +45,8 @@ const goofspielGuide = [
   GuideStage(
     'tips',
     'Think ahead',
-    'Under each player you can see the cards they have left. When your highest card beats all of theirs, a big '
-        'prize is yours for the taking. Let small prizes go cheaply.',
+    'Remember what everyone has played. When your highest card left beats all of theirs, a big prize is yours '
+        'for the taking. Let small prizes go cheaply.',
     icon: Icons.psychology_rounded,
   ),
   GuideStage(
@@ -457,7 +456,6 @@ class _Opponent extends StatelessWidget {
   Widget build(BuildContext context) {
     final g = c.game;
     final said = c.speech[player];
-    final left = g.hands[player];
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,7 +466,7 @@ class _Opponent extends StatelessWidget {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Face(c.personas[player], size: 42),
+                FaceRing(c.personas[player], size: 38, color: c.ready.contains(player) ? Toon.green : null),
                 if (said != null)
                   Positioned(
                     left: 40,
@@ -486,27 +484,6 @@ class _Opponent extends StatelessWidget {
                 children: [
                   Text(c.personas[player].name, style: Toon.text(12)),
                   Text('${g.scores[player]} pts', style: Toon.text(12, weight: FontWeight.w700)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 3),
-            // The cards they have left (public: everyone saw what went).
-            SizedBox(
-              width: 120,
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 2,
-                runSpacing: 2,
-                children: [
-                  for (var v = 1; v <= 13; v++)
-                    Text(
-                      gopsLabel(v),
-                      style: Toon.text(
-                        11,
-                        weight: FontWeight.w700,
-                        color: left.contains(v) ? Colors.white : Colors.white.withValues(alpha: 0.25),
-                      ),
-                    ),
                 ],
               ),
             ),

@@ -21,8 +21,12 @@ together, GamePigeon-easy. Let it guide design and development choices.
   makes one build. Never push to `main` without that.
   - Meanwhile commit to the session's work branch (not `main`) and push it
     as a backup: containers are ephemeral, and only `main` pushes build.
-  - Run `flutter analyze` + `flutter test` before every commit; keep the
-    batch green so "push to main" is just a merge.
+  - **Testing happens on push** (as in Darkroom), to save time: while
+    working, run `flutter analyze` and only the tests for what you're
+    changing (or none); don't run the full `flutter test` suite locally.
+    The full suite runs in CI on every push to `main` (the `check` job);
+    if it fails, fix it and push again. Screenshots (`SHOTS=dir`) of the
+    screens you changed are still worth a look, light and dark.
   - On "push to main": fast-forward or merge the work branch into `main`,
     push, and report what went in.
 - After every push to `main` that builds, wait for the run; once its `play` job has

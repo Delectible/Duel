@@ -211,7 +211,6 @@ class _BankCompanionState extends State<BankCompanion> {
   final List<_Step> _steps = [];
   late BankGame _g = _rebuild();
   var _rollId = 0;
-  var _doubles = false;
 
   BankGame _rebuild() {
     final g = BankGame(players: widget.names.length, rounds: widget.rounds);
@@ -262,17 +261,16 @@ class _BankCompanionState extends State<BankCompanion> {
     }, widget.dice ? 750 : 0);
   }
 
-  /// Tap a number in scoring-only mode.
+  /// Tap a number in scoring-only mode (any two dice making it).
   void _entered(int sum) {
-    if (_doubles) {
-      _roll(sum ~/ 2, sum ~/ 2);
-    } else {
-      // Any two different faces making the sum.
-      final a = max(1, sum - 6);
-      _roll(a, sum - a);
-    }
-    setState(() => _doubles = false);
+    final a = max(1, sum - 6);
+    // In the safe rolls 2 and 12 come up (as doubles, which add like any
+    // roll there); afterwards they're doubles and go through that button.
+    _roll(a, sum - a == a && !_g.safe ? a + 1 : sum - a);
   }
+
+  /// Doubles after the safe rolls: the bank doubles, whatever the faces.
+  void _enteredDoubles() => _roll(2, 2);
 
   void _bank(int p) {
     if (!_g.canBank(p)) return;
@@ -478,9 +476,11 @@ class _BankCompanionState extends State<BankCompanion> {
     );
   }
 
-  /// Scoring only: tap the total you rolled.
+  /// Scoring only: tap the total you rolled (after the safe rolls,
+  /// doubles of any kind are one button).
   Widget _pad() {
-    final sums = _doubles ? [2, 4, 6, 8, 10, 12] : [3, 4, 5, 6, 7, 8, 9, 10, 11];
+    final safe = _g.safe;
+    final sums = safe ? [for (var i = 2; i <= 12; i++) i] : [3, 4, 5, 6, 7, 8, 9, 10, 11];
     return SizedBox(
       width: 320,
       child: Column(
@@ -500,21 +500,30 @@ class _BankCompanionState extends State<BankCompanion> {
                   width: 62,
                   child: ToonButton(
                     key: Key('sum $s'),
-                    color: s == 7 ? Toon.red : Toon.card,
+                    color: s == 7 ? Toon.red : Toon.cardFace,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     onPressed: _g.roundOver ? null : () => _entered(s),
-                    child: Text('$s', style: Toon.text(20, weight: FontWeight.w700)),
+                    child: Text(
+                      '$s',
+                      style: Toon.text(20, weight: FontWeight.w700, color: Toon.inkLight),
+                    ),
+                  ),
+                ),
+              if (!safe)
+                SizedBox(
+                  width: 132,
+                  child: ToonButton(
+                    key: const Key('doubles'),
+                    color: Toon.yellow,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    onPressed: _g.roundOver ? null : _enteredDoubles,
+                    child: Text(
+                      'Doubles',
+                      style: Toon.text(20, weight: FontWeight.w700, color: Toon.inkLight),
+                    ),
                   ),
                 ),
             ],
-          ),
-          const SizedBox(height: 8),
-          ToonButton(
-            key: const Key('doubles'),
-            color: _doubles ? Toon.yellow : Toon.card,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            onPressed: () => setState(() => _doubles = !_doubles),
-            child: Text(_doubles ? 'Doubles ✓' : 'Was it doubles?', style: Toon.text(15)),
           ),
         ],
       ),
@@ -536,7 +545,7 @@ class _BankCompanionState extends State<BankCompanion> {
             width: wide ? double.infinity : 150,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: Toon.box(
-              g.banked[p] ? Toon.green : (g.roller == p && !g.roundOver ? Toon.yellow : Toon.card),
+              g.banked[p] ? Toon.green : (g.roller == p && !g.roundOver ? Toon.yellow : Toon.cardFace),
               radius: 14,
               shadow: 3,
             ),

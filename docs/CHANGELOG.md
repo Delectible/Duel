@@ -849,8 +849,8 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **44.2 Goofspiel**: 2–3 players; diamonds are the prizes, each player
   bids with a full suit; bids turn over together; a tie carries the prize
   over to the next winner (a tie on the last one is thrown away). Normal
-  stake. Liberties: the cards each opponent has left are shown under them
-  (public anyway); tap a card then Bid (no misplays). Bots: Easy guesses,
+  stake. Remembering what's been played is up to you (nothing shows
+  what's left). Tap a card then Bid (no misplays). Bots: Easy guesses,
   Normal matches the prize's rank, Hard watches what you have left, takes
   big prizes as cheaply as it can and dumps its lowest on small ones.
 - [x] **44.3 Blackjack**: casino rules, play until you leave; bets come
@@ -876,7 +876,9 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **44.5 Bank! at the table**: Play at home asks: start a game or read
   the rules. Names (2–12), rounds, and either **Roll on the phone** (huge
   dice, tap to roll, the same reactions) or **Our own dice** (tap in the
-  total and whether it was doubles). Tap a name to bank them, hold a name
+  total: 2–12 in the safe rolls, then 3–11 and one Doubles button).
+  Faces in rings at every table; Blackjack's felt stays clean (rules in
+  the guide); checked in dark mode. Tap a name to bank them, hold a name
   to fix a score by hand, Undo for anything, standings after each round.
 
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)

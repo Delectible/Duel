@@ -6,7 +6,6 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
-import '../../../core/avatars/faces.dart';
 import '../../../core/cards/card_view.dart';
 import '../../../core/help/game_guide.dart';
 import '../../../core/table/table_bits.dart';
@@ -174,13 +173,22 @@ class _BjScreenState extends State<BjScreen> {
 
 /// Where the bots sit: around the table's sides, playing in order towards
 /// you at the bottom and on round the other side.
-List<Offset> _botSpots(int left, int right) {
-  const l = <int, List<Offset>>{
+List<Offset> _botSpots(int left, int right, {bool wide = false}) {
+  // On its side the table is short: seats spread along it instead.
+  const w = <int, List<Offset>>{
     0: [],
-    1: [Offset(0.16, 0.6)],
-    2: [Offset(0.16, 0.42), Offset(0.16, 0.7)],
-    3: [Offset(0.15, 0.36), Offset(0.15, 0.6), Offset(0.24, 0.84)],
+    1: [Offset(0.12, 0.5)],
+    2: [Offset(0.13, 0.36), Offset(0.13, 0.74)],
+    3: [Offset(0.13, 0.36), Offset(0.13, 0.74), Offset(0.3, 0.74)],
   };
+  final l = wide
+      ? w
+      : const <int, List<Offset>>{
+          0: [],
+          1: [Offset(0.16, 0.6)],
+          2: [Offset(0.16, 0.42), Offset(0.16, 0.7)],
+          3: [Offset(0.15, 0.36), Offset(0.15, 0.6), Offset(0.24, 0.84)],
+        };
   final rs = [for (final o in l[right]!.reversed) Offset(1 - o.dx, o.dy)];
   return [...l[left]!, ...rs];
 }
@@ -197,33 +205,11 @@ class _Table extends StatelessWidget {
       final wide = GameLayout.wide(context);
       Offset px(Offset f) => Offset(f.dx * size.width, f.dy * size.height);
       final left = c.youSeat, right = c.seats.length - 1 - c.youSeat;
-      final spots = _botSpots(left, right);
+      final spots = _botSpots(left, right, wide: wide);
       final big = min(size.width * 0.15, size.height * (wide ? 0.2 : 0.11)).clamp(40.0, 64.0);
       final small = big * 0.62;
       final children = <Widget>[
         const Positioned.fill(child: FeltPanel()),
-        // The table's rules printed on the felt.
-        Positioned(
-          left: 0,
-          right: 0,
-          top: size.height * (wide ? 0.42 : 0.33),
-          child: IgnorePointer(
-            child: Column(
-              children: [
-                Text(
-                  'BLACKJACK PAYS 3 TO 2',
-                  textAlign: TextAlign.center,
-                  style: Toon.text(14, weight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.35)),
-                ),
-                Text(
-                  'Dealer stands on all 17s',
-                  textAlign: TextAlign.center,
-                  style: Toon.text(12, color: Colors.white.withValues(alpha: 0.35)),
-                ),
-              ],
-            ),
-          ),
-        ),
         // The shoe.
         Positioned(right: 16, top: 12, child: _ShoeView(c: c)),
         At(
@@ -442,7 +428,7 @@ class _Dealer extends StatelessWidget {
       children: [
         Column(
           mainAxisSize: MainAxisSize.min,
-          children: [Face(BjController.dealer, size: 38), _pill('Dealer')],
+          children: [FaceRing(BjController.dealer, size: 34), const SizedBox(height: 3), _pill('Dealer')],
         ),
         const SizedBox(width: 8),
         Column(
@@ -567,7 +553,11 @@ class _BotSeat extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Face(s.persona, size: 30),
+              FaceRing(
+                s.persona,
+                size: 26,
+                color: c.phase == BjPhase.playing && c.round?.turn?.$1 == seat ? Toon.orange : null,
+              ),
               const SizedBox(width: 3),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

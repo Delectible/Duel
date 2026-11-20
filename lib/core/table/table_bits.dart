@@ -502,3 +502,26 @@ class SuitConfetti extends StatelessWidget {
     );
   }
 }
+
+/// A seat's face in its ring, as at every table (yellow / orange when it's
+/// their turn).
+class FaceRing extends StatelessWidget {
+  const FaceRing(this.persona, {super.key, this.size = 44, this.color});
+
+  final Persona persona;
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => AnimatedContainer(
+    duration: const Duration(milliseconds: 200),
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: color ?? Toon.card,
+      shape: BoxShape.circle,
+      border: Border.all(color: Toon.ink, width: Toon.outline),
+      boxShadow: [BoxShadow(color: Toon.ink, offset: const Offset(0, 3))],
+    ),
+    child: Face(persona, size: size),
+  );
+}

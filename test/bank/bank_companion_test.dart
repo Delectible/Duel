@@ -104,9 +104,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('84'), findsOneWidget);
+    expect(find.byKey(const Key('sum 12')), findsNothing, reason: '12 is always doubles now');
     await tester.tap(find.byKey(const Key('doubles')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('sum 4')));
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('168'), findsOneWidget);
