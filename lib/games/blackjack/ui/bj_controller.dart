@@ -312,7 +312,7 @@ class BjController extends ChangeNotifier {
     if (t == null) return; // the dealer's events follow
     phase = BjPhase.playing;
     if (t.$1 == youSeat) {
-      Sound.play(Sfx.yourTurn);
+      Sound.play(Sfx.yourTurn, gain: 0.7);
       _notify();
       return;
     }
@@ -330,7 +330,6 @@ class BjController extends ChangeNotifier {
   void act(BjMove m) {
     if (!moves.contains(m)) return;
     round!.act(m);
-    Sound.play(Sfx.tap);
     _notify();
     _playBack();
   }

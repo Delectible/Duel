@@ -6,6 +6,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
+import '../../../core/account/stake.dart';
 import '../../../core/cards/card_view.dart';
 import '../../../core/help/game_guide.dart';
 import '../../../core/table/table_bits.dart';
@@ -98,20 +99,13 @@ class _BjScreenState extends State<BjScreen> {
   };
 
   Future<void> _leave() async {
-    if (_c.midHand) {
-      final staked = _c.round!.staked(_c.youSeat);
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Leave mid-hand?'),
-          content: Text('Your ${_account.money(staked)} on the table stays there.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Stay')),
-            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Leave')),
-          ],
-        ),
-      );
-      if (ok != true) return;
+    if (_c.midHand &&
+        !await askToon(
+          context,
+          title: 'Leave mid-hand?',
+          body: 'Your ${_account.money(_c.round!.staked(_c.youSeat))} on the table stays there.',
+        )) {
+      return;
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -127,36 +121,12 @@ class _BjScreenState extends State<BjScreen> {
         child: ListenableBuilder(
           listenable: Listenable.merge([_c, _account]),
           builder: (context, _) => GameLayout(
-            top: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: Row(
-                children: [
-                  ToonButton(
-                    key: const Key('leave'),
-                    color: Toon.card,
-                    padding: const EdgeInsets.all(8),
-                    tooltip: 'Leave table',
-                    onPressed: _leave,
-                    child: const Icon(Icons.arrow_back_rounded),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Blackjack', style: Toon.text(18, weight: FontWeight.w700)),
-                        Text(
-                          '${widget.table.name} · bets ${chips(widget.table.min)}–${chips(widget.table.max)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GuideButton(title: 'Blackjack', stages: blackjackGuide, current: _stage),
-                ],
-              ),
+            top: GameTopBar(
+              title: 'Blackjack',
+              subtitle: '${widget.table.name} · bets ${chips(widget.table.min)}–${chips(widget.table.max)}',
+              onLeave: _leave,
+              guide: blackjackGuide,
+              stage: _stage,
             ),
             commentary: CommentaryStrip(
               text: _c.commentary(),
@@ -422,7 +392,11 @@ class _Dealer extends StatelessWidget {
       children: [
         Column(
           mainAxisSize: MainAxisSize.min,
-          children: [FaceRing(BjController.dealer, size: 34), const SizedBox(height: 3), _pill('Dealer')],
+          children: [
+            FaceRing(BjController.dealer, size: 34),
+            const SizedBox(height: 3),
+            const NamePlate('Dot', line: 'Dealer'),
+          ],
         ),
         const SizedBox(width: 8),
         Column(
@@ -572,18 +546,8 @@ class _BotSeat extends StatelessWidget {
                 size: 26,
                 color: c.phase == BjPhase.playing && c.round?.turn?.$1 == seat ? Toon.orange : null,
               ),
-              const SizedBox(width: 3),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(s.persona.name, maxLines: 1, style: Toon.text(11, color: Colors.white)),
-                  Text(
-                    chips(s.chips),
-                    style: Toon.text(11, weight: FontWeight.w700, color: Toon.yellow),
-                  ),
-                ],
-              ),
+              const SizedBox(width: 4),
+              Flexible(child: NamePlate(s.persona.name, line: chips(s.chips))),
             ],
           ),
           if (staked != null)

@@ -188,14 +188,15 @@ class StakeResult extends StatelessWidget {
   }
 }
 
-/// The leave-game question; with a stake it says what leaving costs.
-Future<bool> confirmLeave(BuildContext context, StakeTicket ticket, {String? online}) async {
-  final cost = ticket.stake > 0 && !ticket.settled
-      ? "Leaving now counts as a loss: you'll lose your ${ticket.account.money(ticket.stake)} stake."
-      : online != null
-      ? 'Leaving now counts as a loss.'
-      : "This game won't count.";
-  final leave = await showDialog<bool>(
+/// A yes / no question in the app's look (leaving, ending a game).
+Future<bool> askToon(
+  BuildContext context, {
+  required String title,
+  required String body,
+  String no = 'Stay',
+  String yes = 'Leave',
+}) async {
+  final answer = await showDialog<bool>(
     context: context,
     builder: (context) => Dialog(
       backgroundColor: Colors.transparent,
@@ -205,10 +206,14 @@ Future<bool> confirmLeave(BuildContext context, StakeTicket ticket, {String? onl
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Leave the game?', style: Toon.text(22, weight: FontWeight.w700)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Toon.text(22, weight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
             Text(
-              online == null ? cost : '$online $cost',
+              body,
               textAlign: TextAlign.center,
               style: Toon.text(16, weight: FontWeight.w500),
             ),
@@ -220,7 +225,7 @@ Future<bool> confirmLeave(BuildContext context, StakeTicket ticket, {String? onl
                     key: const Key('stay'),
                     color: Toon.card,
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Stay'),
+                    child: FittedBox(child: Text(no, maxLines: 1)),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -229,7 +234,7 @@ Future<bool> confirmLeave(BuildContext context, StakeTicket ticket, {String? onl
                     key: const Key('leave'),
                     color: Toon.red,
                     onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Leave'),
+                    child: FittedBox(child: Text(yes, maxLines: 1)),
                   ),
                 ),
               ],
@@ -239,6 +244,21 @@ Future<bool> confirmLeave(BuildContext context, StakeTicket ticket, {String? onl
       ),
     ),
   );
-  if (leave == true) ticket.forfeit();
-  return leave == true;
+  return answer == true;
+}
+
+/// The leave-game question; with a stake it says what leaving costs.
+Future<bool> confirmLeave(BuildContext context, StakeTicket ticket, {String? online}) async {
+  final cost = ticket.stake > 0 && !ticket.settled
+      ? "Leaving now counts as a loss: you'll lose your ${ticket.account.money(ticket.stake)} stake."
+      : online != null
+      ? 'Leaving now counts as a loss.'
+      : "This game won't count.";
+  final leave = await askToon(
+    context,
+    title: 'Leave the game?',
+    body: online == null ? cost : '$online $cost',
+  );
+  if (leave) ticket.forfeit();
+  return leave;
 }

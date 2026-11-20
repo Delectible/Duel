@@ -117,7 +117,10 @@ class BankController extends ChangeNotifier {
   void _nextRoll() {
     if (game.roundOver) return _endRound();
     _notify();
-    if (game.roller == 0) return;
+    if (game.roller == 0) {
+      Sound.play(Sfx.yourTurn, gain: 0.7);
+      return;
+    }
     _after(700 + _rng.nextInt(500), () => _roll());
   }
 
@@ -143,16 +146,22 @@ class BankController extends ChangeNotifier {
   }
 
   void _land(BankRoll r) {
+    Sound.play(Sfx.drop);
     switch (r.kind) {
       case BankRollKind.safeSeven:
         Sound.play(Sfx.chips);
       case BankRollKind.doubled:
-        Sound.play(r.after >= 400 ? Sfx.winMedium : Sfx.collect);
+        Sound.later(r.after >= 400 ? Sfx.winMedium : Sfx.collect, 120);
         _react(
           r.after >= 400 ? ['WHOA!', 'Doubled!', 'Here we go!', 'Keep rolling!'] : ['Doubles!', 'Nice.'],
         );
       case BankRollKind.bust:
-        Sound.play(r.before >= 300 ? Sfx.loseBig : Sfx.clash);
+        // Your bank lost: small or medium, as a lost hand in poker.
+        if (game.banked[0] || r.before == 0) {
+          Sound.later(Sfx.clash, 120);
+        } else {
+          Sound.later(r.before >= 300 ? Sfx.loseMedium : Sfx.loseSmall, 120);
+        }
         final hurt = [
           for (final p in game.stillIn)
             if (p != 0) p,
@@ -173,7 +182,7 @@ class BankController extends ChangeNotifier {
           _say(safe[_rng.nextInt(safe.length)], _pick(['Called it.', 'Glad I banked!', 'Ha!']));
         }
       case BankRollKind.add:
-        Sound.play(Sfx.place);
+        break;
     }
     _notify();
     if (game.roundOver) {
@@ -219,7 +228,12 @@ class BankController extends ChangeNotifier {
     final wasRoller = game.roller == p;
     game.bankFor(p);
     bankedAtRoll[p] = game.rolls;
-    Sound.play(Sfx.pot);
+    if (p == 0) {
+      Sound.play(Sfx.pot);
+      Sound.later(game.bankedAt[0]! >= 300 ? Sfx.winMedium : Sfx.winSmall, 250);
+    } else {
+      Sound.play(Sfx.chips, gain: 0.7);
+    }
     if (p != 0) {
       _say(p, game.bank >= 300 ? _pick(['BANK!', 'Bank! I\'m out!', 'Bank, bank, bank!']) : 'Bank!');
     }

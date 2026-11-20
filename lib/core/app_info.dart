@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.11.8';
+  static const version = '0.11.9';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -26,7 +26,7 @@ class AppInfo {
   static const latest =
       'Three new games against bots: Goofspiel (bid for the prizes, with a live leaderboard), Blackjack (casino '
       'tables dealt like poker, bets straight from your pips) and Bank! (push your luck with two dice, now with a '
-      'real dice throw). Playing Bank! at home? Play at home rolls big dice on the phone and keeps the score.';
+      'real dice throw), all with their own sounds. Playing Bank! at home? Play at home rolls big dice on the phone and keeps the score.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

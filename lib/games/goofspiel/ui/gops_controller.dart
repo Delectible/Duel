@@ -120,6 +120,7 @@ class GopsController extends ChangeNotifier {
     ready.clear();
     speech.clear();
     Sound.play(Sfx.place);
+    Sound.later(Sfx.yourTurn, 350, gain: 0.7);
     final big = game.potWorth >= 15;
     for (var p = 1; p < players; p++) {
       final think = 700 + _rng.nextInt(big ? 2200 : 1400);
@@ -173,13 +174,21 @@ class GopsController extends ChangeNotifier {
     }
     shown = r;
     reveals++;
+    Sound.play(Sfx.place);
     final w = r!.winner;
     if (w == null) {
       Sound.play(Sfx.clash);
       _react(null, pot, r);
     } else {
-      Sound.later(w == 0 ? Sfx.collect : Sfx.pot, 350);
-      if (w == 0 && pot >= 20) Sound.later(Sfx.winSmall, 600);
+      // As in poker: a pot won or lost is small or medium; the game is big.
+      Sound.later(w == 0 ? Sfx.collect : Sfx.pot, 300);
+      if (w == 0) {
+        Sound.later(pot >= 15 ? Sfx.winMedium : Sfx.winSmall, 550);
+      } else if (pot >= 15) {
+        Sound.later(Sfx.loseMedium, 550);
+      } else if (pot >= 8) {
+        Sound.later(Sfx.loseSmall, 550);
+      }
       _react(w, pot, r);
     }
     _notify();
@@ -230,7 +239,7 @@ class GopsController extends ChangeNotifier {
   void _finish() {
     phase = GopsPhase.over;
     final w = game.winners;
-    Sound.play(w.contains(0) && w.length == 1 ? Sfx.winBig : (w.contains(0) ? Sfx.winSmall : Sfx.loseBig));
+    Sound.play(w.contains(0) && w.length == 1 ? Sfx.winBig : (w.contains(0) ? Sfx.winMedium : Sfx.loseBig));
     _notify();
   }
 

@@ -510,17 +510,7 @@ class _Opponent extends StatelessWidget {
           children: [
             FaceRing(c.personas[player], size: 38, color: c.ready.contains(player) ? Toon.green : null),
             const SizedBox(height: 2),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: Toon.box(Toon.card, radius: 10, shadow: 2),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(c.personas[player].name, style: Toon.text(12)),
-                  Text('${g.scores[player]} pts', style: Toon.text(12, weight: FontWeight.w700)),
-                ],
-              ),
-            ),
+            NamePlate(c.personas[player].name, line: '${g.scores[player]} pts'),
             // What they say, under their name (clear of the bids).
             SizedBox(
               height: 40,

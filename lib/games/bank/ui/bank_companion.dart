@@ -5,6 +5,7 @@ import 'package:duel_engine/bank/bank.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
+import '../../../core/account/stake.dart';
 import '../../../core/sound/sound.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
@@ -270,12 +271,15 @@ class _BankCompanionState extends State<BankCompanion> {
     }
     _do(_Roll(a, b));
     final r = _g.last!;
+    final at = widget.dice ? diceRollMs : 0;
+    if (widget.dice) Sound.later(Sfx.drop, at);
     Sound.later(switch (r.kind) {
-      BankRollKind.bust => r.before >= 300 ? Sfx.loseBig : Sfx.clash,
+      BankRollKind.bust => r.before >= 300 ? Sfx.loseMedium : Sfx.clash,
       BankRollKind.doubled => r.after >= 400 ? Sfx.winMedium : Sfx.collect,
       BankRollKind.safeSeven => Sfx.chips,
       BankRollKind.add => Sfx.place,
-    }, widget.dice ? diceRollMs : 0);
+    }, at + 120);
+    if (_g.isOver) Sound.later(Sfx.winBig, at + 900);
   }
 
   /// Tap a number in scoring-only mode (any two dice making it).
@@ -293,28 +297,60 @@ class _BankCompanionState extends State<BankCompanion> {
     if (!_g.canBank(p)) return;
     Sound.play(Sfx.pot);
     _do(_Banked(p));
+    if (_g.isOver) Sound.later(Sfx.winBig, 600);
   }
 
   Future<void> _edit(int p) async {
     final ctl = TextEditingController(text: '${_g.scores[p]}');
     final v = await showDialog<int>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${widget.names[p]}\'s score'),
-        content: TextField(
-          key: const Key('edit score'),
-          controller: ctl,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            key: const Key('save score'),
-            onPressed: () => Navigator.pop(context, int.tryParse(ctl.text.trim())),
-            child: const Text('Save'),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ToonBox(
+          color: Toon.paper,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${widget.names[p]}\'s score', style: Toon.text(22, weight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('edit score'),
+                controller: ctl,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: Toon.text(24, weight: FontWeight.w700),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Toon.card,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ToonButton(
+                      color: Toon.card,
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ToonButton(
+                      key: const Key('save score'),
+                      color: Toon.green,
+                      onPressed: () => Navigator.pop(context, int.tryParse(ctl.text.trim())),
+                      child: const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
     if (v != null) _do(_Adjust(p, v));
@@ -323,21 +359,13 @@ class _BankCompanionState extends State<BankCompanion> {
   Future<void> _leave() async {
     final ok =
         _steps.isEmpty ||
-        await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('End this game?'),
-                content: const Text('The scores won\'t be kept.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Keep playing'),
-                  ),
-                  TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('End')),
-                ],
-              ),
-            ) ==
-            true;
+        await askToon(
+          context,
+          title: 'End this game?',
+          body: 'The scores won\'t be kept.',
+          no: 'Keep playing',
+          yes: 'End',
+        );
     if (ok && mounted) Navigator.of(context).pop();
   }
 
@@ -418,9 +446,9 @@ class _BankCompanionState extends State<BankCompanion> {
         ToonButton(
           color: Toon.card,
           padding: const EdgeInsets.all(8),
-          tooltip: 'End game',
+          tooltip: 'Leave game',
           onPressed: _leave,
-          child: const Icon(Icons.close_rounded),
+          child: const Icon(Icons.arrow_back_rounded),
         ),
         const SizedBox(width: 10),
         Expanded(

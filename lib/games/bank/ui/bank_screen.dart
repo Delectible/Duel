@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
-import '../../../core/avatars/faces.dart';
 import '../../../core/help/game_guide.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
@@ -348,15 +347,13 @@ class _Player extends StatelessWidget {
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: rolling ? Toon.yellow : (banked ? Toon.green : Toon.card),
-                  border: Border.all(color: Toon.ink, width: 2),
+              Opacity(
+                opacity: banked ? 0.75 : 1,
+                child: FaceRing(
+                  c.personas[p],
+                  size: 34,
+                  color: rolling ? Toon.yellow : (banked ? Toon.green : null),
                 ),
-                child: Opacity(opacity: banked ? 0.7 : 1, child: Face(c.personas[p], size: 36)),
               ),
               if (rolling)
                 const Positioned(
@@ -366,23 +363,11 @@ class _Player extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 2),
-          Text(
+          const SizedBox(height: 4),
+          NamePlate(
             p == 0 ? 'You' : c.personas[p].name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Toon.text(11, color: Colors.white),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-              color: banked ? Toon.green : Toon.inkLight.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              banked ? '+${g.bankedAt[p]}' : '${g.scores[p]}',
-              style: Toon.text(12, weight: FontWeight.w700, color: banked ? Toon.inkLight : Colors.white),
-            ),
+            line: banked ? '+${g.bankedAt[p]}' : '${g.scores[p]}',
+            color: banked ? Toon.green : null,
           ),
           if (banked) Text('total ${g.scores[p]}', style: Toon.text(10, color: Colors.white70)),
           if (said != null)

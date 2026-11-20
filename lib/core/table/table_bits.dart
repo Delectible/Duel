@@ -243,15 +243,21 @@ class GameTopBar extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onLeave,
-    required this.ticket,
+    this.ticket,
     required this.guide,
     required this.stage,
+    this.badge,
   });
 
   final String title;
   final String subtitle;
   final VoidCallback onLeave;
-  final StakeTicket ticket;
+
+  /// The stake shown on the right (none: no stake, e.g. Blackjack).
+  final StakeTicket? ticket;
+
+  /// Shown instead of the stake.
+  final Widget? badge;
   final List<GuideStage> guide;
   final String? Function() stage;
 
@@ -280,7 +286,7 @@ class GameTopBar extends StatelessWidget {
             ],
           ),
         ),
-        StakeBadge(ticket),
+        if (badge != null) badge! else if (ticket != null) StakeBadge(ticket!),
         const SizedBox(width: 8),
         GuideButton(title: title, stages: guide, current: stage),
       ],
@@ -639,6 +645,44 @@ class TurnOver extends StatelessWidget {
           child: CardView(card: card, width: width, faceUp: up, glow: up && glow),
         );
       },
+    );
+  }
+}
+
+/// A seat's name card under its face: the name, then a line in bold
+/// (books, points, chips).
+class NamePlate extends StatelessWidget {
+  const NamePlate(this.name, {super.key, this.line, this.color, this.lineColor});
+
+  final String name;
+  final String? line;
+  final Color? color;
+  final Color? lineColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = color ?? Toon.card;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 96),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: Toon.box(bg, radius: 10, shadow: 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Toon.text(12, color: Toon.on(bg)),
+          ),
+          if (line != null)
+            Text(
+              line!,
+              maxLines: 1,
+              style: Toon.text(12, weight: FontWeight.w700, color: lineColor ?? Toon.on(bg)),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -899,6 +899,23 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 46. Consistency pass and sounds (requested 2026-11-21)
+
+- [x] **46.1 Same pieces everywhere**: Blackjack uses the shared top bar
+  (`GameTopBar`, now with an optional stake); Bank! at the table has the
+  same back button; leaving / ending asks in the app's own dialog
+  (`askToon`, used by `confirmLeave` too) instead of a stock one; the
+  score editor is a Toon dialog; every seat is a `FaceRing` with a
+  `NamePlate` (Goofspiel, Blackjack incl. the dealer, Bank!).
+- [x] **46.2 Sounds** as poker does them: a pot / hand won or lost is
+  small or medium, the game itself big. Goofspiel: prize up (your turn),
+  bids down, the turn-over, wins / losses by pot size, tie clash, game
+  win / tie / loss. Bank!: throw, dice clack on landing, lucky 7, doubles
+  (medium when big), a seven taking your bank (small / medium), your bank
+  (pot + small / medium win), bots banking, your roll, the end. At home:
+  the same plus a win for the final standings. Blackjack: your-turn
+  chime softer, no double tick on the move buttons.
+
 ### 25. Hold'em cash tables (requested 2026-10-22; built in 33)
 
 - [x] **25.1 Online cash tables, open to everyone**: a set of public
