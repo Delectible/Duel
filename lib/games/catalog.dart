@@ -25,6 +25,7 @@ import 'goofspiel/ui/gops_screen.dart';
 import 'blackjack/at_home.dart';
 import 'blackjack/ui/bj_screen.dart';
 import 'bank/at_home.dart';
+import 'bank/ui/bank_screen.dart';
 import 'previews.dart';
 import 'tile_art.dart';
 import 'spades/ui/spades_screen.dart';
@@ -437,6 +438,8 @@ final games = <GameInfo>[
     ],
     minutes: (players) => 6 + players,
     atHome: bankAtHome,
+    open: (setup, stake, rounds) =>
+        BankScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, rounds: rounds ?? 15),
     choice: const GameChoice(
       label: 'Rounds',
       values: [10, 15, 20],
