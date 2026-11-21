@@ -899,6 +899,19 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 47. Blackjack tables and cash table colours (requested 2026-11-21)
+
+- [x] **47.1 Dealer first**: a real table's shape (straight edge for the
+  dealer, gentle curve round the players), Dot big at the head; decals:
+  card frames, a band of suits, betting circles; no rules printed.
+- [x] **47.2 Colours by stake**: green, blue, red, black (`Felt`), black
+  tables deal gold-trimmed cards (`GoldCards`); cash tables too.
+- [x] **47.3 Five fixed seats**: nothing overlaps; bots join and leave
+  between rounds.
+- [x] **47.4 For counting**: the shoe shows its decks and how much is
+  left; shuffles happen between rounds with "New shoe!" and a line.
+  → 0.11.10 · 2026-11-21
+
 ### 46. Consistency pass and sounds (requested 2026-11-21)
 
 - [x] **46.1 Same pieces everywhere**: Blackjack uses the shared top bar
