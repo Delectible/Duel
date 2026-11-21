@@ -9,6 +9,7 @@ import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/cards/card_view.dart';
 import '../../../core/help/game_guide.dart';
+import '../../../core/table/felts.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import '../../poker/ui/chips.dart';
@@ -63,9 +64,6 @@ class BjScreen extends StatefulWidget {
     this.pace = 1,
     this.seed,
   });
-
-  /// The felt in use (samples for now).
-  static BjFelt felt = BjFelt.classic;
 
   final BjTable table;
   final int bots;
@@ -144,21 +142,42 @@ class _BjScreenState extends State<BjScreen> {
   );
 }
 
-/// The felt's look (samples; one will stay).
-enum BjFelt { classic, midnight, ruby }
-
-/// Where the bots sit: on the table's curve, smaller than you and the
-/// dealer, playing in order towards you at the bottom and round the other
-/// side. [theta] is degrees from straight down.
-List<double> _botAngles(int left, int right) {
-  const side = <int, List<double>>{
-    0: [],
-    1: [58],
-    2: [80, 40],
-    3: [84, 60, 36],
-  };
-  return [...side[left]!, for (final a in side[right]!.reversed) -a];
-}
+/// Where each of the five seats sits, as fractions of the table (you're
+/// seat 2, the bottom middle): bots' cards + faces, and their betting spots.
+/// Fixed places, so nothing overlaps however many sit down.
+({List<Offset> seats, List<Offset> spots}) _seatPlaces(bool wide) => wide
+    ? (
+        seats: const [
+          Offset(0.12, 0.42),
+          Offset(0.27, 0.76),
+          Offset.zero,
+          Offset(0.73, 0.76),
+          Offset(0.88, 0.42),
+        ],
+        spots: const [
+          Offset(0.235, 0.47),
+          Offset(0.315, 0.55),
+          Offset.zero,
+          Offset(0.685, 0.55),
+          Offset(0.765, 0.47),
+        ],
+      )
+    : (
+        seats: const [
+          Offset(0.19, 0.42),
+          Offset(0.2, 0.68),
+          Offset.zero,
+          Offset(0.8, 0.68),
+          Offset(0.81, 0.42),
+        ],
+        spots: const [
+          Offset(0.4, 0.43),
+          Offset(0.37, 0.575),
+          Offset.zero,
+          Offset(0.63, 0.575),
+          Offset(0.6, 0.43),
+        ],
+      );
 
 class _Table extends StatelessWidget {
   const _Table({required this.c});
@@ -170,57 +189,65 @@ class _Table extends StatelessWidget {
     builder: (context, box) {
       final size = Size(box.maxWidth, box.maxHeight);
       final wide = GameLayout.wide(context);
-      final left = c.youSeat, right = c.seats.length - 1 - c.youSeat;
-      final big = min(size.width * 0.15, size.height * (wide ? 0.16 : 0.11)).clamp(40.0, 64.0);
+      Offset px(Offset f) => Offset(f.dx * size.width, f.dy * size.height);
+      final felt = Felt.forLevel(bjTables.indexOf(c.table).clamp(0, 3), bjTables.length);
+      final big = min(size.width * 0.15, size.height * (wide ? 0.16 : 0.1)).clamp(40.0, 62.0);
       final dealerW = big * 1.05;
       final small = big * 0.5;
-      // The curve the seats sit on: centred under the dealer.
-      final curve = Offset(size.width / 2, size.height * (wide ? 0.2 : 0.24));
-      final rx = size.width * (wide ? 0.4 : 0.37);
-      final ry = (size.height - curve.dy) * (wide ? 0.62 : 0.6);
-      Offset onCurve(double deg, [double k = 1]) {
-        final a = deg * pi / 180;
-        return curve + Offset(-sin(a) * rx * k, cos(a) * ry * k);
-      }
-
+      final places = _seatPlaces(wide);
       final shoe = Offset(size.width - 46, 44);
       final faceAt = Offset(size.width / 2, 26);
       final dealerAt = Offset(size.width / 2, faceAt.dy + 28 + dealerW * 0.7 + 4);
       final dealerBox = Rect.fromCenter(center: dealerAt, width: dealerW * 2.9, height: dealerW * 1.4 + 12);
       final betSpot = Offset(size.width / 2, size.height - (wide ? 40 : 54));
       final youAt = Offset(size.width / 2, betSpot.dy - 50 - big * 0.7 - 12);
-      final yourBox = Rect.fromCenter(center: youAt.translate(0, -9), width: big * 2.7, height: big * 1.4 + 12);
-      final angles = _botAngles(left, right);
-      final seats = [for (final a in angles) onCurve(a, wide ? 1.12 : 1)];
-      final spots = [for (final a in angles) onCurve(a, wide ? 0.78 : 0.74)];
+      final yourBox = Rect.fromCenter(
+        center: youAt.translate(0, -9),
+        width: big * 2.7,
+        height: big * 1.4 + 12,
+      );
+      final seats = [for (final o in places.seats) px(o)];
+      final spots = [for (final o in places.spots) px(o)];
       final children = <Widget>[
         Positioned.fill(
           child: RepaintBoundary(
             child: CustomPaint(
               painter: _FeltPainter(
-                style: BjScreen.felt,
-                curve: curve,
-                rx: rx,
-                ry: ry,
+                felt: felt,
                 dealer: dealerBox,
                 you: yourBox,
                 bet: betSpot,
-                spots: spots,
+                spots: [
+                  for (var i = 0; i < spots.length; i++)
+                    if (i != c.youSeat) spots[i],
+                ],
               ),
             ),
           ),
         ),
         Positioned(right: 26, top: 22, child: _ShoeView(c: c)),
         At(faceAt, child: const _DealerFace()),
-        At(dealerAt, child: _Dealer(c: c, width: dealerW, from: shoe - dealerAt + Offset(dealerW, 0))),
+        At(
+          dealerAt,
+          child: _Dealer(c: c, width: dealerW, from: shoe - dealerAt + Offset(dealerW, 0)),
+        ),
       ];
-      var b = 0;
       for (var i = 0; i < c.seats.length; i++) {
         if (i == c.youSeat) continue;
-        final at = seats[b], spot = spots[b];
-        b++;
-        children.add(At(at, child: _BotSeat(c: c, seat: i, width: small, from: shoe - at)));
-        children.add(At(spot, child: _BotBet(c: c, seat: i)));
+        final at = seats[i], spot = spots[i];
+        if (c.seats[i].open) continue;
+        children.add(
+          At(
+            at,
+            child: _BotSeat(c: c, seat: i, width: small, from: shoe - at),
+          ),
+        );
+        children.add(
+          At(
+            spot,
+            child: _BotBet(c: c, seat: i),
+          ),
+        );
       }
       children.add(
         At(
@@ -244,10 +271,9 @@ class _Table extends StatelessWidget {
           ),
         );
       }
-      b = 0;
       for (var i = 0; i < c.seats.length; i++) {
         if (i == c.youSeat) continue;
-        final at = seats[b++];
+        final at = seats[i];
         final line = c.speech[i];
         if (line == null) continue;
         final leftSide = at.dx < size.width / 2;
@@ -290,7 +316,11 @@ class _Table extends StatelessWidget {
           ),
         );
       }
-      return Stack(clipBehavior: Clip.none, children: children);
+      children.add(At(Offset(size.width - 46, 66), child: _NewShoe(c: c)));
+      return GoldCards(
+        on: felt.gold,
+        child: Stack(clipBehavior: Clip.none, children: children),
+      );
     },
   );
 }
@@ -326,36 +356,104 @@ class _BotBet extends StatelessWidget {
       height: 34,
       child: staked == 0
           ? null
-          : FittedBox(fit: BoxFit.scaleDown, child: ChipPile(amount: staked, perStack: 4)),
+          : FittedBox(
+              fit: BoxFit.scaleDown,
+              child: ChipPile(amount: staked, perStack: 4),
+            ),
     );
   }
 }
 
+/// The shoe: how many decks, and how far through it the dealer is (the
+/// cut card's the line), for counting.
 class _ShoeView extends StatelessWidget {
   const _ShoeView({required this.c});
 
   final BjController c;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      SizedBox(
-        width: 40,
-        height: 44,
-        child: Stack(
-          children: [
-            for (var i = 0; i < 4; i++)
-              Positioned(
-                left: i * 2.0,
-                top: i * 1.5,
-                child: const CardView(card: null, width: 28, faceUp: false),
-              ),
-          ],
+  Widget build(BuildContext context) {
+    final left = c.shoe.left / (shoeDecks * 52);
+    return Column(
+      key: const Key('shoe'),
+      children: [
+        SizedBox(
+          width: 40,
+          height: 44,
+          child: Stack(
+            children: [
+              for (var i = 0; i < 4; i++)
+                Positioned(
+                  left: i * 2.0,
+                  top: i * 1.5,
+                  child: const CardView(card: null, width: 28, faceUp: false),
+                ),
+            ],
+          ),
+        ),
+        Text(
+          '$shoeDecks decks',
+          style: Toon.text(11, weight: FontWeight.w700, color: Colors.white),
+        ),
+        const SizedBox(height: 2),
+        // Cards left in the shoe.
+        Container(
+          width: 40,
+          height: 6,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(3),
+          ),
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: left.clamp(0.0, 1.0),
+            child: Container(
+              decoration: BoxDecoration(color: Toon.yellow, borderRadius: BorderRadius.circular(3)),
+            ),
+          ),
+        ),
+        Text('${c.shoe.decksLeft.toStringAsFixed(1)} left', style: Toon.text(10, color: Colors.white70)),
+      ],
+    );
+  }
+}
+
+/// "New shoe" flashes up when the dealer shuffles.
+class _NewShoe extends StatelessWidget {
+  const _NewShoe({required this.c});
+
+  final BjController c;
+
+  @override
+  Widget build(BuildContext context) {
+    if (c.shuffles == 0) return const SizedBox();
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('shoe${c.shuffles}'),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 3200),
+      builder: (context, t, child) {
+        final o = t < 0.1 ? t / 0.1 : (t > 0.8 ? (1 - t) / 0.2 : 1.0);
+        return Opacity(
+          opacity: o.clamp(0.0, 1.0),
+          child: Transform.scale(
+            scale: 0.8 + 0.2 * Curves.easeOutBack.transform(min(1, t * 6)),
+            child: child,
+          ),
+        );
+      },
+      child: IgnorePointer(
+        child: Container(
+          key: const Key('new shoe'),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: Toon.box(Toon.yellow, radius: 10, shadow: 2),
+          child: Text(
+            'New shoe!',
+            style: Toon.text(12, weight: FontWeight.w700, color: Toon.on(Toon.yellow)),
+          ),
         ),
       ),
-      Text('Shoe', style: Toon.text(11, color: Colors.white70)),
-    ],
-  );
+    );
+  }
 }
 
 /// A row of overlapping cards, the newest dealt in.
@@ -642,89 +740,62 @@ class _YourBet extends StatelessWidget {
   }
 }
 
-/// A felt's colours: outer felt, lamp-lit middle, the printed lines.
-({Color felt, Color lit, Color line, Color rail}) _feltColours(BjFelt f) => switch (f) {
-  BjFelt.classic => (felt: Toon.felt, lit: const Color(0xFF47B067), line: const Color(0xFFFFE9A8), rail: Toon.wood),
-  BjFelt.midnight => (
-    felt: const Color(0xFF1C3A5E),
-    lit: const Color(0xFF26507E),
-    line: const Color(0xFFF2C14E),
-    rail: const Color(0xFF3B2A22),
-  ),
-  BjFelt.ruby => (
-    felt: const Color(0xFF8E2433),
-    lit: const Color(0xFFA9323F),
-    line: const Color(0xFFFFF1D6),
-    rail: const Color(0xFF2E2A2A),
-  ),
-};
-
 /// The table, shaped like a real one: a straight edge for the dealer and
-/// a half-moon towards the players. Printed on the felt: the dealer's card
-/// box, a band of suits along the curve, a betting spot per seat, your
-/// card box and betting circle. No rules are printed.
+/// a gentle curve round the players. Printed on the felt: the dealer's
+/// card box, a band of suits under it, a betting spot per seat, your card
+/// box and betting circle. No rules are printed.
 class _FeltPainter extends CustomPainter {
   _FeltPainter({
-    required this.style,
-    required this.curve,
-    required this.rx,
-    required this.ry,
+    required this.felt,
     required this.dealer,
     required this.you,
     required this.bet,
     required this.spots,
   });
 
-  final BjFelt style;
-  final Offset curve;
-  final double rx, ry;
+  final Felt felt;
   final Rect dealer, you;
   final Offset bet;
   final List<Offset> spots;
 
-  Path _shape(Rect r) {
-    final top = RRect.fromRectAndCorners(
-      Rect.fromLTRB(r.left, r.top, r.right, curve.dy + 1),
+  static RRect _shape(Rect r) {
+    final ry = min(r.width * 0.42, r.height * 0.42);
+    return RRect.fromRectAndCorners(
+      r,
       topLeft: const Radius.circular(26),
       topRight: const Radius.circular(26),
+      bottomLeft: Radius.elliptical(r.width / 2, ry),
+      bottomRight: Radius.elliptical(r.width / 2, ry),
     );
-    final moon = Rect.fromLTRB(r.left, curve.dy - (r.bottom - curve.dy), r.right, r.bottom);
-    final low = Path.combine(
-      PathOperation.intersect,
-      Path()..addOval(moon),
-      Path()..addRect(Rect.fromLTRB(r.left, curve.dy, r.right, r.bottom)),
-    );
-    return Path.combine(PathOperation.union, Path()..addRRect(top), low);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final k = _feltColours(style);
+    final k = felt;
     final ink = Paint()
       ..color = Toon.ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = Toon.outline;
     final outer = Rect.fromLTRB(6, 4, size.width - 6, size.height - 6);
     final rail = _shape(outer);
-    canvas.drawPath(rail.shift(const Offset(0, 5)), Paint()..color = Toon.ink);
-    canvas.drawPath(rail, Paint()..color = k.rail);
-    // A highlight along the rail.
-    canvas.drawPath(
+    canvas.drawRRect(rail.shift(const Offset(0, 5)), Paint()..color = Toon.ink);
+    canvas.drawRRect(rail, Paint()..color = k.rail);
+    canvas.drawRRect(
       _shape(outer.deflate(4)),
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.12)
+        ..color = (k.gold ? k.line : Colors.white).withValues(alpha: k.gold ? 0.5 : 0.12)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
+        ..strokeWidth = k.gold ? 1.5 : 3,
     );
-    canvas.drawPath(rail, ink);
+    canvas.drawRRect(rail, ink);
     final feltRect = outer.deflate(13);
-    final felt = _shape(feltRect);
+    final top = _shape(feltRect);
     canvas.save();
-    canvas.clipPath(felt);
-    canvas.drawPath(felt, Paint()..color = k.felt);
+    canvas.clipRRect(top);
+    canvas.drawRRect(top, Paint()..color = k.felt);
     // Lamp light over the middle, brightest at the dealer.
-    canvas.drawPath(
-      felt,
+    canvas.drawRRect(
+      top,
       Paint()
         ..shader = RadialGradient(
           center: const Alignment(0, -0.35),
@@ -733,50 +804,47 @@ class _FeltPainter extends CustomPainter {
         ).createShader(feltRect),
     );
     final line = Paint()
-      ..color = k.line.withValues(alpha: 0.55)
+      ..color = k.line.withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6;
     final faint = Paint()
-      ..color = k.line.withValues(alpha: 0.28)
+      ..color = k.line.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
-    // The band along the curve: two lines with suits between.
-    final band = Rect.fromCenter(center: curve, width: rx * 1.42, height: ry * 1.4);
-    final band2 = band.deflate(14);
-    const from = 0.18, sweep = pi - 0.36;
+    // The band under the dealer: two lines with suits between, curving
+    // down between the dealer's box and yours, clear of the seats.
+    final spanX = min(size.width * 0.42, dealer.width / 2 + 110);
+    final low = dealer.bottom + max(30.0, (you.top - dealer.bottom) * 0.32);
+    final band = Rect.fromLTRB(
+      size.width / 2 - spanX,
+      2 * dealer.center.dy - low,
+      size.width / 2 + spanX,
+      low,
+    );
+    final band2 = band.deflate(13);
+    const from = 0.22, sweep = pi - 0.44;
     canvas.drawArc(band, from, sweep, false, line);
     canvas.drawArc(band2, from, sweep, false, line);
-    final mid = band.deflate(7);
-    const n = 15;
+    final mid = band.deflate(6.5);
+    const n = 13;
     for (var i = 0; i < n; i++) {
       final a = from + sweep * (i + 0.5) / n;
       final p = Offset(mid.center.dx + cos(a) * mid.width / 2, mid.center.dy + sin(a) * mid.height / 2);
-      final suit = Suit.values[i % 4];
-      const s = 8.0;
-      final path = suitPath(suit, s).shift(const Offset(-s / 2, -s / 2));
+      const s = 7.5;
       canvas.save();
       canvas.translate(p.dx, p.dy);
       canvas.rotate(a - pi / 2);
-      canvas.drawPath(path, Paint()..color = k.line.withValues(alpha: 0.5));
+      canvas.drawPath(
+        suitPath(Suit.values[i % 4], s).shift(const Offset(-s / 2, -s / 2)),
+        Paint()..color = k.line.withValues(alpha: 0.55),
+      );
       canvas.restore();
     }
-    // The dealer's card box: corners only, like a frame.
+    // The dealer's card box: corners only, like a frame, a diamond each side.
     _corners(canvas, dealer, line, 12);
-    // A diamond either side of it.
     for (final dx in [-1, 1]) {
-      final c = Offset(dealer.center.dx + dx * (dealer.width / 2 + 16), dealer.center.dy);
-      canvas.drawPath(_diamond(c, 6), Paint()..color = k.line.withValues(alpha: 0.45));
-    }
-    // A big faint emblem between the dealer and you.
-    final em = (you.top - dealer.bottom).clamp(0.0, 140.0) * 0.55;
-    if (em > 30) {
-      final c = Offset(size.width / 2, (dealer.bottom + you.top) / 2 + 6);
-      canvas.drawCircle(c, em / 2 + 8, faint);
-      canvas.drawCircle(c, em / 2 + 3, faint);
-      canvas.drawPath(
-        suitPath(Suit.spades, em * 0.62).shift(c - Offset(em * 0.31, em * 0.31)),
-        Paint()..color = k.line.withValues(alpha: 0.13),
-      );
+      final c = Offset(dealer.center.dx + dx * (dealer.width / 2 + 14), dealer.center.dy);
+      canvas.drawPath(_diamond(c, 6), Paint()..color = k.line.withValues(alpha: 0.5));
     }
     // The bots' betting spots.
     for (final p in spots) {
@@ -792,11 +860,11 @@ class _FeltPainter extends CustomPainter {
     for (final a in [0.0, pi / 2, pi, pi * 1.5]) {
       canvas.drawPath(
         _diamond(bet + Offset(cos(a), sin(a)) * 34, 4),
-        Paint()..color = k.line.withValues(alpha: 0.7),
+        Paint()..color = k.line.withValues(alpha: 0.75),
       );
     }
     canvas.restore();
-    canvas.drawPath(felt, ink);
+    canvas.drawRRect(top, ink);
   }
 
   static Path _diamond(Offset c, double r) => Path()
@@ -827,8 +895,7 @@ class _FeltPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FeltPainter old) =>
-      old.style != style ||
-      old.curve != curve ||
+      old.felt != felt ||
       old.dealer != dealer ||
       old.you != you ||
       old.bet != bet ||

@@ -8,6 +8,8 @@ import '../../../core/account/account.dart';
 import '../../../core/help/game_guide.dart';
 import '../../../core/online/cash_service.dart';
 import '../../../core/online/party.dart';
+import '../../../core/cards/card_view.dart';
+import '../../../core/table/felts.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'action_bar.dart';
@@ -291,7 +293,15 @@ class _CashScreenState extends State<CashScreen> {
                   onTopUp: _account.balance > 0 && _maxTopUp > 0 ? _topUp : null,
                 ),
                 commentary: TableInfo(c: _c),
-                table: TableView(c: _c),
+                table: Builder(
+                  builder: (context) {
+                    final felt = Felt.forLevel(stake.index, CashStake.values.length);
+                    return GoldCards(
+                      on: felt.gold,
+                      child: TableView(c: _c, felt: felt),
+                    );
+                  },
+                ),
                 controls: ActionBar(c: _c),
               ),
               if (_c.phase == TablePhase.finished)

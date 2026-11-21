@@ -5,6 +5,21 @@ import 'package:duel_engine/cards.dart';
 
 const cardRed = Color(0xFFE23B48);
 const cardBlack = Toon.inkLight;
+const cardGold = Color(0xFFD9A93A);
+
+/// Cards inside draw gold-trimmed (the high-roller tables): a gold edge
+/// and inner line on the face, a black back with gold lines.
+class GoldCards extends InheritedWidget {
+  const GoldCards({super.key, required super.child, this.on = true});
+
+  final bool on;
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<GoldCards>()?.on ?? false;
+
+  @override
+  bool updateShouldNotify(GoldCards old) => old.on != on;
+}
 
 /// A suit symbol drawn as a path (Fredoka has no suit glyphs), filling a
 /// square of [size].
@@ -144,19 +159,32 @@ class CardView extends StatelessWidget {
     final r = w * 0.14;
     final c = card;
     final border = (w * 0.05).clamp(1.5, 2.5);
+    final gold = GoldCards.of(context);
     Widget face;
     if (!faceUp || c == null) {
-      face = _CardBack(width: w, radius: r, border: border);
+      face = _CardBack(width: w, radius: r, border: border, gold: gold);
     } else {
       final color = c.suit.isRed ? cardRed : cardBlack;
       face = Container(
         decoration: BoxDecoration(
           color: Toon.cardFace,
           borderRadius: BorderRadius.circular(r),
-          border: Border.all(color: Toon.inkLight, width: border),
+          border: Border.all(color: gold ? cardGold : Toon.inkLight, width: gold ? border * 1.3 : border),
         ),
         child: Stack(
           children: [
+            if (gold)
+              Positioned.fill(
+                child: Padding(
+                  padding: EdgeInsets.all(w * 0.05),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(r * 0.7),
+                      border: Border.all(color: cardGold.withValues(alpha: 0.7), width: 1),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               left: w * 0.1,
               top: w * 0.05,
@@ -233,8 +261,9 @@ class CardView extends StatelessWidget {
 }
 
 class _CardBack extends StatelessWidget {
-  const _CardBack({required this.width, required this.radius, required this.border});
+  const _CardBack({required this.width, required this.radius, required this.border, this.gold = false});
 
+  final bool gold;
   final double width;
   final double radius;
   final double border;
@@ -242,19 +271,22 @@ class _CardBack extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: Toon.red,
+      color: gold ? const Color(0xFF1E1B1A) : Toon.red,
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: Toon.inkLight, width: border),
+      border: Border.all(color: gold ? cardGold : Toon.inkLight, width: border),
     ),
     padding: EdgeInsets.all(width * 0.08),
     child: Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius * 0.6),
-        border: Border.all(color: Toon.cardFace, width: (width * 0.04).clamp(1, 2)),
+        border: Border.all(color: gold ? cardGold : Toon.cardFace, width: (width * 0.04).clamp(1, 2)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius * 0.6),
-        child: CustomPaint(painter: _BackPattern(), child: const SizedBox.expand()),
+        child: CustomPaint(
+          painter: _BackPattern(gold: gold),
+          child: const SizedBox.expand(),
+        ),
       ),
     ),
   );
@@ -262,10 +294,14 @@ class _CardBack extends StatelessWidget {
 
 /// Diagonal criss-cross on the card back.
 class _BackPattern extends CustomPainter {
+  _BackPattern({this.gold = false});
+
+  final bool gold;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Toon.cardFace.withValues(alpha: 0.35)
+      ..color = (gold ? cardGold : Toon.cardFace).withValues(alpha: 0.35)
       ..strokeWidth = size.width * 0.08;
     final step = size.width / 3;
     for (var x = -size.height; x < size.width + size.height; x += step) {
@@ -275,5 +311,5 @@ class _BackPattern extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BackPattern old) => false;
+  bool shouldRepaint(_BackPattern old) => old.gold != gold;
 }

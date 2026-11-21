@@ -278,7 +278,9 @@ weights cut from the variable font.
   `FeltPanel`, `DealIn`, `Pop`, `SuitConfetti`, and the shared card
   motions: `DealCard` (dealt from somewhere, spinning, turns over as it
   lands), `FlipIn`, `TurnOver` (a card already down turning up),
-  `FaceRing` (a seat's face in its ring).
+  `FaceRing` (a seat's face in its ring). `felts.dart`: `Felt` (green /
+  blue / red / black by stake, `Felt.forLevel`; blackjack and cash
+  tables); black tables wrap their cards in `GoldCards` (`card_view.dart`).
 - **Consistency across games:** a new game reuses these (deals, reveals,
   faces, speech bubbles, pops, sounds, live scores in the commentary
   strip) so every game feels the same; don't write a new animation for
@@ -480,8 +482,9 @@ weights cut from the variable font.
   `GameInfo.staked: false`; bets go straight off the balance
   (`Account.wager` / `payout`, stats 'blackjack'). `ui/bj_tables.dart`
   (`bjTables` limits, open at the max bet, first on credit),
-  `ui/bj_controller.dart` (plays the round's events back one at a time
-  with pauses; bots with chips come and go), `ui/bj_talk.dart`,
+  `ui/bj_controller.dart` (five fixed seats, you in the middle; bots
+  join and leave between rounds; shuffles between rounds when the cut
+  card's out (`shuffles`); plays the round's events back one at a time), `ui/bj_talk.dart`,
   `ui/bj_screen.dart` (`BjLobby`, `BjScreen`, `blackjackGuide`).
 - `lib/games/bank/`: engine `bank/bank.dart` (`BankGame`: rounds, safe
   rolls, doubles double, 7 busts, `bankFor`, roller skips the banked) +

@@ -17,7 +17,12 @@ enum BjPhase { betting, dealing, playing, dealer, paid }
 
 /// A bot at the table: who, how it plays, its chips.
 class BjSeat {
-  BjSeat(this.persona, this.bot, this.chips);
+  BjSeat(this.persona, this.bot, this.chips) : open = false;
+
+  /// An empty seat.
+  BjSeat.empty() : persona = BjController.dealer, bot = null, chips = 0, open = true;
+
+  final bool open;
 
   final Persona persona;
 
@@ -29,7 +34,8 @@ class BjSeat {
   int? bet;
 }
 
-/// Runs a blackjack table: you and up to five bots against the dealer.
+/// Runs a blackjack table: five seats, you in the middle and bots coming
+/// and going in the others against the dealer.
 /// Your bets come straight off your balance. Cards are played back from
 /// the round's events one at a time, with pauses where it matters.
 class BjController extends ChangeNotifier {
@@ -42,12 +48,18 @@ class BjController extends ChangeNotifier {
     this.pace = 1,
   }) : _rng = rng ?? Random(),
        shoe = Shoe(rng ?? Random()) {
-    final names = Persona.bots(bots, _rng);
-    final you = (bots + 1) ~/ 2;
-    for (var i = 0, b = 0; i <= bots; i++) {
-      seats.add(i == you ? BjSeat(account.persona, null, 0) : _newBot(names[b++]));
+    final names = Persona.bots(seatCount - 1, _rng);
+    final others = [0, 1, 3, 4]..shuffle(_rng);
+    final taken = others.take(min(bots, seatCount - 1)).toSet();
+    for (var i = 0, b = 0; i < seatCount; i++) {
+      seats.add(
+        i == youSeat
+            ? BjSeat(account.persona, null, 0)
+            : taken.contains(i)
+            ? _newBot(names[b++])
+            : BjSeat.empty(),
+      );
     }
-    youSeat = you;
     bet = table.min;
     _say(-1, dealerLine(BjTalk.hello, _rng));
   }
@@ -61,8 +73,13 @@ class BjController extends ChangeNotifier {
 
   static final dealer = Persona.bot('Dot', Look.shades);
 
+  /// Seats at the table: you always in the middle one.
+  static const seatCount = 5;
   final List<BjSeat> seats = [];
-  late final int youSeat;
+  final int youSeat = 2;
+
+  /// Fresh shoes so far (the screen flashes "New shoe").
+  int shuffles = 0;
 
   BjPhase phase = BjPhase.betting;
 
@@ -145,7 +162,7 @@ class BjController extends ChangeNotifier {
     if (_rng.nextDouble() > chance) return;
     final bots = [
       for (var i = 0; i < seats.length; i++)
-        if (i != youSeat) i,
+        if (i != youSeat && !seats[i].open) i,
     ];
     if (bots.isEmpty) return;
     _say(who ?? bots[_rng.nextInt(bots.length)], botLine(t, _rng));
@@ -177,15 +194,11 @@ class BjController extends ChangeNotifier {
   void deal() {
     if (!canDeal) return;
     news = null;
-    if (shoe.due) {
-      shoe.shuffle();
-      Sound.play(Sfx.shuffle);
-      _say(-1, dealerLine(BjTalk.shuffle, _rng));
-    }
+    if (shoe.due) _freshShoe();
     account.wager(bet);
     you.bet = bet;
     for (final (i, s) in seats.indexed) {
-      if (i == youSeat) continue;
+      if (i == youSeat || s.open) continue;
       final b = s.bot!.bet(min: table.min, max: table.max, chips: s.chips, trueCount: shoe.trueCount);
       s.bet = b >= table.min ? b : null;
       if (s.bet != null) s.chips -= s.bet!;
@@ -377,21 +390,56 @@ class BjController extends ChangeNotifier {
   /// Back to betting; broke bots leave and someone new sits down.
   void _nextRound() {
     phase = BjPhase.betting;
+    speech.clear();
     for (final s in seats) {
       s.bet = null;
     }
+    final told = <String>[];
+    // The broke leave; now and then someone cashes out.
     for (var i = 0; i < seats.length; i++) {
-      if (i == youSeat || seats[i].chips >= table.min) continue;
-      final gone = seats[i].persona.name;
+      final s = seats[i];
+      if (i == youSeat || s.open) continue;
+      final broke = s.chips < table.min;
+      if (!broke && _rng.nextDouble() > 0.07) continue;
+      told.add(broke ? '${s.persona.name} is out of chips and leaves.' : '${s.persona.name} cashes out.');
+      _say(i, botLine(BjTalk.leaving, _rng));
+      seats[i] = BjSeat.empty();
+      // One goes at a time.
+      if (!broke) break;
+    }
+    // Someone new sits down in an empty seat.
+    final open = [
+      for (var i = 0; i < seats.length; i++)
+        if (seats[i].open && !speech.containsKey(i)) i,
+    ];
+    final seated = seats.where((s) => !s.open).length - 1;
+    if (open.isNotEmpty && _rng.nextDouble() < (seated == 0 ? 0.5 : 0.18)) {
+      final i = open[_rng.nextInt(open.length)];
       final taken = {for (final s in seats) s.persona.name};
-      final fresh = Persona.bots(6, _rng).firstWhere((p) => !taken.contains(p.name));
+      final fresh = Persona.bots(
+        8,
+        _rng,
+      ).firstWhere((p) => !taken.contains(p.name), orElse: () => Persona.bots(1, _rng).first);
       seats[i] = _newBot(fresh);
-      news = '$gone is out of chips and leaves. ${fresh.name} sits down.';
+      told.add('${fresh.name} sits down.');
       _say(i, botLine(BjTalk.hello, _rng));
     }
+    // The cut card came out: shuffle now, before the bets.
+    if (shoe.due) {
+      _freshShoe();
+      told.add('Cut card\'s out: a fresh shoe of $shoeDecks decks. The count starts again.');
+    }
+    news = told.isEmpty ? null : told.join(' ');
     bet = min(bet, maxBet);
     if (bet < table.min) bet = min(table.min, maxBet);
     _notify();
+  }
+
+  void _freshShoe() {
+    shoe.shuffle();
+    shuffles++;
+    Sound.play(Sfx.shuffle);
+    _say(-1, dealerLine(BjTalk.shuffle, _rng));
   }
 
   /// Leaving mid-hand loses what's on the table.

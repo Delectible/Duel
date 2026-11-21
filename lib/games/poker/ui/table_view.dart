@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/cards/card_view.dart';
 import 'package:duel_engine/cards.dart';
+import '../../../core/table/felts.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
@@ -33,9 +34,12 @@ const _potSpot = Offset(0.5, 0.34);
 
 /// The table: felt, seats, board, bets and pot.
 class TableView extends StatelessWidget {
-  const TableView({super.key, required this.c});
+  const TableView({super.key, required this.c, this.felt = Felt.green});
 
   final PokerController c;
+
+  /// The table's colour (cash tables: by stake).
+  final Felt felt;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +80,7 @@ class TableView extends StatelessWidget {
         final potAt = wide ? px(center) - Offset(0, boardCard * 0.7 + 16) : px(_potSpot);
         final children = <Widget>[
           Positioned.fill(
-            child: RepaintBoundary(child: CustomPaint(painter: _FeltPainter())),
+            child: RepaintBoundary(child: CustomPaint(painter: _FeltPainter(felt))),
           ),
         ];
 
@@ -452,6 +456,10 @@ class _Fly extends StatelessWidget {
 }
 
 class _FeltPainter extends CustomPainter {
+  _FeltPainter(this.colours);
+
+  final Felt colours;
+
   @override
   void paint(Canvas canvas, Size size) {
     final felt = Rect.fromLTRB(size.width * 0.08, size.height * 0.07, size.width * 0.92, size.height * 0.86);
@@ -462,25 +470,36 @@ class _FeltPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = Toon.outline;
     canvas.drawRRect(rail.shift(const Offset(0, 6)), Paint()..color = Toon.ink);
-    canvas.drawRRect(rail, Paint()..color = Toon.wood);
+    canvas.drawRRect(rail, Paint()..color = colours.rail);
+    if (colours.gold) {
+      canvas.drawRRect(
+        rail.deflate(4),
+        Paint()
+          ..color = colours.line.withValues(alpha: 0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+    }
     canvas.drawRRect(rail, ink);
     final inner = RRect.fromRectAndRadius(felt, r);
-    canvas.drawRRect(inner, Paint()..color = Toon.felt);
+    canvas.drawRRect(inner, Paint()..color = colours.felt);
     // A lighter centre, like a lamp over the table.
-    canvas.drawRRect(inner.deflate(felt.width * 0.08), Paint()..color = const Color(0xFF47B067));
+    canvas.drawRRect(inner.deflate(felt.width * 0.08), Paint()..color = colours.lit);
     canvas.drawRRect(inner, ink);
     // Betting line.
     canvas.drawRRect(
       inner.deflate(felt.width * 0.16),
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.18)
+        ..color = (colours == Felt.green ? Colors.white : colours.line).withValues(
+          alpha: colours == Felt.green ? 0.18 : 0.4,
+        )
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
   }
 
   @override
-  bool shouldRepaint(_FeltPainter old) => false;
+  bool shouldRepaint(_FeltPainter old) => old.colours != colours;
 }
 
 class _Board extends StatelessWidget {
