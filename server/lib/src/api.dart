@@ -28,6 +28,13 @@ import 'store.dart';
 /// - POST /v1/cash/<stake>/topup     {pips}                  -> table
 /// - POST /v1/cash/<stake>/sitout    {out}                   -> table
 /// - POST /v1/cash/<stake>/say       {line}                  -> table
+/// - POST /v1/bj                                             -> {tables, mine}
+/// - POST /v1/bj/<table>/sit         {seat, name, avatar}    -> table
+/// - POST /v1/bj/<table>/bet         {amount}                -> table
+/// - POST /v1/bj/<table>/insure      {yes}                   -> table
+/// - POST /v1/bj/<table>/move        {version, move}         -> table
+/// - POST /v1/bj/<table>/tick                                -> table
+/// - POST /v1/bj/<table>/leave                               -> table
 ///
 /// Errors: {error: "…"} with 400 (bad move), 401 (sign in), 403, 404, 409.
 Handler api(Referee referee, TokenVerifier verifier) {
@@ -161,6 +168,32 @@ Handler api(Referee referee, TokenVerifier verifier) {
       (Request q, String stake) =>
           call(q, (p, b) => referee.cashSay(p, stake, b['line'] is int ? b['line']! as int : -1)),
     )
+    ..post('/v1/bj', (Request q) => call(q, (p, _) => referee.bjLobby(p)))
+    ..post(
+      '/v1/bj/<table>/sit',
+      (Request q, String table) =>
+          call(q, (p, b) => referee.bjSit(p, table, seat: b['seat'] is int ? b['seat']! as int : null)),
+    )
+    ..post(
+      '/v1/bj/<table>/bet',
+      (Request q, String table) =>
+          call(q, (p, b) => referee.bjBet(p, table, b['amount'] is int ? b['amount']! as int : 0)),
+    )
+    ..post(
+      '/v1/bj/<table>/insure',
+      (Request q, String table) => call(q, (p, b) => referee.bjInsure(p, table, b['yes'] == true)),
+    )
+    ..post(
+      '/v1/bj/<table>/move',
+      (Request q, String table) => call(q, (p, b) {
+        final version = b['version'];
+        final move = b['move'];
+        if (version is! int || move is! String) throw const RefereeError(400, 'Send {version, move}');
+        return referee.bjMove(p, table, version, move);
+      }),
+    )
+    ..post('/v1/bj/<table>/tick', (Request q, String table) => call(q, (p, _) => referee.bjTick(p, table)))
+    ..post('/v1/bj/<table>/leave', (Request q, String table) => call(q, (p, _) => referee.bjLeave(p, table)))
     ..post(
       '/v1/wallet',
       (Request q) => call(

@@ -28,6 +28,12 @@ service cloud.firestore {
 
     // The shared cash tables: anyone signed in can watch; your own cards
     // only you.
+    // The shared blackjack tables: anyone signed in can watch (every card
+    // is public but the dealer's hole card, which stays in bjSecrets).
+    match /bj/{table} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
     match /cash/{stake} {
       allow read: if signedIn();
       allow write: if false;

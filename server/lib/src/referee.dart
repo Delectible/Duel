@@ -1,5 +1,10 @@
 import 'dart:math';
 
+import 'package:duel_engine/blackjack/bj_bot.dart';
+import 'package:duel_engine/blackjack/bj_tables.dart';
+import 'package:duel_engine/blackjack/blackjack.dart';
+import 'package:duel_engine/cards.dart';
+import 'package:duel_engine/names.dart';
 import 'package:duel_engine/poker/bot.dart';
 import 'package:duel_engine/poker/cash.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
@@ -9,6 +14,7 @@ import 'games.dart';
 import 'poker_game.dart';
 import 'store.dart';
 
+part 'bj_tables.dart';
 part 'cash_tables.dart';
 
 /// A request the referee turns down: [status] is the HTTP status to send.

@@ -1,36 +1,11 @@
 import 'dart:math';
 
-import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/blackjack/bj_tables.dart';
 
 import '../../../core/avatars/faces.dart';
 import 'bj_controller.dart';
 
-/// A blackjack table's limits.
-class BjTable {
-  const BjTable(this.name, this.min, this.max, this.difficulty);
-
-  final String name;
-  final int min;
-  final int max;
-
-  /// How well the bots here play (and count).
-  final Difficulty difficulty;
-
-  /// Open once your balance covers a max bet (the first is always open).
-  int get unlock => this == bjTables.first ? 0 : max;
-
-  bool openFor(int balance) => balance >= unlock;
-
-  /// Chips to bet with at this table.
-  List<int> get chips => [min, min * 5, min * 10];
-}
-
-const bjTables = [
-  BjTable('Corner table', 10, 100, Difficulty.easy),
-  BjTable('Main floor', 50, 500, Difficulty.normal),
-  BjTable('High limit', 250, 2500, Difficulty.hard),
-  BjTable('The vault', 1000, 10000, Difficulty.hard),
-];
+export 'package:duel_engine/blackjack/bj_tables.dart';
 
 /// Who sits at a table: a bot, or (online, later) a person.
 class BjSitter {
