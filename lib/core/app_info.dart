@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.11.10';
+  static const version = '0.11.11';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,9 +24,11 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Blackjack has new tables: the dealer up front, felt with card frames and betting circles, a colour per '
-      'table (green to black, with gold cards at The vault), bots coming and going, and the shoe shows its decks '
-      'and when it is shuffled. Cash tables get colours by stake too.';
+      'A Store next to your profile: spend pips on hats, faces, card backs and table felts, collect sets for '
+      'prizes and badges, and finish three daily challenges for pips. Blackjack Tables has a casino floor with '
+      'every table and who is sitting there, your record, and house rules (soft 17, 6:5, decks, insurance, '
+      'surrender). Bank! has real 3D dice: swipe up to roll. A ghost on the launch screen, a new game order, and '
+      'Four in a Row no longer warns you.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -46,6 +48,10 @@ class AppInfo {
         'New games: Goofspiel, Blackjack, Bank!',
         'Table colours by stake; gold cards up top',
         'Bank! at home: dice and scorekeeper',
+        'Store: faces, card backs, felts, sets',
+        'Daily challenges',
+        'Blackjack floor and house rules',
+        '3D dice: swipe up to roll',
       ],
     ),
     (

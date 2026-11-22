@@ -2,17 +2,110 @@ import 'dart:math';
 
 import '../cards.dart';
 
-/// Casino blackjack, the house rules:
-/// - a 6-deck shoe, reshuffled when the cut card (about 3/4 in) comes out;
-/// - the dealer stands on all 17s (soft too) and peeks for blackjack under
-///   an Ace or a 10;
-/// - blackjack pays 3 to 2; no insurance, no surrender;
-/// - double on any first two cards, after a split too;
+/// Casino blackjack. Fixed rules:
+/// - the shoe is reshuffled when the cut card (about 3/4 in) comes out;
+/// - the dealer peeks for blackjack under an Ace or a 10;
+/// - double on any first two cards;
 /// - split pairs (any two 10-value cards count) up to four hands; split
 ///   Aces get one card each and can't be split again; 21 on a split hand is
 ///   not a blackjack.
+/// The rest are house rules ([BjRules]).
 const shoeDecks = 6;
 const maxHands = 4;
+
+/// The house rules a table plays by. The defaults are the usual ones (and
+/// the friendlier choice where casinos differ).
+class BjRules {
+  const BjRules({
+    this.decks = shoeDecks,
+    this.hitSoft17 = false,
+    this.sixToFive = false,
+    this.surrender = false,
+    this.insurance = true,
+    this.doubleAfterSplit = true,
+  });
+
+  /// Decks in the shoe: 1, 2, 6 or 8.
+  final int decks;
+
+  /// The dealer hits a soft 17 (H17) instead of standing (S17).
+  final bool hitSoft17;
+
+  /// Blackjack pays 6 to 5 instead of 3 to 2.
+  final bool sixToFive;
+
+  /// Late surrender: give up half your bet on your first two cards.
+  final bool surrender;
+
+  /// Insurance is offered when the dealer shows an Ace.
+  final bool insurance;
+
+  /// Double down on a hand made by a split.
+  final bool doubleAfterSplit;
+
+  static const deckChoices = [1, 2, 6, 8];
+
+  BjRules copyWith({
+    int? decks,
+    bool? hitSoft17,
+    bool? sixToFive,
+    bool? surrender,
+    bool? insurance,
+    bool? doubleAfterSplit,
+  }) => BjRules(
+    decks: decks ?? this.decks,
+    hitSoft17: hitSoft17 ?? this.hitSoft17,
+    sixToFive: sixToFive ?? this.sixToFive,
+    surrender: surrender ?? this.surrender,
+    insurance: insurance ?? this.insurance,
+    doubleAfterSplit: doubleAfterSplit ?? this.doubleAfterSplit,
+  );
+
+  /// "S17 · 3:2 · 6 decks · DAS · insurance".
+  String get summary => [
+    hitSoft17 ? 'H17' : 'S17',
+    sixToFive ? '6:5' : '3:2',
+    '$decks ${decks == 1 ? 'deck' : 'decks'}',
+    if (doubleAfterSplit) 'DAS',
+    if (surrender) 'surrender',
+    if (insurance) 'insurance',
+  ].join(' · ');
+
+  Map<String, Object> toJson() => {
+    'decks': decks,
+    'h17': hitSoft17,
+    '65': sixToFive,
+    'sur': surrender,
+    'ins': insurance,
+    'das': doubleAfterSplit,
+  };
+
+  static BjRules fromJson(Object? j) {
+    if (j is! Map) return const BjRules();
+    final d = j['decks'];
+    return BjRules(
+      decks: d is int && deckChoices.contains(d) ? d : shoeDecks,
+      hitSoft17: j['h17'] == true,
+      sixToFive: j['65'] == true,
+      surrender: j['sur'] == true,
+      insurance: j['ins'] != false,
+      doubleAfterSplit: j['das'] != false,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is BjRules &&
+      other.decks == decks &&
+      other.hitSoft17 == hitSoft17 &&
+      other.sixToFive == sixToFive &&
+      other.surrender == surrender &&
+      other.insurance == insurance &&
+      other.doubleAfterSplit == doubleAfterSplit;
+
+  @override
+  int get hashCode => Object.hash(decks, hitSoft17, sixToFive, surrender, insurance, doubleAfterSplit);
+}
 
 /// A card's worth: 2-10 their number, Jack / Queen / King 10, Ace 11 (or 1).
 int bjValue(PlayingCard c) => c.rank == 14 ? 11 : min(c.rank, 10);
@@ -32,14 +125,15 @@ int bjValue(PlayingCard c) => c.rank == 14 ? 11 : min(c.rank, 10);
   return (total: total, soft: aces > 0);
 }
 
-/// The shoe: [shoeDecks] decks shuffled together, dealt from the top.
+/// The shoe: [decks] decks shuffled together, dealt from the top.
 class Shoe {
-  Shoe(this._rng, {List<PlayingCard>? stacked}) {
+  Shoe(this._rng, {this.decks = shoeDecks, List<PlayingCard>? stacked}) {
     _fill();
     if (stacked != null) _cards.insertAll(0, stacked);
   }
 
   final Random _rng;
+  final int decks;
   final List<PlayingCard> _cards = [];
   int _dealt = 0;
   int _cut = 0;
@@ -50,7 +144,7 @@ class Shoe {
   void _fill() {
     _cards
       ..clear()
-      ..addAll([for (var d = 0; d < shoeDecks; d++) ...PlayingCard.fullDeck])
+      ..addAll([for (var d = 0; d < decks; d++) ...PlayingCard.fullDeck])
       ..shuffle(_rng);
     _dealt = 0;
     runningCount = 0;
@@ -83,17 +177,21 @@ class Shoe {
   }
 }
 
-enum BjResult { blackjack, win, push, lose, bust }
+enum BjResult { blackjack, win, push, lose, bust, surrender }
 
 /// One hand at the table (a split makes more).
 class BjHand {
-  BjHand(this.bet, {this.fromSplit = false, this.splitAces = false});
+  BjHand(this.bet, {this.fromSplit = false, this.splitAces = false, this.sixToFive = false});
 
   final List<PlayingCard> cards = [];
   int bet;
   final bool fromSplit;
   final bool splitAces;
+
+  /// Blackjack pays 6 to 5 here.
+  final bool sixToFive;
   bool doubled = false;
+  bool surrendered = false;
   bool stood = false;
   BjResult? result;
 
@@ -101,11 +199,13 @@ class BjHand {
   bool get soft => bjTotal(cards).soft;
   bool get bust => total > 21;
   bool get blackjack => cards.length == 2 && total == 21 && !fromSplit;
-  bool get done => stood || bust || doubled || total == 21 || (splitAces && cards.length >= 2);
+  bool get done => stood || bust || doubled || surrendered || total == 21 || (splitAces && cards.length >= 2);
 
-  /// Paid back on top of the bet (or lost): +1.5x, +1x, 0, -1x.
+  /// Paid back on top of the bet (or lost): +1.5x (or 1.2x), +1x, 0,
+  /// -0.5x (surrendered), -1x.
   int get net => switch (result) {
-    BjResult.blackjack => bet * 3 ~/ 2,
+    BjResult.blackjack => sixToFive ? bet * 6 ~/ 5 : bet * 3 ~/ 2,
+    BjResult.surrender => -(bet - bet ~/ 2),
     BjResult.win => bet,
     BjResult.push || null => 0,
     BjResult.lose || BjResult.bust => -bet,
@@ -113,7 +213,7 @@ class BjHand {
 }
 
 /// Moves on your turn.
-enum BjMove { hit, stand, double, split }
+enum BjMove { hit, stand, double, split, surrender }
 
 /// Something that happened, for the table's animations and talk.
 sealed class BjEvent {
@@ -155,6 +255,18 @@ class BjHoleShown extends BjEvent {
   final PlayingCard card;
 }
 
+/// The dealer shows an Ace: insurance, anyone? (The round waits for
+/// [BjRound.insure].)
+class BjInsuranceOffered extends BjEvent {
+  const BjInsuranceOffered();
+}
+
+class BjInsured extends BjEvent {
+  const BjInsured(this.seat, this.amount);
+  final int seat;
+  final int amount;
+}
+
 class BjSettled extends BjEvent {
   const BjSettled();
 }
@@ -162,15 +274,23 @@ class BjSettled extends BjEvent {
 /// One round: bets in, cards out, everyone plays, the dealer plays, paid.
 /// Seats with a null bet sit this one out.
 class BjRound {
-  BjRound({required this.shoe, required List<int?> bets})
+  BjRound({required this.shoe, required List<int?> bets, this.rules = const BjRules()})
     : seats = bets.length,
+      insurance = List.filled(bets.length, 0),
       hands = [
-        for (final b in bets) b == null || b <= 0 ? <BjHand>[] : [BjHand(b)],
+        for (final b in bets) b == null || b <= 0 ? <BjHand>[] : [BjHand(b, sixToFive: rules.sixToFive)],
       ] {
     _deal();
   }
 
   final Shoe shoe;
+  final BjRules rules;
+
+  /// Insurance bought per seat (half the bet, or 0).
+  final List<int> insurance;
+
+  /// Waiting on [insure]: the dealer shows an Ace.
+  bool insuring = false;
   final int seats;
   final List<List<BjHand>> hands;
   final List<PlayingCard> dealer = [];
@@ -213,6 +333,30 @@ class BjRound {
     for (final s in inPlay) {
       if (hands[s].first.blackjack) events.add(BjBlackjack(s));
     }
+    if (rules.insurance && upCard.rank == 14 && inPlay.isNotEmpty) {
+      insuring = true;
+      events.add(const BjInsuranceOffered());
+      return;
+    }
+    _peek();
+  }
+
+  /// Insurance taken by [seats] (half their bet each, paying 2 to 1 if the
+  /// dealer has blackjack); then the dealer peeks and play goes on.
+  void insure(Set<int> seats) {
+    if (!insuring) throw StateError('No insurance on offer');
+    insuring = false;
+    for (final s in inPlay) {
+      final amount = hands[s].first.bet ~/ 2;
+      if (seats.contains(s) && amount > 0) {
+        insurance[s] = amount;
+        events.add(BjInsured(s, amount));
+      }
+    }
+    _peek();
+  }
+
+  void _peek() {
     // The dealer peeks under an Ace or a 10: a blackjack ends it at once.
     if (bjValue(upCard) >= 10 && dealerBlackjack) {
       events.add(const BjBlackjack(-1));
@@ -255,13 +399,14 @@ class BjRound {
     return [
       BjMove.hit,
       BjMove.stand,
-      if (first && afford) BjMove.double,
+      if (first && afford && (!h.fromSplit || rules.doubleAfterSplit)) BjMove.double,
       if (first &&
           afford &&
           bjValue(h.cards[0]) == bjValue(h.cards[1]) &&
           hands[turn!.$1].length < maxHands &&
           !h.splitAces)
         BjMove.split,
+      if (first && rules.surrender && !h.fromSplit && hands[turn!.$1].length == 1) BjMove.surrender,
     ];
   }
 
@@ -275,14 +420,18 @@ class BjRound {
         _hit(s, i);
       case BjMove.stand:
         h.stood = true;
+      case BjMove.surrender:
+        h.surrendered = true;
       case BjMove.double:
         h.bet *= 2;
         _hit(s, i);
         h.doubled = true;
       case BjMove.split:
         final aces = h.cards.first.rank == 14;
-        final second = BjHand(h.bet, fromSplit: true, splitAces: aces)..cards.add(h.cards.removeLast());
-        final first = BjHand(h.bet, fromSplit: true, splitAces: aces)..cards.addAll(h.cards);
+        final second = BjHand(h.bet, fromSplit: true, splitAces: aces, sixToFive: rules.sixToFive)
+          ..cards.add(h.cards.removeLast());
+        final first = BjHand(h.bet, fromSplit: true, splitAces: aces, sixToFive: rules.sixToFive)
+          ..cards.addAll(h.cards);
         hands[s]
           ..removeAt(i)
           ..insertAll(i, [first, second]);
@@ -306,13 +455,20 @@ class BjRound {
 
   /// Whether the dealer has to draw out (someone still standing who isn't
   /// bust or paid already by a blackjack).
-  bool get _dealerNeeded => [for (final s in inPlay) ...hands[s]].any((h) => !h.bust && !h.blackjack);
+  bool get _dealerNeeded =>
+      [for (final s in inPlay) ...hands[s]].any((h) => !h.bust && !h.blackjack && !h.surrendered);
+
+  /// The dealer draws on: under 17, or a soft 17 when the house says so.
+  bool get _dealerDraws {
+    final t = bjTotal(dealer);
+    return t.total < 17 || (rules.hitSoft17 && t.total == 17 && t.soft);
+  }
 
   void _dealerPlays() {
     holeShown = true;
     events.add(BjHoleShown(dealer[1]));
     if (!dealerBlackjack && _dealerNeeded) {
-      while (dealerTotal < 17) {
+      while (_dealerDraws) {
         final c = shoe.draw();
         dealer.add(c);
         events.add(BjDealt(-1, 0, c));
@@ -326,7 +482,9 @@ class BjRound {
     final d = dealerTotal, dBust = d > 21;
     for (final s in inPlay) {
       for (final h in hands[s]) {
-        h.result = h.bust
+        h.result = h.surrendered
+            ? BjResult.surrender
+            : h.bust
             ? BjResult.bust
             : dealerBlackjack
             ? (h.blackjack ? BjResult.push : BjResult.lose)
@@ -344,8 +502,16 @@ class BjRound {
   }
 
   /// A seat's change in chips this round (all its hands).
-  int net(int seat) => hands[seat].fold(0, (a, h) => a + h.net);
+  int net(int seat) => hands[seat].fold(0, (a, h) => a + h.net) + insuranceNet(seat);
 
-  /// What a seat has on the table now (bets incl. doubles and splits).
-  int staked(int seat) => hands[seat].fold(0, (a, h) => a + h.bet);
+  /// What a seat's insurance paid (2 to 1) or lost.
+  int insuranceNet(int seat) {
+    final i = insurance[seat];
+    if (i == 0 || !settled) return 0;
+    return dealerBlackjack ? i * 2 : -i;
+  }
+
+  /// What a seat has on the table now (bets incl. doubles, splits and
+  /// insurance).
+  int staked(int seat) => hands[seat].fold(0, (a, h) => a + h.bet) + insurance[seat];
 }

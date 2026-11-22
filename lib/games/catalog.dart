@@ -23,7 +23,7 @@ import 'spades/at_home.dart';
 import 'goofspiel/at_home.dart';
 import 'goofspiel/ui/gops_screen.dart';
 import 'blackjack/at_home.dart';
-import 'blackjack/ui/bj_screen.dart';
+import 'blackjack/ui/bj_lobby.dart';
 import 'bank/at_home.dart';
 import 'bank/ui/bank_screen.dart';
 import 'bank/ui/bank_companion.dart';
@@ -255,12 +255,12 @@ final games = <GameInfo>[
       'Get closer to 21 than the dealer without going over. Face cards are 10, an Ace is 1 or 11.',
       'Hit for another card or stand. Double: twice the bet, one more card. Split two of a kind into two hands.',
       'The dealer draws to 17, then stops. Beat them to double your bet; an Ace and a 10 first up is Blackjack, '
-          'paying 3 to 2.',
+          'paying 3 to 2. Set the house rules (soft 17, payout, decks, insurance, surrender) in the lobby.',
     ],
     minutes: (players) => 8 + players,
     atHome: blackjackAtHome,
     staked: false,
-    open: (setup, _, _) => BjLobby(bots: setup.botCount, difficulty: setup.difficulty),
+    open: (_, _, _) => const BjLobby(),
   ),
   GameInfo(
     id: 'spades',

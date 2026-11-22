@@ -47,7 +47,10 @@ together, GamePigeon-easy. Let it guide design and development choices.
   to the batch's changes in plain words (it's Play's "What's new"), and when a main idea lands add a
   few-word bullet to the newest `AppInfo.revisions` entry (About shows
   them as bullets; keep them short).
-- **Open threads** (see `docs/CHANGELOG.md` for detail): Tournament and
+- **Open threads** (see `docs/CHANGELOG.md` for detail): store prices,
+  set prizes and daily challenge rewards are first guesses (owned items
+  are on the phone only, not synced); Blackjack Tables are local only
+  (online like cash tables later); Tournament and
   Boss Tables are bots only (friends later); Goofspiel, Blackjack and
   Bank! are bots only for now (online next; Blackjack table limits are a
   first guess); cash stakes / unlocks, boss
@@ -290,8 +293,21 @@ weights cut from the variable font.
   `core/theme/split_page.dart` (`SplitPage`: two columns on its side) for
   menus; `core/theme/rotation_fade.dart` fades the layout in on a turn.
   `test/sweep_test.dart` renders every screen light / dark, both ways.
-- `lib/features/profile/`, `lib/features/settings/`: the two buttons atop
-  home.
+- `lib/features/profile/`, `lib/features/settings/`, `lib/features/store/`:
+  the buttons atop home (Profile, Store, Settings).
+- **Store** (`core/store/`: `shop.dart` `Shop` prices per face part /
+  `CardBack` / `TableFelt` (0 = free), `ShopItem` ids like `hat.crown`,
+  `Collection` sets (prize + `SetBadge` on the profile); `cosmetics.dart`
+  `CardBack.chosen` (every face-down `CardView`; gold tables keep theirs)
+  and `TableFelt.chosen` (`Toon.felt` / `Toon.wood` are getters that
+  follow it: the card games' tables; casino tables keep `Felt`);
+  `daily.dart` `Challenge.forDay` (three a day from the date, counted in
+  `Account.settle` / `settlePrize` / `payout` via `_dailyGame`)). `Account`:
+  `owns` / `buy` (no credit; finishes sets) / `wear` / `wearing`,
+  `cardBack`, `felt`, `daily*`, `claimDaily`; owned ids are local only;
+  an old save owns whatever it wore. Profile: locked parts show a price
+  and open `StoreScreen(item:)`; Surprise me uses owned parts only. Prices
+  are a first guess Luca may change.
 - `lib/core/sound/sound.dart`: `Sound.play(Sfx.x)` / `later` / `deal(n,
   gapMs)` (match the game's deal animation; each recording has a `_Pool`
   of players loaded once, stopped and replayed: low-latency players never
@@ -338,7 +354,9 @@ weights cut from the variable font.
   `duel_engine/cards.dart`, in every game, new ones too.
 - **Launch:** `core/startup/launch_curtain.dart` (`LaunchCurtain` over the
   app from `DuelApp(curtain: true)` in main; `Startup.track` the start-up
-  work it waits for). Native launch screens are Duel's yellow
+  work it waits for; a deck riffles and the icon's ghost rises out of it:
+  `GhostMark` in `core/theme/ghost_mark.dart`, same grid as
+  `tool/icon/make_icons.py`). Native launch screens are Duel's yellow
   (`android/.../res/values*/styles.xml`, `launch_colors.xml`,
   `drawable*/launch_background.xml`; `ios/Runner/Base.lproj/LaunchScreen.storyboard`).
 - **Cash games**: engine `duel_engine/poker/cash.dart` (`CashStake`
@@ -451,8 +469,8 @@ weights cut from the variable font.
   `ui/fish_screen.dart` (`fishGuide`).
 - `lib/games/four_in_a_row/`: `engine/four_in_a_row.dart` (board +
   `RowBot`: negamax with alpha-beta, depth 2 / 4 / 7), `ui/row_controller.dart`
-  (bot thinks in an isolate), `ui/row_screen.dart` (drop animation, win /
-  block hints, `rowGuide`).
+  (bot thinks in an isolate), `ui/row_screen.dart` (drop animation, no
+  hints about threats or wins on purpose, `rowGuide`).
 - `lib/games/spades/`: `engine/spades.dart` (two-handed draw or partners,
   bids incl. Nil, tricks, scoring with bags, events), `engine/spades_bot.dart`
   (`estimate` / `suggest` calibrated by `tool/spades/simulate.dart`);
@@ -475,21 +493,30 @@ weights cut from the variable font.
   `ui/gops_controller.dart` (bots bid in their own time, reveal pause,
   talk), `ui/gops_screen.dart` (`goofspielGuide`; leaderboard in the
   commentary strip; nothing shows what anyone has left).
-- `lib/games/blackjack/`: engine `blackjack/blackjack.dart` (`Shoe` 6
-  decks + cut card + Hi-Lo count, `BjRound` (deal, peek, hit / stand /
-  double / split, dealer to 17 S17, settle, events), `bjTotal`) +
-  `bj_bot.dart` (`basicStrategy`, `BjStyle`s, Hard bots count). No stake:
-  `GameInfo.staked: false`; bets go straight off the balance
-  (`Account.wager` / `payout`, stats 'blackjack'). `ui/bj_tables.dart`
-  (`bjTables` limits, open at the max bet, first on credit),
+- `lib/games/blackjack/` (shown as Blackjack Tables): engine
+  `blackjack/blackjack.dart` (`BjRules` house rules: decks, H17, 6:5,
+  surrender, insurance, DAS; `Shoe(decks:)` + cut card + Hi-Lo count,
+  `BjRound(rules:)` (deal, `insuring` → `insure(seats)`, peek, hit / stand
+  / double / split / surrender, dealer, settle, events), `bjTotal`) +
+  `bj_bot.dart` (`basicStrategy`, `BjStyle`s, Hard bots count, `insure`).
+  No stake: `GameInfo.staked: false`; bets go straight off the balance
+  (`Account.wager` / `payout`, stats 'blackjack'; `bjRules`, `bjRound`
+  record). `ui/bj_lobby.dart` (`BjLobby`: the casino floor in `Casino`
+  colours, like the cash lobby: record, house rules sheet
+  `showHouseRules`, table cards with who's sitting from `LocalBjTables`;
+  bots only, built for shared tables later). `ui/bj_tables.dart`
+  (`bjTables` limits + bot `difficulty`, open at the max bet, first on
+  credit; `BjSitter`, `LocalBjTables`),
   `ui/bj_controller.dart` (five fixed seats, you in the middle; bots
   join and leave between rounds; shuffles between rounds when the cut
   card's out (`shuffles`); plays the round's events back one at a time), `ui/bj_talk.dart`,
   `ui/bj_screen.dart` (`BjLobby`, `BjScreen`, `blackjackGuide`).
 - `lib/games/bank/`: engine `bank/bank.dart` (`BankGame`: rounds, safe
   rolls, doubles double, 7 busts, `bankFor`, roller skips the banked) +
-  `bank_bot.dart` (`BankStyle`s); `dice.dart` (`Die`), `ui/bank_bits.dart`
-  (`RollingDice`, `BankTotal`, `rollReaction`, `RollPop`, `Flash`,
+  `bank_bot.dart` (`BankStyle`s); `dice.dart` (`Die`: a cube drawn in 3D,
+  `CubePainter` + `Turn` rotations, `faceUp`), `ui/bank_bits.dart`
+  (`RollingDice` tumbling in 3D, `SwipeToRoll` (swipe up / tap; no Roll
+  button), `BankTotal`, `rollReaction`, `RollPop`, `Flash`,
   `safetyChip`), `ui/bank_controller.dart` + `ui/bank_screen.dart`
   (`bankGuide`; rounds = the preview's choice), `ui/bank_companion.dart`
   (`BankCompanionSetup` / `BankCompanion`: playing in person, dice on the

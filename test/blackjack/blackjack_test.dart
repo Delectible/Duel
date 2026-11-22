@@ -30,6 +30,8 @@ void main() {
   test('the dealer peeks: a dealer blackjack beats everything but a blackjack', () {
     final shoe = Shoe(Random(1), stacked: c('Ts Ah 9d Kc'));
     final r = BjRound(shoe: shoe, bets: [50]);
+    expect(r.insuring, isTrue, reason: 'an Ace up: insurance first');
+    r.insure({});
     expect(r.settled, isTrue);
     expect(r.net(0), -50);
   });
@@ -71,6 +73,7 @@ void main() {
       for (var i = 0; i < 20000; i++) {
         if (shoe.due) shoe.shuffle();
         final r = BjRound(shoe: shoe, bets: [10]);
+        if (r.insuring) r.insure({});
         while (r.playing) {
           r.act(bot.decide(r.current, r.upCard, r.moves()));
         }
@@ -83,5 +86,91 @@ void main() {
     final book = edge(BjStyle.bookie);
     expect(book, inInclusiveRange(-0.04, 0.03));
     expect(edge(BjStyle.cowboy), lessThan(book));
+  });
+
+  group('house rules', () {
+    test('a soft 17: S17 stands, H17 draws', () {
+      const noIns = BjRules(insurance: false);
+      // You T 9 (19) vs dealer A + 6 (soft 17); next card a 2.
+      final s17 = BjRound(
+        shoe: Shoe(Random(1), stacked: c('Ts As 9h 6d 2c')),
+        bets: [10],
+        rules: noIns,
+      );
+      s17.act(BjMove.stand);
+      expect(s17.dealerTotal, 17);
+      expect(s17.net(0), 10);
+      final h17 = BjRound(
+        shoe: Shoe(Random(1), stacked: c('Ts As 9h 6d 2c')),
+        bets: [10],
+        rules: noIns.copyWith(hitSoft17: true),
+      );
+      h17.act(BjMove.stand);
+      expect(h17.dealerTotal, 19);
+      expect(h17.net(0), 0);
+    });
+
+    test('blackjack pays 6 to 5 when the house says so', () {
+      final r = BjRound(
+        shoe: Shoe(Random(1), stacked: c('As 9h Kd 7c')),
+        bets: [10],
+        rules: const BjRules(sixToFive: true),
+      );
+      expect(r.net(0), 12);
+    });
+
+    test('late surrender gives back half the bet', () {
+      const rules = BjRules(surrender: true);
+      final r = BjRound(
+        shoe: Shoe(Random(1), stacked: c('Ts 9h 6d Tc')),
+        bets: [10],
+        rules: rules,
+      );
+      expect(r.moves(), contains(BjMove.surrender));
+      r.act(BjMove.surrender);
+      expect(r.settled, isTrue);
+      expect(r.hands[0].single.result, BjResult.surrender);
+      expect(r.net(0), -5);
+      // Not without the rule.
+      final no = BjRound(
+        shoe: Shoe(Random(1), stacked: c('Ts 9h 6d Tc')),
+        bets: [10],
+      );
+      expect(no.moves(), isNot(contains(BjMove.surrender)));
+    });
+
+    test('insurance pays 2 to 1 against a dealer blackjack, and is lost otherwise', () {
+      final hit = BjRound(
+        shoe: Shoe(Random(1), stacked: c('Ts Ah 9d Kc')),
+        bets: [10],
+      );
+      hit.insure({0});
+      expect(hit.staked(0), 15);
+      expect(hit.net(0), 0, reason: '-10 on the hand, +10 on the insurance');
+      final miss = BjRound(
+        shoe: Shoe(Random(1), stacked: c('Ts Ah 9d 5c 7s')),
+        bets: [10],
+      );
+      miss.insure({0});
+      expect(miss.playing, isTrue);
+      miss.act(BjMove.stand);
+      expect(miss.insuranceNet(0), -5);
+    });
+
+    test('no double after a split unless the house allows it; decks in the shoe', () {
+      final r = BjRound(
+        shoe: Shoe(Random(1), stacked: c('8s 6h 8d Tc 3h Tc 9s Td')),
+        bets: [10],
+        rules: const BjRules(doubleAfterSplit: false),
+      );
+      r.act(BjMove.split);
+      expect(r.moves(), isNot(contains(BjMove.double)));
+      expect(Shoe(Random(1), decks: 1).left, 52);
+      expect(Shoe(Random(1), decks: 8).left, 416);
+      expect(
+        BjRules.fromJson(const BjRules(decks: 2, hitSoft17: true).toJson()),
+        const BjRules(decks: 2, hitSoft17: true),
+      );
+    });
   });
 }

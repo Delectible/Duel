@@ -76,6 +76,17 @@ class BjBot {
   };
 
   BjMove decide(BjHand h, PlayingCard up, List<BjMove> allowed) {
+    // Late surrender by the book: hard 16 against 9, 10 or an Ace, hard 15
+    // against a 10. The timid give up a little more often.
+    if (allowed.contains(BjMove.surrender) && !h.soft) {
+      final d = bjValue(up);
+      final t = h.total;
+      if ((t == 16 && d >= 9) ||
+          (t == 15 && d == 10) ||
+          (style == BjStyle.timid && t >= 14 && t <= 16 && d >= 9)) {
+        if (style != BjStyle.cowboy && _rng.nextDouble() >= _slip) return BjMove.surrender;
+      }
+    }
     final book = basicStrategy(h, up, allowed);
     if (_rng.nextDouble() < _slip) {
       // A slip: hit or stand on a hunch.
@@ -97,6 +108,12 @@ class BjBot {
         return h.total <= 13 + _rng.nextInt(4) ? BjMove.hit : BjMove.stand;
     }
   }
+
+  /// Takes insurance? Only counters, when the shoe is rich in 10s (it's a
+  /// bad bet otherwise); now and then a timid bot buys it out of fear.
+  bool insure(double trueCount) =>
+      (difficulty == Difficulty.hard && trueCount >= 3) ||
+      (style == BjStyle.timid && _rng.nextDouble() < 0.3);
 
   /// Its bet for the next round, between [min] and [max], from [chips].
   int bet({required int min, required int max, required int chips, required double trueCount}) {

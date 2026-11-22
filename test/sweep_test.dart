@@ -10,6 +10,7 @@ import 'package:duel/games/four_in_a_row/ui/row_screen.dart';
 import 'package:duel/games/go_fish/ui/fish_screen.dart';
 import 'package:duel/games/poker/ui/poker_screen.dart';
 import 'package:duel/games/spades/ui/spades_screen.dart';
+import 'package:duel/features/store/store_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -36,6 +37,7 @@ void main() {
         ('home', const HomeScreen()),
         ('profile', const ProfileScreen()),
         ('settings', const SettingsScreen()),
+        ('store', const StoreScreen(tab: StoreTab.face)),
       ]) {
         testWidgets('$name, $look, $phone', (tester) async {
           usePhone(tester, size);

@@ -13,7 +13,7 @@ import '../../../core/sound/sound.dart';
 import 'bj_tables.dart';
 import 'bj_talk.dart';
 
-enum BjPhase { betting, dealing, playing, dealer, paid }
+enum BjPhase { betting, dealing, insurance, playing, dealer, paid }
 
 /// A bot at the table: who, how it plays, its chips.
 class BjSeat {
@@ -41,24 +41,46 @@ class BjSeat {
 class BjController extends ChangeNotifier {
   BjController({
     required this.table,
-    required int bots,
-    required this.difficulty,
     required this.account,
+    int bots = 2,
+    Difficulty? difficulty,
+    List<BjSitter?>? seated,
+    this.rules = const BjRules(),
     Random? rng,
     this.pace = 1,
   }) : _rng = rng ?? Random(),
-       shoe = Shoe(rng ?? Random()) {
-    final names = Persona.bots(seatCount - 1, _rng);
-    final others = [0, 1, 3, 4]..shuffle(_rng);
-    final taken = others.take(min(bots, seatCount - 1)).toSet();
-    for (var i = 0, b = 0; i < seatCount; i++) {
-      seats.add(
-        i == youSeat
-            ? BjSeat(account.persona, null, 0)
-            : taken.contains(i)
-            ? _newBot(names[b++])
-            : BjSeat.empty(),
-      );
+       difficulty = difficulty ?? table.difficulty,
+       shoe = Shoe(rng ?? Random(), decks: rules.decks) {
+    if (seated != null) {
+      // The lobby's crowd: whoever's in the middle seat slides over for you.
+      final at = [...seated];
+      if (at[youSeat] != null) {
+        final open = at.indexWhere((s) => s == null);
+        if (open >= 0) at[open] = at[youSeat];
+        at[youSeat] = null;
+      }
+      for (var i = 0; i < seatCount; i++) {
+        seats.add(
+          i == youSeat
+              ? BjSeat(account.persona, null, 0)
+              : at[i] == null
+              ? BjSeat.empty()
+              : _newBot(at[i]!.persona),
+        );
+      }
+    } else {
+      final names = Persona.bots(seatCount - 1, _rng);
+      final others = [0, 1, 3, 4]..shuffle(_rng);
+      final taken = others.take(min(bots, seatCount - 1)).toSet();
+      for (var i = 0, b = 0; i < seatCount; i++) {
+        seats.add(
+          i == youSeat
+              ? BjSeat(account.persona, null, 0)
+              : taken.contains(i)
+              ? _newBot(names[b++])
+              : BjSeat.empty(),
+        );
+      }
     }
     bet = table.min;
     _say(-1, dealerLine(BjTalk.hello, _rng));
@@ -66,6 +88,9 @@ class BjController extends ChangeNotifier {
 
   final BjTable table;
   final Difficulty difficulty;
+
+  /// Your house rules.
+  final BjRules rules;
   final Account account;
   final double pace;
   final Random _rng;
@@ -204,7 +229,7 @@ class BjController extends ChangeNotifier {
       if (s.bet != null) s.chips -= s.bet!;
     }
     Sound.play(Sfx.chips);
-    round = BjRound(shoe: shoe, bets: [for (final s in seats) s.bet]);
+    round = BjRound(shoe: shoe, bets: [for (final s in seats) s.bet], rules: rules);
     shown = [for (final h in round!.hands) List.filled(h.length, 0, growable: true)];
     dealerShown = 0;
     holeUp = false;
@@ -255,6 +280,13 @@ class BjController extends ChangeNotifier {
           } else {
             seats[seat].chips -= r.hands[seat][hand].bet;
           }
+        } else if (move == BjMove.surrender) {
+          Sound.play(Sfx.fall);
+          if (seat == youSeat) {
+            _say(-1, 'Half back to you. Wise, maybe.');
+          } else {
+            _botSays(BjTalk.bust, chance: 0.5, who: seat);
+          }
         } else if (move == BjMove.double) {
           Sound.play(Sfx.chips);
           final extra = r.hands[seat][hand].bet ~/ 2;
@@ -294,6 +326,22 @@ class BjController extends ChangeNotifier {
           _botSays(BjTalk.blackjack, chance: 0.9, who: seat);
           wait = 600;
         }
+      case BjInsuranceOffered():
+        phase = BjPhase.insurance;
+        _say(-1, 'Ace showing. Insurance, anyone?');
+        Sound.play(Sfx.tension, gain: 0.6);
+        _notify();
+        // You decide (Insurance / No); sitting out, the bots just do.
+        if (you.bet == null) _after(900, () => insure(false));
+        return;
+      case BjInsured(:final seat, :final amount):
+        Sound.play(Sfx.chips);
+        if (seat == youSeat) {
+          account.wager(amount);
+        } else {
+          seats[seat].chips -= amount;
+        }
+        wait = 300;
       case BjHoleShown():
         if (!holeUp) {
           // The moment of truth: a pause, then the hole card turns.
@@ -339,6 +387,32 @@ class BjController extends ChangeNotifier {
     });
   }
 
+  /// Insurance on offer and you're in the round.
+  bool get canInsure => phase == BjPhase.insurance && you.bet != null && round!.insuring;
+
+  /// What insurance costs you (half your bet).
+  int get insuranceCost => (you.bet ?? 0) ~/ 2;
+
+  /// Can you cover insurance (the lowest table lends you the pips).
+  bool get canAffordInsurance => credit || balance >= insuranceCost;
+
+  /// Your answer to insurance (the bots answer for themselves), then the
+  /// dealer peeks.
+  void insure(bool yes) {
+    final r = round;
+    if (r == null || !r.insuring || phase != BjPhase.insurance) return;
+    final buyers = <int>{
+      if (yes && you.bet != null && canAffordInsurance && insuranceCost > 0) youSeat,
+      for (final (i, s) in seats.indexed)
+        if (i != youSeat && s.bet != null && s.chips >= s.bet! ~/ 2 && s.bot!.insure(shoe.trueCount)) i,
+    };
+    r.insure(buyers);
+    phase = BjPhase.dealing;
+    speech.remove(-1);
+    _notify();
+    _after(250, _playBack);
+  }
+
   /// Your move.
   void act(BjMove m) {
     if (!moves.contains(m)) return;
@@ -356,6 +430,7 @@ class BjController extends ChangeNotifier {
     account.payout('blackjack', staked: staked, back: staked + net);
     lastNet = net;
     lastBlackjack = r.hands[youSeat].any((h) => h.result == BjResult.blackjack);
+    if (r.hands[youSeat].isNotEmpty) account.bjRound(blackjack: lastBlackjack, net: net);
     for (final (i, s) in seats.indexed) {
       if (i == youSeat || s.bet == null) continue;
       s.chips += r.staked(i) + r.net(i);
@@ -427,7 +502,9 @@ class BjController extends ChangeNotifier {
     // The cut card came out: shuffle now, before the bets.
     if (shoe.due) {
       _freshShoe();
-      told.add('Cut card\'s out: a fresh shoe of $shoeDecks decks. The count starts again.');
+      told.add(
+        'Cut card\'s out: a fresh shoe of ${shoe.decks} ${shoe.decks == 1 ? 'deck' : 'decks'}. The count starts again.',
+      );
     }
     news = told.isEmpty ? null : told.join(' ');
     bet = min(bet, maxBet);
@@ -476,6 +553,11 @@ class BjController extends ChangeNotifier {
         return n == null ? base : '$n $base';
       case BjPhase.dealing:
         return 'Dealing…';
+      case BjPhase.insurance:
+        return canInsure
+            ? 'The dealer shows an Ace. Insurance costs ${account.money(insuranceCost)} and pays 2 to 1 if the '
+                  'dealer has blackjack.'
+            : 'Insurance?';
       case BjPhase.playing:
         final t = r!.turn;
         if (t == null) return 'Dealer\'s turn…';

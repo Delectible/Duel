@@ -899,6 +899,42 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 48. Store, dice, Blackjack floor (requested 2026-11-22)
+
+- [x] **48.1 Ghost splash**: the launch curtain's deck riffles and the
+  app icon's ghost rises out of it (scanlines, RGB split, spade glints
+  winking), then "Duel" (`GhostMark`, `core/theme/ghost_mark.dart`).
+- [x] **48.2 Game order**: Poker Lounge, Blackjack Tables (renamed),
+  Spades, Go Fish, Crazy Eights, Goofspiel, Blitz, Bank!, Four in a Row.
+- [x] **48.3 Blackjack Tables tile**: a half-moon table from above, the
+  dealer's chip tray, an Ace up and the hole card, a gold 21 chip.
+- [x] **48.4 Real dice, swipe to roll** (Bank!): cubes drawn in 3D
+  (top, front and side, lit, pips on every face; `CubePainter`) that
+  tumble end over end and settle on the roll; swipe up on the table (or
+  tap) instead of a Roll button (`SwipeToRoll`); at home too.
+- [x] **48.5 Store** (next to Profile): fancy face parts cost pips (every
+  day ones stay free; whatever you wore before is yours), card backs
+  (every face-down card) and table felts (the card games' tables); try on
+  before you buy; locked parts in the profile open the store. Prices are
+  a first guess. Owned items are kept on the phone for now.
+- [x] **48.6 Sets**: six themed sets (Pirate, Party animal, Wild West,
+  Spooky, Night sky, Royalty); own all four pieces for a prize and a
+  badge on your profile.
+- [x] **48.7 Daily challenges**: three small goals a day that pay pips
+  (play / win a game, beat Hard bots, play three games…); no streaks,
+  nothing lost; a badge on the Store button when one's ready.
+- [x] **48.8 One bot by default** (was three).
+- [x] **48.9 Blackjack floor**: a lobby like the cash games: every table
+  with its limits, bot level and who's sitting there (bots now; built so
+  shared online tables can slot in), your record (hands, win rate, net,
+  blackjacks, best win). Local only for now.
+- [x] **48.10 House rules**: dealer on soft 17 (stands / hits), blackjack
+  pays 3:2 / 6:5, decks (1 / 2 / 6 / 8), double after split, insurance
+  (offered on an Ace), late surrender; usual rules by default.
+- [x] **48.11 Four in a Row: no hints**: no arrows, stars or warnings about
+  threats or wins; you spot them yourself.
+  → 0.11.11 · 2026-11-22
+
 ### 47. Blackjack tables and cash table colours (requested 2026-11-21)
 
 - [x] **47.1 Dealer first**: a real table's shape (straight edge for the

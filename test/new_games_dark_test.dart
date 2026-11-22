@@ -2,6 +2,7 @@ import 'package:duel/core/account/account.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/games/bank/ui/bank_companion.dart';
 import 'package:duel/games/bank/ui/bank_screen.dart';
+import 'package:duel/games/blackjack/ui/bj_lobby.dart';
 import 'package:duel/games/blackjack/ui/bj_screen.dart';
 import 'package:duel/games/blackjack/ui/bj_tables.dart';
 import 'package:duel/games/goofspiel/ui/gops_screen.dart';
@@ -18,7 +19,7 @@ void main() {
   tearDown(() => Toon.dark = false);
   final screens = <String, Widget>{
     'gops': const GopsScreen(bots: 2, difficulty: Difficulty.normal, pace: 0.05, seed: 1),
-    'bj_lobby': const BjLobby(bots: 3, difficulty: Difficulty.normal),
+    'bj_lobby': const BjLobby(),
     'bj': BjScreen(table: bjTables.first, bots: 5, difficulty: Difficulty.normal, pace: 0.05, seed: 3),
     'bank': const BankScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.05, seed: 1),
     'bank_home_setup': const BankCompanionSetup(),

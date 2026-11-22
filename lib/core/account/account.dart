@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../avatars/faces.dart';
 import 'achievements.dart';
+import 'package:duel_engine/blackjack/blackjack.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/poker/reads.dart';
 import '../sound/sound.dart';
@@ -521,6 +522,26 @@ class Account extends ChangeNotifier {
 
   // --- Table games bet straight from the balance (Blackjack) ---------------
 
+  BjRules _bjRules = const BjRules();
+  int _bjBlackjacks = 0, _bjBest = 0;
+
+  /// Your house rules at the blackjack tables.
+  BjRules get bjRules => _bjRules;
+  set bjRules(BjRules r) => _change(() => _bjRules = r);
+
+  /// Blackjacks dealt to you, and your biggest win in a round.
+  int get bjBlackjacks => _bjBlackjacks;
+  int get bjBest => _bjBest;
+
+  /// A blackjack round's over for you (the payout's already in).
+  void bjRound({required bool blackjack, required int net}) {
+    if (!blackjack && net <= _bjBest) return;
+    _change(() {
+      if (blackjack) _bjBlackjacks++;
+      _bjBest = max(_bjBest, net);
+    });
+  }
+
   /// Puts [pips] on the table from your balance (a bet, a double, a split).
   void wager(int pips) {
     if (pips <= 0) return;
@@ -707,6 +728,12 @@ class Account extends ChangeNotifier {
         }
       });
       _freeroll = j['freeroll'] as String?;
+      _bjRules = BjRules.fromJson(j['bjRules']);
+      final bj = j['bj'];
+      if (bj is List && bj.length == 2 && bj.every((x) => x is int)) {
+        _bjBlackjacks = bj[0] as int;
+        _bjBest = bj[1] as int;
+      }
       _cashChips = j['cashChips'] as int?;
       _cashIn = j['cashIn'] as int? ?? 0;
       final stats = j['stats'] as Map<String, dynamic>? ?? {};
@@ -758,6 +785,8 @@ class Account extends ChangeNotifier {
             e.key: [e.value.played, e.value.cashes, e.value.wins, e.value.best],
         },
       'freeroll': ?_freeroll,
+      if (_bjRules != const BjRules()) 'bjRules': _bjRules.toJson(),
+      if (_bjBlackjacks > 0 || _bjBest > 0) 'bj': [_bjBlackjacks, _bjBest],
       'cashChips': ?_cashChips,
       if (_cashChips != null) 'cashIn': _cashIn,
       'left': {

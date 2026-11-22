@@ -41,16 +41,25 @@ const blackjackGuide = [
   GuideStage(
     'dealer',
     'The dealer',
-    'The dealer has no choices: turns over the hole card, draws to 17 and stands on all 17s. With an Ace or a 10 '
-        'showing, the dealer checks for blackjack first.',
+    'The dealer has no choices: turns over the hole card and draws to 17 (on a soft 17 the house rules say whether '
+        'to stand or hit). With an Ace or a 10 showing, the dealer checks for blackjack first.',
     icon: Icons.person_rounded,
   ),
   GuideStage(
     'paid',
     'Getting paid',
-    'Beat the dealer: win your bet. Same total: push, bet back. Blackjack (an Ace and a 10 first up) pays 3 to 2. '
+    'Beat the dealer: win your bet. Same total: push, bet back. Blackjack (an Ace and a 10 first up) pays 3 to 2 '
+        '(6 to 5 if the house rules say so). '
         'Bust and you lose straight away, even if the dealer busts later.',
     icon: Icons.payments_rounded,
+  ),
+  GuideStage(
+    'rules',
+    'Insurance and giving up',
+    'When the dealer shows an Ace you can buy insurance: half your bet, paid 2 to 1 if the dealer has blackjack '
+        '(usually a bad bet unless you count cards). With surrender on, Give up on your first two cards hands back '
+        'half your bet. Set these in House rules in the lobby.',
+    icon: Icons.gavel_rounded,
   ),
 ];
 
@@ -59,15 +68,25 @@ class BjScreen extends StatefulWidget {
   const BjScreen({
     super.key,
     required this.table,
-    required this.bots,
-    required this.difficulty,
+    this.bots = 2,
+    this.difficulty,
+    this.seated,
+    this.rules,
     this.pace = 1,
     this.seed,
   });
 
   final BjTable table;
+
+  /// Bots, when not from the lobby's [seated] crowd.
   final int bots;
-  final Difficulty difficulty;
+
+  /// The table's own unless given.
+  final Difficulty? difficulty;
+  final List<BjSitter?>? seated;
+
+  /// Your house rules (the account's unless given).
+  final BjRules? rules;
   final double pace;
   final int? seed;
 
@@ -81,6 +100,8 @@ class _BjScreenState extends State<BjScreen> {
     table: widget.table,
     bots: widget.bots,
     difficulty: widget.difficulty,
+    seated: widget.seated,
+    rules: widget.rules ?? _account.bjRules,
     account: _account,
     pace: widget.pace,
     rng: widget.seed == null ? null : Random(widget.seed),
@@ -94,6 +115,7 @@ class _BjScreenState extends State<BjScreen> {
 
   String? _stage() => switch (_c.phase) {
     BjPhase.betting => 'bet',
+    BjPhase.insurance => 'rules',
     BjPhase.dealing || BjPhase.playing => _c.moves.contains(BjMove.split) ? 'double' : 'play',
     BjPhase.dealer => 'dealer',
     BjPhase.paid => 'paid',
@@ -373,7 +395,7 @@ class _ShoeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final left = c.shoe.left / (shoeDecks * 52);
+    final left = c.shoe.left / (c.shoe.decks * 52);
     return Column(
       key: const Key('shoe'),
       children: [
@@ -392,7 +414,7 @@ class _ShoeView extends StatelessWidget {
           ),
         ),
         Text(
-          '$shoeDecks decks',
+          '${c.shoe.decks} ${c.shoe.decks == 1 ? 'deck' : 'decks'}',
           style: Toon.text(11, weight: FontWeight.w700, color: Colors.white),
         ),
         const SizedBox(height: 2),
@@ -577,6 +599,7 @@ Widget? _result(BjController c, BjHand h, double size) {
     BjResult.push => _pill('Push', color: Toon.cardFace, size: size),
     BjResult.lose => _pill('Lose', color: Toon.red, size: size),
     BjResult.bust => _pill('Bust', color: Toon.red, size: size),
+    BjResult.surrender => _pill('Surrendered', color: Toon.grey, size: size),
   };
 }
 
@@ -969,6 +992,39 @@ class _Controls extends StatelessWidget {
           ),
         ],
       );
+    } else if (c.canInsure) {
+      body = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Insurance for ${m(c.insuranceCost)}? Pays 2 to 1 if the dealer has blackjack.',
+            textAlign: TextAlign.center,
+            style: Toon.text(14, weight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: ToonButton(
+                  key: const Key('insure'),
+                  color: Toon.yellow,
+                  onPressed: c.canAffordInsurance ? () => c.insure(true) : null,
+                  child: const FittedBox(child: Text('Insurance', maxLines: 1)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ToonButton(
+                  key: const Key('no insurance'),
+                  color: Toon.card,
+                  onPressed: () => c.insure(false),
+                  child: const FittedBox(child: Text('No thanks', maxLines: 1)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
     } else if (c.yourTurn) {
       final moves = c.moves;
       Widget move(BjMove mv, String label, Color color) => Expanded(
@@ -989,6 +1045,7 @@ class _Controls extends StatelessWidget {
           move(BjMove.stand, 'Stand', Toon.red),
           if (moves.contains(BjMove.double)) move(BjMove.double, 'Double', Toon.yellow),
           if (moves.contains(BjMove.split)) move(BjMove.split, 'Split', Toon.blue),
+          if (moves.contains(BjMove.surrender)) move(BjMove.surrender, 'Give up', Toon.card),
         ],
       );
     } else {
@@ -1048,101 +1105,4 @@ class _ResultPop extends StatelessWidget {
       );
     },
   );
-}
-
-/// Pick a table: the limits, open once your balance covers the max bet.
-class BjLobby extends StatelessWidget {
-  const BjLobby({super.key, required this.bots, required this.difficulty, this.pace = 1, this.seed});
-
-  final int bots;
-  final Difficulty difficulty;
-  final double pace;
-  final int? seed;
-
-  @override
-  Widget build(BuildContext context) {
-    final account = AccountScope.of(context);
-    final m = account.money;
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Row(
-              children: [
-                ToonButton(
-                  color: Toon.card,
-                  padding: const EdgeInsets.all(8),
-                  tooltip: 'Back',
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Icon(Icons.arrow_back_rounded),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('Blackjack tables', style: Toon.text(24, weight: FontWeight.w700)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Bets come straight off your balance (${m(account.balance)}). Stay as long as you like; '
-              '$bots ${bots == 1 ? 'bot sits' : 'bots sit'} with you.',
-              style: Toon.text(15, weight: FontWeight.w500, color: Toon.muted),
-            ),
-            const SizedBox(height: 14),
-            for (final t in bjTables) ...[
-              ToonBox(
-                color: Toon.card,
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Icon(Icons.casino_rounded, color: t.openFor(account.balance) ? Toon.green : Toon.muted),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(t.name, style: Toon.text(18, weight: FontWeight.w700)),
-                          Text(
-                            'Bets ${m(t.min)}–${m(t.max)}',
-                            style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (t.openFor(account.balance))
-                      ToonButton(
-                        key: Key('sit ${t.min}'),
-                        color: Toon.green,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => BjScreen(
-                              table: t,
-                              bots: bots,
-                              difficulty: difficulty,
-                              pace: pace,
-                              seed: seed,
-                            ),
-                          ),
-                        ),
-                        child: const Text('Sit'),
-                      )
-                    else
-                      Text(
-                        'Opens at\n${m(t.unlock)}',
-                        key: Key('locked ${t.min}'),
-                        textAlign: TextAlign.right,
-                        style: Toon.text(13, weight: FontWeight.w600, color: Toon.muted),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 }
