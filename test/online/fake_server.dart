@@ -40,7 +40,7 @@ class FakeServer {
       final bool visible;
       if (w.path.contains('/hands/') || w.path.startsWith('wallets/')) {
         visible = doc != null && w.path.endsWith('/${w.uid}');
-      } else if (w.path.startsWith('cash/')) {
+      } else if (w.path.startsWith('cash/') || w.path.startsWith('bj/')) {
         visible = doc != null;
       } else {
         final key = w.path.startsWith('parties/') ? 'members' : 'seats';

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:duel_engine/blackjack/blackjack.dart';
@@ -7,6 +8,10 @@ import '../../../core/account/account.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/help/game_guide.dart';
 import '../../../core/help/home_guide.dart';
+import '../../../core/online/bj_service.dart';
+import '../../../core/online/party.dart';
+import '../../../core/online/where_switch.dart';
+import '../../../core/session/play_setup.dart';
 import '../../../core/sound/sound.dart';
 import '../../../core/table/felts.dart';
 import '../../../core/theme/toon.dart';
@@ -44,7 +49,103 @@ class BjLobby extends StatefulWidget {
 class _BjLobbyState extends State<BjLobby> {
   late List<List<BjSitter?>> _tables = LocalBjTables.at(_now());
 
+  /// The shared tables (online), when the referee can be reached.
+  BjService? _service;
+  late bool _online = _service != null;
+  Map<String, Doc>? _docs;
+  String? _mine;
+  String? _problem;
+  Timer? _refresh;
+
   int _now() => widget.now?.call() ?? DateTime.now().millisecondsSinceEpoch;
+
+  @override
+  void initState() {
+    final party = PlaySetupScope.read(context)?.party;
+    if (party != null) _service = BjService(party);
+    super.initState();
+    if (_online) unawaited(_load());
+    _refresh = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (_online) unawaited(_load());
+    });
+  }
+
+  @override
+  void dispose() {
+    _refresh?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final service = _service;
+    if (service == null) return;
+    try {
+      final r = await service.lobby();
+      if (!mounted) return;
+      setState(() {
+        _docs = {for (final d in r.tables) d['table']! as String: d};
+        _mine = r.mine;
+        _problem = null;
+      });
+    } on Object {
+      if (mounted) {
+        setState(() => _problem = "Can't reach the online tables right now. Try Local, or wait a moment.");
+      }
+    }
+  }
+
+  void _switch(bool online) {
+    setState(() => _online = online);
+    if (online) unawaited(_load());
+  }
+
+  /// Sits at a shared table (or back at yours) and opens it.
+  Future<void> _sitOnline(BjTable t) async {
+    final service = _service!;
+    Sound.play(Sfx.tap, gain: 0.6);
+    try {
+      final doc = _mine == t.id ? _docs![t.id]! : await service.sit(t.id);
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => BjScreen.online(service: service, doc: doc, pace: widget.pace),
+        ),
+      );
+    } on OnlineError catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } on Object {
+      if (mounted) setState(() => _problem = "Lost the connection. Try again, or play Local.");
+    }
+    if (mounted) unawaited(_load());
+  }
+
+  /// Who sits at a shared table, for its card.
+  static List<BjSitter?> _sitters(Doc doc) => [
+    for (final s in (doc['seats']! as List).cast<Map<Object?, Object?>?>())
+      if (s == null)
+        null
+      else if (s['bot'] == true)
+        BjSitter(Persona.bot(s['name']! as String, Look.values.asNameMap()[s['look']] ?? Look.cap))
+      else
+        BjSitter(
+          Persona(
+            name: s['name'] as String? ?? 'Player',
+            look: Look.headband,
+            avatar: s['avatar'] is Map
+                ? Avatar.fromJson((s['avatar']! as Map).cast<String, dynamic>())
+                : Avatar.forName(s['name'] as String? ?? 'Player'),
+          ),
+          bot: false,
+        ),
+  ];
+
+  void _noOnline() => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(const SnackBar(content: Text("Online isn't available right now: playing Local.")));
 
   Future<void> _sit(BjTable t, List<BjSitter?> seated) async {
     Sound.play(Sfx.tap, gain: 0.6);
@@ -131,21 +232,62 @@ class _BjLobbyState extends State<BjLobby> {
                 const SizedBox(height: 12),
                 _Record(account: account),
                 const SizedBox(height: 12),
-                _HouseRules(account: account),
+                WhereSwitch(
+                  online: _online,
+                  onChanged: _service == null ? (_) => _noOnline() : _switch,
+                  on: Casino.gold,
+                  off: Casino.night,
+                  text: Casino.dim,
+                  textOn: Casino.night,
+                ),
+                const SizedBox(height: 12),
+                if (!_online)
+                  _HouseRules(account: account)
+                else
+                  Text(
+                    'Shared tables: everyone at a table plays its own house rules, and bets come straight off your '
+                    'balance.',
+                    style: Toon.text(14, weight: FontWeight.w500, color: Casino.dim),
+                  ),
                 const SizedBox(height: 16),
                 Text(
                   'Tables',
                   style: Toon.text(18, weight: FontWeight.w700, color: Casino.cream),
                 ),
                 const SizedBox(height: 8),
-                for (final (i, t) in bjTables.indexed)
-                  _TableCard(
-                    table: t,
-                    level: i,
-                    seated: _tables[i],
-                    account: account,
-                    onSit: () => _sit(t, _tables[i]),
+                if (_online && _problem != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      _problem!,
+                      key: const Key('online problem'),
+                      style: Toon.text(14, weight: FontWeight.w600, color: Casino.gold),
+                    ),
                   ),
+                if (_online && _docs == null && _problem == null)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30),
+                    child: Center(child: CircularProgressIndicator(color: Casino.gold)),
+                  ),
+                for (final (i, t) in bjTables.indexed)
+                  if (!_online)
+                    _TableCard(
+                      table: t,
+                      level: i,
+                      seated: _tables[i],
+                      account: account,
+                      onSit: () => _sit(t, _tables[i]),
+                    )
+                  else if (_docs?[t.id] case final doc?)
+                    _TableCard(
+                      table: t,
+                      level: i,
+                      seated: _sitters(doc),
+                      account: account,
+                      rules: t.onlineRules.summary,
+                      yours: _mine == t.id,
+                      onSit: () => _sitOnline(t),
+                    ),
               ],
             ),
           ),
@@ -449,6 +591,8 @@ class _TableCard extends StatelessWidget {
     required this.seated,
     required this.account,
     required this.onSit,
+    this.rules,
+    this.yours = false,
   });
 
   final BjTable table;
@@ -456,6 +600,12 @@ class _TableCard extends StatelessWidget {
   final List<BjSitter?> seated;
   final Account account;
   final VoidCallback onSit;
+
+  /// Online: the table's own house rules.
+  final String? rules;
+
+  /// Online: you're sitting here (the app was closed at it).
+  final bool yours;
 
   @override
   Widget build(BuildContext context) {
@@ -495,6 +645,12 @@ class _TableCard extends StatelessWidget {
                           'Bets ${m(table.min)}–${m(table.max)} · ${table.difficulty.label} bots',
                           style: Toon.text(13, weight: FontWeight.w500, color: Casino.dim),
                         ),
+                        if (rules != null)
+                          Text(
+                            rules!,
+                            key: Key('rules ${table.id}'),
+                            style: Toon.text(12, weight: FontWeight.w600, color: Casino.gold),
+                          ),
                       ],
                     ),
                   ),
@@ -504,7 +660,7 @@ class _TableCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(color: Casino.gold, borderRadius: BorderRadius.circular(10)),
                       child: Text(
-                        'Sit down',
+                        yours ? 'Your seat' : 'Sit down',
                         style: Toon.text(14, weight: FontWeight.w700, color: Casino.night),
                       ),
                     )

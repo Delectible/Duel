@@ -899,6 +899,29 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 50. Blackjack online, Online / Local, sounds (requested 2026-11-22)
+
+- [x] **50.1 Bots leave quietly**: every table element is keyed by seat
+  and who sits there, so a bot getting up doesn't redeal the others.
+- [x] **50.2 Straight to the tables**: the Blackjack tile opens the floor
+  (`GameInfo.direct`), with How to play and Play at home buttons there.
+- [x] **50.3 Online / Local switch** (`WhereSwitch`) on the Blackjack
+  floor and Cash Games. Local Blackjack plays your house rules; online
+  tables each have their own (`BjTable.onlineRules`: Corner 6:5 H17 8
+  decks, Main standard, High limit 2 decks + surrender, Vault 1 deck +
+  surrender, no DAS).
+- [x] **50.4 Blackjack online** like the cash tables: referee
+  `bj_tables.dart` (shared tables, bots, bets off the wallet, insurance,
+  turns and timeouts; hole card in `bjSecrets` until it turns), app
+  `BjService` + `OnlineBjController` (rebuilds each round from the dealt
+  cards and plays it back on the same screen, your seat turned to the
+  middle).
+- [~] **50.5 New sounds**: samples in three styles (chips & coins,
+  cartoon, soft & musical) at
+  https://claude.ai/artifact/7qkGReaZUkhEotHQ8q3JeD; waiting on Luca's
+  picks.
+  → 1.0.2 · 2026-11-22
+
 ### 49. Promote to TestFlight too (requested 2026-11-22)
 
 - [x] **49.1 One promote for both stores**: `promote-closed.yml` also adds

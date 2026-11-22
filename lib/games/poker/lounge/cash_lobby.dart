@@ -8,6 +8,7 @@ import '../../../core/account/account.dart';
 import '../../../core/avatars/faces.dart';
 import '../../../core/online/cash_service.dart';
 import '../../../core/online/party.dart';
+import '../../../core/online/where_switch.dart';
 import '../../../core/session/play_setup.dart';
 import '../../../core/sound/sound.dart';
 import '../../../core/theme/toon.dart';
@@ -56,6 +57,12 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
   var _finding = false;
   var _online = false;
 
+  /// The switch: shared tables (Online) or this phone's (Local).
+  var _want = false;
+
+  /// Online picked but the shared tables couldn't be reached.
+  String? _problem;
+
   /// You're seated at this shared table (the app was closed at it).
   String? _mine;
   Map<String, Doc> _docs = const {};
@@ -71,6 +78,7 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
     if (party != null) {
       _service = CashService(party);
       _finding = true;
+      _want = true;
     }
     unawaited(_load(first: true));
     // The tables move on while you watch; offline, it keeps trying.
@@ -79,7 +87,7 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
 
   Future<void> _load({bool first = false}) async {
     final service = _service;
-    if (service != null) {
+    if (service != null && _want) {
       try {
         // The first look waits a little longer (it may be signing in); after
         // that the local tables show and it keeps trying in the background.
@@ -88,13 +96,22 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
         setState(() {
           _finding = false;
           _online = true;
+          _problem = null;
           _mine = r.mine;
           _docs = {for (final d in r.tables) '${d['stake']}': d};
           _tables = [for (final d in r.tables) CashTableState.fromJson(d)];
         });
         return;
       } on Object {
-        // No connection, or the server's down: this phone's tables.
+        // No connection, or the server's down: say so (Local is a tap away).
+        if (!mounted) return;
+        setState(() {
+          _finding = false;
+          _online = false;
+          _tables = const [];
+          _problem = "Can't reach the online tables right now. Try Local, or wait a moment.";
+        });
+        return;
       }
     }
     if (!mounted) return;
@@ -102,6 +119,7 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
       _finding = false;
       _online = false;
       _mine = null;
+      _problem = null;
       _tables = LocalCashTables.at(_now());
     });
   }
@@ -244,6 +262,37 @@ class _CashLobbyScreenState extends State<CashLobbyScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+                WhereSwitch(
+                  online: _want,
+                  onChanged: (v) {
+                    if (_service == null) {
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          const SnackBar(content: Text("Online isn't available right now: playing Local.")),
+                        );
+                      return;
+                    }
+                    setState(() {
+                      _want = v;
+                      _finding = v;
+                    });
+                    unawaited(_load(first: true));
+                  },
+                  on: Lounge.gold,
+                  off: Lounge.night,
+                  text: Lounge.dim,
+                  textOn: Lounge.night,
+                ),
+                if (_problem != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _problem!,
+                    key: const Key('online problem'),
+                    style: Toon.text(14, weight: FontWeight.w600, color: Lounge.gold),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 if (_finding)
                   const Padding(

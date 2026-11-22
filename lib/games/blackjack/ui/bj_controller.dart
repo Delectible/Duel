@@ -9,9 +9,13 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/account/account.dart';
 import '../../../core/avatars/faces.dart';
+import '../../../core/online/bj_service.dart';
+import '../../../core/online/party.dart';
 import '../../../core/sound/sound.dart';
 import 'bj_tables.dart';
 import 'bj_talk.dart';
+
+part 'bj_online.dart';
 
 enum BjPhase { betting, dealing, insurance, playing, dealer, paid }
 
@@ -101,7 +105,18 @@ class BjController extends ChangeNotifier {
   /// Seats at the table: you always in the middle one.
   static const seatCount = 5;
   final List<BjSeat> seats = [];
-  final int youSeat = 2;
+
+  /// Your seat (the middle one at a table here; online, wherever you sat:
+  /// the screen turns the table so you're in the middle).
+  int get youSeat => 2;
+
+  /// Bets come off your balance here; online the referee moves the pips.
+  bool get _local => true;
+
+  /// The shoe as shown.
+  int get shoeLeft => shoe.left;
+  int get shoeDecks => shoe.decks;
+  double get decksLeft => shoe.decksLeft;
 
   /// Fresh shoes so far (the screen flashes "New shoe").
   int shuffles = 0;
@@ -275,7 +290,7 @@ class BjController extends ChangeNotifier {
             ..insert(hand + 1, 1);
           Sound.play(Sfx.chips);
           if (seat == youSeat) {
-            account.wager(r.hands[seat][hand].bet);
+            if (_local) account.wager(r.hands[seat][hand].bet);
             _botSays(BjTalk.youSplit, chance: 0.5);
           } else {
             seats[seat].chips -= r.hands[seat][hand].bet;
@@ -291,7 +306,7 @@ class BjController extends ChangeNotifier {
           Sound.play(Sfx.chips);
           final extra = r.hands[seat][hand].bet ~/ 2;
           if (seat == youSeat) {
-            account.wager(extra);
+            if (_local) account.wager(extra);
             Sound.play(Sfx.tension);
             _botSays(BjTalk.youDouble, chance: 0.6);
           } else {
@@ -331,13 +346,12 @@ class BjController extends ChangeNotifier {
         _say(-1, 'Ace showing. Insurance, anyone?');
         Sound.play(Sfx.tension, gain: 0.6);
         _notify();
-        // You decide (Insurance / No); sitting out, the bots just do.
-        if (you.bet == null) _after(900, () => insure(false));
+        _insuranceOffered();
         return;
       case BjInsured(:final seat, :final amount):
         Sound.play(Sfx.chips);
         if (seat == youSeat) {
-          account.wager(amount);
+          if (_local) account.wager(amount);
         } else {
           seats[seat].chips -= amount;
         }
@@ -427,7 +441,7 @@ class BjController extends ChangeNotifier {
     phase = BjPhase.paid;
     final staked = r.staked(youSeat);
     final net = r.net(youSeat);
-    account.payout('blackjack', staked: staked, back: staked + net);
+    _paid(staked, net);
     lastNet = net;
     lastBlackjack = r.hands[youSeat].any((h) => h.result == BjResult.blackjack);
     if (r.hands[youSeat].isNotEmpty) account.bjRound(blackjack: lastBlackjack, net: net);
@@ -459,8 +473,23 @@ class BjController extends ChangeNotifier {
       }
     }
     _notify();
-    _after(2600, _nextRound);
+    _afterRound();
   }
+
+  /// Insurance is on offer: you decide (Insurance / No); sitting out, the
+  /// bots just do.
+  void _insuranceOffered() {
+    if (you.bet == null) _after(900, () => insure(false));
+  }
+
+  /// Your round's result: the pips (here; online only the stats).
+  void _paid(int staked, int net) => account.payout('blackjack', staked: staked, back: staked + net);
+
+  /// After the round's shown: the next one (online: the referee's).
+  void _afterRound() => _after(2600, _nextRound);
+
+  /// Standing up from the table (online: tells the referee).
+  Future<void> leaveTable() async {}
 
   /// Back to betting; broke bots leave and someone new sits down.
   void _nextRound() {

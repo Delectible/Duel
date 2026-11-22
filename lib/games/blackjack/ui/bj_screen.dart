@@ -9,6 +9,8 @@ import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/cards/card_view.dart';
 import '../../../core/help/game_guide.dart';
+import '../../../core/online/bj_service.dart';
+import '../../../core/online/party.dart';
 import '../../../core/table/felts.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
@@ -74,7 +76,20 @@ class BjScreen extends StatefulWidget {
     this.rules,
     this.pace = 1,
     this.seed,
-  });
+  }) : service = null,
+       doc = null;
+
+  /// A shared table online (you're already sitting at it: [doc]).
+  BjScreen.online({super.key, required BjService this.service, required Doc this.doc, this.pace = 1})
+    : table = BjTable.byId(doc['table']! as String) ?? bjTables.first,
+      bots = 0,
+      difficulty = null,
+      seated = null,
+      rules = null,
+      seed = null;
+
+  final BjService? service;
+  final Doc? doc;
 
   final BjTable table;
 
@@ -96,16 +111,18 @@ class BjScreen extends StatefulWidget {
 
 class _BjScreenState extends State<BjScreen> {
   late final Account _account = AccountScope.maybeRead(context) ?? Account();
-  late final BjController _c = BjController(
-    table: widget.table,
-    bots: widget.bots,
-    difficulty: widget.difficulty,
-    seated: widget.seated,
-    rules: widget.rules ?? _account.bjRules,
-    account: _account,
-    pace: widget.pace,
-    rng: widget.seed == null ? null : Random(widget.seed),
-  );
+  late final BjController _c = widget.doc != null
+      ? OnlineBjController(service: widget.service!, doc: widget.doc!, account: _account, pace: widget.pace)
+      : BjController(
+          table: widget.table,
+          bots: widget.bots,
+          difficulty: widget.difficulty,
+          seated: widget.seated,
+          rules: widget.rules ?? _account.bjRules,
+          account: _account,
+          pace: widget.pace,
+          rng: widget.seed == null ? null : Random(widget.seed),
+        );
 
   @override
   void dispose() {
@@ -126,10 +143,13 @@ class _BjScreenState extends State<BjScreen> {
         !await askToon(
           context,
           title: 'Leave mid-hand?',
-          body: 'Your ${_account.money(_c.round!.staked(_c.youSeat))} on the table stays there.',
+          body: widget.doc != null
+              ? 'The dealer stands for you this round; your ${_account.money(_c.round!.staked(_c.youSeat))} stays in.'
+              : 'Your ${_account.money(_c.round!.staked(_c.youSeat))} on the table stays there.',
         )) {
       return;
     }
+    await _c.leaveTable();
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -146,7 +166,8 @@ class _BjScreenState extends State<BjScreen> {
           builder: (context, _) => GameLayout(
             top: GameTopBar(
               title: 'Blackjack',
-              subtitle: '${widget.table.name} · bets ${chips(widget.table.min)}–${chips(widget.table.max)}',
+              subtitle:
+                  '${widget.table.name}${widget.doc != null ? ' · Online' : ''} · bets ${chips(widget.table.min)}–${chips(widget.table.max)}',
               onLeave: _leave,
               guide: blackjackGuide,
               stage: _stage,
@@ -228,8 +249,11 @@ class _Table extends StatelessWidget {
         width: big * 2.7,
         height: big * 1.4 + 12,
       );
-      final seats = [for (final o in places.seats) px(o)];
-      final spots = [for (final o in places.spots) px(o)];
+      // The table turned round so you're in the middle (online you may sit
+      // anywhere): seat i shows in place (i - you + 2).
+      int place(int i) => (i - c.youSeat + 2 + bjSeatCount) % bjSeatCount;
+      final seats = [for (var i = 0; i < bjSeatCount; i++) px(places.seats[place(i)])];
+      final spots = [for (var i = 0; i < bjSeatCount; i++) px(places.spots[place(i)])];
       final children = <Widget>[
         Positioned.fill(
           key: const ValueKey('felt'),
@@ -428,7 +452,7 @@ class _ShoeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final left = c.shoe.left / (c.shoe.decks * 52);
+    final left = c.shoeLeft / (c.shoeDecks * 52);
     return Column(
       key: const Key('shoe'),
       children: [
@@ -447,7 +471,7 @@ class _ShoeView extends StatelessWidget {
           ),
         ),
         Text(
-          '${c.shoe.decks} ${c.shoe.decks == 1 ? 'deck' : 'decks'}',
+          '${c.shoeDecks} ${c.shoeDecks == 1 ? 'deck' : 'decks'}',
           style: Toon.text(11, weight: FontWeight.w700, color: Colors.white),
         ),
         const SizedBox(height: 2),
@@ -467,7 +491,7 @@ class _ShoeView extends StatelessWidget {
             ),
           ),
         ),
-        Text('${c.shoe.decksLeft.toStringAsFixed(1)} left', style: Toon.text(10, color: Colors.white70)),
+        Text('${c.decksLeft.toStringAsFixed(1)} left', style: Toon.text(10, color: Colors.white70)),
       ],
     );
   }

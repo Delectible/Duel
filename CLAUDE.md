@@ -49,11 +49,12 @@ together, GamePigeon-easy. Let it guide design and development choices.
   them as bullets; keep them short).
 - **Open threads** (see `docs/CHANGELOG.md` for detail): store prices,
   set prizes and daily challenge rewards are first guesses (owned items
-  are on the phone only, not synced); Blackjack Tables are local only
-  (online like cash tables later); Tournament and
+  are on the phone only, not synced); Tournament and
   Boss Tables are bots only (friends later); Goofspiel, Blackjack and
   Bank! are bots only for now (online next; Blackjack table limits are a
-  first guess); cash stakes / unlocks, boss
+  first guess); Blackjack online tables' rules are a first guess; new
+  sounds wait on Luca's picks from the samples artifact
+  (https://claude.ai/artifact/7qkGReaZUkhEotHQ8q3JeD); cash stakes / unlocks, boss
   stakes / quirks and tournament buy-ins are first guesses Luca may
   change; Play's Data safety form still needs the online pips balance
   (App activity > Other actions) and User IDs as required; the release
@@ -509,6 +510,22 @@ weights cut from the variable font.
   bots only, built for shared tables later). `ui/bj_tables.dart`
   (`bjTables` limits + bot `difficulty`, open at the max bet, first on
   credit; `BjSitter`, `LocalBjTables`),
+  Online (like cash tables): engine `blackjack/bj_tables.dart`
+  (`BjTable` limits, bot difficulty and `onlineRules` per table;
+  `bjSeatCount`), referee `server/lib/src/bj_tables.dart` (`BjTables`
+  extension: `bj/{table}` docs never expire, `bjSecrets/{table}` shoe
+  seed + pos; lobby / sit / bet / insure / move / tick / leave; bets off
+  the wallet at the deal, the rest at settle; bots play there; cards
+  public but the hole card until it turns), app `core/online/
+  bj_service.dart` (`BjService`) and `OnlineBjController` (part
+  `ui/bj_online.dart`: rebuilds the round from the doc's cards (a stand-in
+  hole card while down) and plays it back through `BjController`'s hooks
+  `_decide` / `_insuranceOffered` / `_paid` (stats only:
+  `Account.payoutStats`) / `_afterRound` / `leaveTable`; `youSeat` is your
+  seat, the screen turns the table so you're in the middle).
+  `BjScreen.online`. The floor and Cash Games have an Online / Local
+  `WhereSwitch` (`core/online/where_switch.dart`); the tile opens the
+  floor directly (`GameInfo.direct`).
   `ui/bj_controller.dart` (five fixed seats, you in the middle; bots
   join and leave between rounds; shuffles between rounds when the cut
   card's out (`shuffles`); plays the round's events back one at a time), `ui/bj_talk.dart`,

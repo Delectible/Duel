@@ -567,6 +567,24 @@ class Account extends ChangeNotifier {
     });
   }
 
+  /// An online blackjack round: the referee moved the pips (they arrive
+  /// with the wallet); this keeps the stats and today's challenges.
+  void payoutStats(String gameId, {required int staked, required int back}) {
+    _change(() {
+      final st = stats(gameId);
+      st.played++;
+      if (back > staked) {
+        st.won++;
+      } else if (back < staked) {
+        st.lost++;
+      } else {
+        st.tied++;
+      }
+      st.net += back - staked;
+      _dailyGame(gameId, won: back > staked, stake: staked);
+    });
+  }
+
   /// Debug menu: your balance becomes [amount] (sent to the server like a
   /// bot game's result, so it sticks online too).
   void setBalance(int amount) => _change(() => _unsynced += amount - balance);

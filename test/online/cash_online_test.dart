@@ -101,7 +101,7 @@ void main() {
       final t = CashTableState.fromJson((await run(() => srv.store.get('cash/kitchen')))!);
       expect(t.people.map((p) => p.name), containsAll(['Luca', 'Sam']));
 
-      // The network goes: the lobby quietly shows this phone's tables.
+      // The network goes: the lobby says so (Local is a tap away).
       await tester.tap(find.byKey(const Key('leave')));
       await wait();
       await tester.tap(find.byKey(const Key('cash out')));
@@ -109,7 +109,7 @@ void main() {
       expect(find.byKey(const Key('cash lobby')), findsOneWidget);
       srv.offline = true;
       await wait(16000);
-      expect(find.byKey(const Key('local tables')), findsOneWidget);
+      expect(find.byKey(const Key('online problem')), findsOneWidget);
       expect(find.textContaining('Sam'), findsNothing);
       srv.offline = false;
       await wait(16000);
