@@ -60,7 +60,7 @@ def main():
     bid = build['id']
     print(f"Build {build['attributes']['version']} is ready.")
 
-    groups = call('GET', f'/apps/{app}/betaGroups', params={'filter[name]': GROUP})['data']
+    groups = call('GET', '/betaGroups', params={'filter[app]': app, 'filter[name]': GROUP})['data']
     groups = [g for g in groups if not g['attributes'].get('isInternalGroup')]
     if not groups:
         raise SystemExit(f'No external TestFlight group called {GROUP}.')
