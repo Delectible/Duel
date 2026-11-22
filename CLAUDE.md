@@ -354,7 +354,7 @@ weights cut from the variable font.
   `duel_engine/cards.dart`, in every game, new ones too.
 - **Launch:** `core/startup/launch_curtain.dart` (`LaunchCurtain` over the
   app from `DuelApp(curtain: true)` in main; `Startup.track` the start-up
-  work it waits for; a deck riffles and the icon's ghost rises out of it:
+  work it waits for; a deck riffles, the icon's ghost peeks out, then swooshes off leaving a fan of cards:
   `GhostMark` in `core/theme/ghost_mark.dart`, same grid as
   `tool/icon/make_icons.py`). Native launch screens are Duel's yellow
   (`android/.../res/values*/styles.xml`, `launch_colors.xml`,

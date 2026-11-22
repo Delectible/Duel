@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '0.11.11';
+  static const version = '1.0.0';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -27,11 +27,21 @@ class AppInfo {
       'A Store next to your profile: spend pips on hats, faces, card backs and table felts, collect sets for '
       'prizes and badges, and finish three daily challenges for pips. Blackjack Tables has a casino floor with '
       'every table and who is sitting there, your record, and house rules (soft 17, 6:5, decks, insurance, '
-      'surrender). Bank! has real 3D dice: swipe up to roll. A ghost on the launch screen, a new game order, and '
+      'surrender). Bank! has real 3D dice: swipe up to roll. A new intro with the ghost, a new game order, and '
       'Four in a Row no longer warns you.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
+    (
+      '1.0',
+      [
+        'Store: faces, card backs, felts, sets',
+        'Daily challenges',
+        'Blackjack floor and house rules',
+        '3D dice: swipe up to roll',
+        'A new intro: the ghost takes the deck',
+      ],
+    ),
     (
       '0.11',
       [
@@ -48,10 +58,6 @@ class AppInfo {
         'New games: Goofspiel, Blackjack, Bank!',
         'Table colours by stake; gold cards up top',
         'Bank! at home: dice and scorekeeper',
-        'Store: faces, card backs, felts, sets',
-        'Daily challenges',
-        'Blackjack floor and house rules',
-        '3D dice: swipe up to roll',
       ],
     ),
     (

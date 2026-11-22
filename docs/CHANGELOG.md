@@ -901,9 +901,11 @@ Bots first; online with a party comes later (each needs the referee).
 
 ### 48. Store, dice, Blackjack floor (requested 2026-11-22)
 
-- [x] **48.1 Ghost splash**: the launch curtain's deck riffles and the
-  app icon's ghost rises out of it (scanlines, RGB split, spade glints
-  winking), then "Duel" (`GhostMark`, `core/theme/ghost_mark.dart`).
+- [x] **48.1 Ghost intro**: the deck riffles, the app icon's ghost
+  (plain eyes) peeks out from behind it, looks about, crouches and springs
+  into a quick swoosh round the deck, scooping it up; the cards trail
+  from under him into a bobbing fan as he leaves, then "Duel"
+  (`GhostMark`, `core/theme/ghost_mark.dart`; timed like Pixar's lamp).
 - [x] **48.2 Game order**: Poker Lounge, Blackjack Tables (renamed),
   Spades, Go Fish, Crazy Eights, Goofspiel, Blitz, Bank!, Four in a Row.
 - [x] **48.3 Blackjack Tables tile**: a half-moon table from above, the
@@ -933,7 +935,7 @@ Bots first; online with a party comes later (each needs the referee).
   (offered on an Ace), late surrender; usual rules by default.
 - [x] **48.11 Four in a Row: no hints**: no arrows, stars or warnings about
   threats or wins; you spot them yourself.
-  → 0.11.11 · 2026-11-22
+  → 1.0.0 · 2026-11-22
 
 ### 47. Blackjack tables and cash table colours (requested 2026-11-21)
 
