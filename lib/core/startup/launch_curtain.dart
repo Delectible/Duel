@@ -40,7 +40,7 @@ class LaunchCurtain extends StatefulWidget {
   const LaunchCurtain({
     super.key,
     required this.child,
-    this.minimum = const Duration(milliseconds: 2900),
+    this.minimum = const Duration(milliseconds: 2600),
     this.maximum = const Duration(seconds: 5),
   });
 
@@ -70,7 +70,7 @@ class LaunchCurtain extends StatefulWidget {
 }
 
 class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateMixin {
-  late final _intro = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800))
+  late final _intro = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))
     ..forward();
   late final _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
   // The ghost bobs and glitches while start-up finishes.
@@ -162,17 +162,18 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
     return 0.7;
   }();
 
-  // The beats (of the intro's 2.8 s): rise to a peek, look about, wind up,
-  // fly (gathering speed all the way), title.
-  static const _rise = (0.03, 0.2), _look = (0.2, 0.4), _windUp = (0.4, 0.46), _fly = (0.46, 0.84);
+  // The beats (of the intro's 2.5 s), timed like a character, not a
+  // machine: rise to a peek, look about, a beat of crouch to wind up, then
+  // spring off it into a quick swoosh that keeps gathering speed; title.
+  static const _rise = (0.03, 0.22), _look = (0.22, 0.46), _windUp = (0.46, 0.55), _fly = (0.55, 0.77);
 
   static double _phase((double, double) p, double t) => ((t - p.$1) / (p.$2 - p.$1)).clamp(0.0, 1.0);
 
   /// Flight progress for time [t]: slow off the mark, faster and faster.
-  static double _flight(double t) => Curves.easeInCubic.transform(_phase(_fly, t));
+  static double _flight(double t) => Curves.easeInQuad.transform(_phase(_fly, t));
 
   /// The time the flight reaches [g] (for dropping cards on cue).
-  static double _timeAt(double g) => _fly.$1 + pow(g, 1 / 3) * (_fly.$2 - _fly.$1);
+  static double _timeAt(double g) => _fly.$1 + sqrt(g) * (_fly.$2 - _fly.$1);
 
   Widget _scene(double t, double loop) {
     final riffle = t < 0.12 ? sin(t / 0.12 * pi * 3) : 0.0;
@@ -186,22 +187,26 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
       // left and right; then a dip to wind up.
       final up = const Cubic(0.3, 1.35, 0.6, 1).transform(_phase(_rise, t));
       final look = _phase(_look, t);
-      final dip = sin(_phase(_windUp, t) * pi / 2);
-      at = Offset.lerp(_start, _peek, up)! + Offset(0, sin(look * pi * 2) * 2 + dip * 9);
+      // The crouch eases in and holds a moment at the bottom.
+      final dip = Curves.easeOutCubic.transform(_phase(_windUp, t));
+      at = Offset.lerp(_start, _peek, up)! + Offset(0, sin(look * pi * 2) * 2 + dip * 11);
       size = 0.35 + 0.5 * up;
-      lean = sin(look * pi * 2) * 0.14;
+      // A glance left, then right, then leaning back the way he'll go.
+      lean = sin(look * pi * 2) * 0.14 - dip * 0.12;
       // Squash as he crouches.
-      sx = 1 + dip * 0.08;
-      sy = 1 - dip * 0.1;
+      sx = 1 + dip * 0.12;
+      sy = 1 - dip * 0.14;
     } else {
       at = _path(g);
       size = _flightSize(g);
       final ahead = _path(min(1, g + 0.02)) - at;
       lean = ahead.dx.sign * 0.28 * min(1, ahead.distance / 8);
-      // Stretched by speed, springing out of the crouch.
+      // Springs out of the crouch (a quick stretch), then stretched by
+      // speed.
+      final spring = sin(min(1.0, g / 0.12) * pi) * 0.18;
       final speed = min(1.0, ahead.distance / 25);
-      sx = 1 - speed * 0.08;
-      sy = 1 + speed * 0.1;
+      sx = 1 - speed * 0.08 - spring * 0.5;
+      sy = 1 + speed * 0.1 + spring;
     }
     final inFront = flying && g >= _riseShare;
     final split = _split(loop) + (flying && !gone ? 3 + 6 * g : 0);
@@ -284,7 +289,7 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
                   animation: Listenable.merge([_intro, _loop]),
                   builder: (context, _) {
                     final t = _intro.value, loop = _loop.value;
-                    final title = Curves.elasticOut.transform(((t - 0.76) / 0.24).clamp(0.0, 1.0));
+                    final title = Curves.elasticOut.transform(((t - 0.7) / 0.3).clamp(0.0, 1.0));
                     return Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -300,7 +305,7 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
                           ),
                           const SizedBox(height: 6),
                           Opacity(
-                            opacity: ((t - 0.84) / 0.16).clamp(0.0, 1.0),
+                            opacity: ((t - 0.8) / 0.2).clamp(0.0, 1.0),
                             child: Text(
                               '$_line…',
                               key: const Key('launch line'),
