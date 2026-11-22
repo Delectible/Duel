@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '1.0.0';
+  static const version = '1.0.1';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,11 +24,9 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'A Store next to your profile: spend pips on hats, faces, card backs and table felts, collect sets for '
-      'prizes and badges, and finish three daily challenges for pips. Blackjack Tables has a casino floor with '
-      'every table and who is sitting there, your record, and house rules (soft 17, 6:5, decks, insurance, '
-      'surrender). Bank! has real 3D dice: swipe up to roll. A new intro with the ghost, a new game order, and '
-      'Four in a Row no longer warns you.';
+      'Store: table felts and card backs now say Use instead of Wear. Plus everything from 1.0: a Store with '
+      'daily challenges and sets, the Blackjack Tables floor with house rules, 3D dice in Bank!, and the new '
+      'ghost intro.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

@@ -126,7 +126,9 @@ together, GamePigeon-easy. Let it guide design and development choices.
   https://play.google.com/apps/testing/com.dingo.duel) is the slow path:
   the `promote-closed.yml` workflow (Actions tab, run by hand, optional
   build number) promotes a build already on internal testing to the closed
-  track (`alpha`), which Play reviews.
+  track (`alpha`), which Play reviews. The same run sends that build to
+  TestFlight's external group "Friends" and submits it for Apple's beta
+  review (`tool/testflight/external.py`, App Store Connect API key).
   The store listing (title, descriptions, icon, feature graphic) lives in
   `fastlane/metadata/android/en-AU/`; `play-listing.yml` publishes it when
   it changes (fastlane supply, same service account). Icon and feature

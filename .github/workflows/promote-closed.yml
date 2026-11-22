@@ -1,4 +1,6 @@
 name: Promote to closed testing
+# Also sends the same build to TestFlight's external testers ("Friends")
+# and submits it for Apple's beta review (tool/testflight/external.py).
 # The slow path: sends a build that's already on internal testing to the
 # closed testing track ("alpha" in the Play API), with its release notes.
 # Every push to main still goes straight to internal testing (build-apk.yml),
@@ -11,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       build:
-        description: 'Build number to promote (empty = newest on internal testing)'
+        description: 'Build number to promote (empty = newest on internal testing / TestFlight)'
         required: false
         default: ''
 permissions:
@@ -51,3 +53,22 @@ jobs:
             skip_upload_images:true \
             skip_upload_screenshots:true \
             "${extra[@]}"
+
+  testflight:
+    runs-on: ubuntu-latest
+    env:
+      APPSTORE_KEY: ${{ secrets.APPSTORE_KEY }}
+      APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+      APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Look for the App Store Connect key
+        run: |
+          if [ -z "$APPSTORE_KEY" ] || [ -z "$APPSTORE_KEY_ID" ] || [ -z "$APPSTORE_ISSUER_ID" ]; then
+            echo "::error::No App Store Connect key secrets."; exit 1
+          fi
+      - run: pip install --quiet pyjwt cryptography requests
+      - name: TestFlight -> external testers (Friends) + beta review
+        env:
+          BUILD: ${{ inputs.build }}
+        run: python3 tool/testflight/external.py "$BUILD"

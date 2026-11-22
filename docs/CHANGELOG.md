@@ -899,6 +899,14 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 49. Promote to TestFlight too (requested 2026-11-22)
+
+- [x] **49.1 One promote for both stores**: `promote-closed.yml` also adds
+  the build to TestFlight's external group "Friends", sets What to test
+  from `AppInfo.latest` and submits it for beta review.
+- [x] **49.2 Store wording**: felts and card backs say Use / In use.
+  → 1.0.1 · 2026-11-22
+
 ### 48. Store, dice, Blackjack floor (requested 2026-11-22)
 
 - [x] **48.1 Ghost intro**: the deck riffles, the app icon's ghost
