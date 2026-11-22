@@ -126,55 +126,81 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
   }
 
   // Positions from the middle of the scene (deck at (0, 75)).
-  static const _risen = Offset(0, -25);
-  static const _low = Offset(-95, 80);
+  static const _deck = Offset(0, 75);
+  static const _risen = Offset(0, -45);
+  static const _wide = Offset(-125, 30);
+  static const _riseShare = 0.24;
 
-  /// The swoosh, [s] 0..1: out in front, down and left round the deck,
-  /// then low across the table (dropping cards) and off to the top right.
-  static Offset _swoosh(double s) => s < 0.4
-      ? _bez(_risen, const Offset(-170, -80), const Offset(-210, 110), _low, s / 0.4)
-      : _bez(_low, const Offset(-20, 130), const Offset(140, 130), const Offset(520, -420), (s - 0.4) / 0.6);
+  /// The whole flight, [g] 0..1, as one smooth path: up from behind the
+  /// deck, on up and round to the left, down in front of the deck
+  /// (scooping it up), low across the table and off to the top right.
+  static Offset _path(double g) {
+    if (g < _riseShare) return Offset.lerp(_deck, _risen, g / _riseShare)!;
+    final s = (g - _riseShare) / (1 - _riseShare);
+    return s < 0.38
+        ? _bez(_risen, const Offset(0, -150), const Offset(-210, -70), _wide, s / 0.38)
+        : _bez(
+            _wide,
+            const Offset(-60, 140),
+            const Offset(170, 140),
+            const Offset(540, -420),
+            (s - 0.38) / 0.62,
+          );
+  }
+
+  /// Small while hidden behind the deck, full size once clear, bigger in
+  /// front.
+  static double _size(double g) {
+    if (g < _riseShare) return 0.35 + 0.65 * Curves.easeOut.transform(g / _riseShare);
+    final s = (g - _riseShare) / (1 - _riseShare);
+    return 1 + 0.45 * sin(min(s, 0.5) / 0.5 * pi / 2);
+  }
 
   static Offset _fanAt(int i) => Offset((i - 2) * 30.0, 55 - (2 - (i - 2).abs()) * 8.0);
 
-  /// When (swoosh 0..1) the ghost passes over card [i]'s spot: it drops it.
-  static final List<double> _drops = [
-    for (var i = 0; i < 5; i++)
-      () {
-        for (var k = 40; k <= 100; k++) {
-          if (_swoosh(k / 100).dx >= _fanAt(i).dx - 10) return k / 100;
-        }
-        return 1.0;
-      }(),
-  ];
+  /// When (flight 0..1) he covers the deck and scoops it up.
+  static final double _scoop = () {
+    for (var k = 50; k <= 100; k++) {
+      if (_path(k / 100).dx >= -25 && _path(k / 100).dy > 40) return k / 100;
+    }
+    return 0.7;
+  }();
 
-  static const _swooshFrom = 0.28, _swooshTo = 0.8;
+  static const _flyFrom = 0.04, _flyTo = 0.8;
 
   Widget _scene(double t, double loop) {
-    // 0–0.12 riffle, 0.06–0.28 the ghost rises behind the deck, 0.28–0.8
-    // the swoosh, each card flying to the fan as he passes.
+    // 0–0.12 riffle; 0.04–0.8 the flight, cards trailing out behind him
+    // from the moment he scoops the deck.
     final riffle = t < 0.12 ? sin(t / 0.12 * pi * 3) : 0.0;
-    final rise = Curves.easeOutBack.transform(((t - 0.06) / 0.22).clamp(0.0, 1.0));
-    final s = Curves.easeInOutSine.transform(((t - _swooshFrom) / (_swooshTo - _swooshFrom)).clamp(0.0, 1.0));
-    final swooshing = t >= _swooshFrom;
-    final gone = s >= 1;
-    final ghostAt = swooshing ? _swoosh(s) : _risen;
-    final ghostScale = swooshing ? 1 + 0.45 * sin(min(s, 0.5) / 0.5 * pi / 2) : 1.0;
-    // Leans into the turn.
-    final ahead = _swoosh(min(1, s + 0.02)) - _swoosh(s);
-    final lean = swooshing ? (ahead.dx.sign * 0.25 * min(1, ahead.distance / 8)) : 0.0;
-    final split = _split(loop) + (swooshing && !gone ? 6 : 0);
-    Widget ghost() => GhostMark(key: const Key('launch ghost'), size: 128, split: split);
+    final g = Curves.easeInOutSine.transform(((t - _flyFrom) / (_flyTo - _flyFrom)).clamp(0.0, 1.0));
+    final gone = g >= 1;
+    final inFront = g >= _riseShare;
+    final ghostAt = _path(g);
+    final ahead = _path(min(1, g + 0.02)) - ghostAt;
+    final lean = inFront ? ahead.dx.sign * 0.25 * min(1, ahead.distance / 8) : 0.0;
+    final split = _split(loop) + (inFront && !gone ? 5 : 0);
+    final ghost = gone
+        ? const SizedBox.shrink()
+        : Transform.translate(
+            offset: ghostAt,
+            child: Transform.rotate(
+              angle: lean,
+              child: Transform.scale(
+                scale: _size(g),
+                child: GhostMark(key: const Key('launch ghost'), size: 128, split: split),
+              ),
+            ),
+          );
 
     final cards = <Widget>[];
     for (var i = 0; i < 5; i++) {
-      final drop = _drops[i];
-      final dropT = _swooshFrom + drop * (_swooshTo - _swooshFrom);
-      final u = ((t - dropT) / 0.16).clamp(0.0, 1.0);
+      final drop = _scoop + 0.025 + i * 0.045;
+      final dropT = _flyFrom + drop * (_flyTo - _flyFrom);
+      final u = ((t - dropT) / 0.17).clamp(0.0, 1.0);
       if (u <= 0) continue;
-      final from = _swoosh(drop) + const Offset(0, 40);
+      final from = _path(drop) + const Offset(0, 45);
       final land = Curves.easeOutBack.transform(u);
-      final bob = u >= 1 ? sin(loop * 2 * pi + i * 0.9) * 3 : 0.0;
+      final bob = sin(loop * 2 * pi + i * 0.9) * 3 * u;
       final at = Offset.lerp(from, _fanAt(i), land)! + Offset(0, bob);
       cards.add(
         Transform.translate(
@@ -194,20 +220,10 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          // Rising behind the deck (clipped at its top edge).
-          if (!swooshing)
-            Positioned.fill(
-              bottom: 76,
-              child: ClipRect(
-                child: OverflowBox(
-                  maxHeight: 400,
-                  alignment: Alignment.bottomCenter,
-                  child: Transform.translate(offset: Offset(0, (1 - rise) * 150 - 3), child: ghost()),
-                ),
-              ),
-            ),
-          // The deck, until he sweeps it up.
-          if (s < 0.12)
+          // Behind the deck while he rises out of it.
+          if (!inFront) ghost,
+          // The deck, until he passes in front and scoops it up.
+          if (g < _scoop)
             for (var i = 0; i < 4; i++)
               Transform.translate(
                 offset: Offset(riffle * (i.isEven ? 7 : -7), 75 - i * 2.0),
@@ -217,15 +233,7 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
                 ),
               ),
           ...cards,
-          // Swooshing in front.
-          if (swooshing && !gone)
-            Transform.translate(
-              offset: ghostAt,
-              child: Transform.rotate(
-                angle: lean,
-                child: Transform.scale(scale: ghostScale, child: ghost()),
-              ),
-            ),
+          if (inFront) ghost,
         ],
       ),
     );
