@@ -487,10 +487,15 @@ class _BankCompanionState extends State<BankCompanion> {
               safetyChip(g),
               SizedBox(height: widget.dice ? dice * 0.4 : 10),
               if (widget.dice)
-                GestureDetector(
-                  key: const Key('tap dice'),
-                  onTap: g.roundOver || _rolling ? null : _roll,
-                  child: RollingDice(a: r?.a ?? 6, b: r?.b ?? 6, roll: _rollId, size: dice),
+                SwipeToRoll(
+                  key: const Key('roll'),
+                  enabled: !g.roundOver && !_rolling,
+                  onRoll: _roll,
+                  hint: 'Swipe up or tap to roll',
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 30),
+                    child: RollingDice(a: r?.a ?? 6, b: r?.b ?? 6, roll: _rollId, size: dice),
+                  ),
                 )
               else
                 _pad(),
@@ -504,16 +509,6 @@ class _BankCompanionState extends State<BankCompanion> {
                 g.roundOver ? '' : '${widget.names[g.roller]}\'s roll · roll ${g.rolls + 1}',
                 style: Toon.text(16, weight: FontWeight.w600, color: Colors.white),
               ),
-              if (widget.dice) ...[
-                const SizedBox(height: 10),
-                ToonButton(
-                  key: const Key('roll'),
-                  color: Toon.green,
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                  onPressed: g.roundOver || _rolling ? null : _roll,
-                  child: Text('Roll', style: Toon.text(22, weight: FontWeight.w700)),
-                ),
-              ],
             ],
           ),
         ),

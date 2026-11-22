@@ -7,12 +7,12 @@ import '../../../core/theme/toon.dart';
 import '../dice.dart';
 
 /// How long the dice take to land.
-const diceRollMs = 1150;
+const diceRollMs = 1300;
 
-/// Two dice thrown onto the table when [roll] changes: they fly in on an
-/// arc from below, tumbling end over end (faces flickering, shadows
-/// shrinking as they rise), slam down with a squash and a puff of dust,
-/// bounce once and settle on [a] and [b]. Doubles glow as they land.
+/// Two dice thrown onto the table when [roll] changes: they fly up from
+/// the bottom (where you swiped) on an arc, tumbling end over end in 3D,
+/// land with a thud, skid a little on a bounce and settle on [a] and [b].
+/// Doubles glow as they land.
 class RollingDice extends StatelessWidget {
   const RollingDice({
     super.key,
@@ -47,7 +47,6 @@ class RollingDice extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               for (final k in [0, 1]) ..._die(k, k == 0 ? a : b, ms, landed, w, h),
-              if (!landed && ms > 700 && ms < 1000) ..._dust(ms, w, h),
             ],
           );
         },
@@ -56,108 +55,162 @@ class RollingDice extends StatelessWidget {
   }
 
   List<Widget> _die(int k, int value, double ms, bool landed, double w, double h) {
-    final rng = Random(roll * 97 + k * 13 + (ms / 70).floor());
+    final rng = Random(roll * 97 + k * 13);
+    // Where it settles, and how it's turned there.
+    // Always turned enough to show a side.
+    final yaw = (k == 0 ? -1 : 1) * (0.32 + rng.nextDouble() * 0.4);
+    final rest = Offset(
+      w / 2 + (k == 0 ? -size * 0.62 : size * 0.62) + (rng.nextDouble() - 0.5) * size * 0.15,
+      h - size * 0.6 + (rng.nextDouble() - 0.5) * size * 0.12,
+    );
+    final rested = Turn.yaw(yaw) * faceUp(value);
+    // It tumbles about a roughly horizontal axis (rolling away from you),
+    // whole turns plus a bit, slowing as it settles.
+    final axisAngle = (k == 0 ? 0.3 : -0.3) + (rng.nextDouble() - 0.5) * 0.8;
+    final axis = (cos(axisAngle), sin(axisAngle), 0.0);
+    final spins = (3 + rng.nextInt(2)) * 2 * pi;
     // Each die lands a little apart in time.
-    final land = 700.0 + k * 70;
-    final rest = Offset(w / 2 + (k == 0 ? -size * 0.62 : size * 0.62), h - size * 0.62);
-    final start = Offset(k == 0 ? -size * 1.2 : w + size * 1.2, h + size * 1.6);
+    final land = 760.0 + k * 80;
+    final start = Offset(w / 2 + (k == 0 ? -size * 0.3 : size * 0.3), h + size * 1.8);
     Offset at;
-    double angle, sx = 1, sy = 1, lift;
-    int face;
-    if (ms < land) {
-      // In the air: an arc in, spinning down, end over end.
-      final u = ms / land;
-      final e = Curves.easeOutQuad.transform(u);
-      at = Offset.lerp(start, rest, e)! - Offset(0, sin(u * pi) * size * 1.5);
-      angle = (1 - e) * (k == 0 ? 9 : -10);
-      final tumble = cos(u * pi * 7 + k);
-      sy = 0.55 + 0.45 * tumble.abs();
-      sx = 1.08 - 0.08 * tumble.abs();
-      lift = sin(u * pi);
-      face = 1 + rng.nextInt(6);
-    } else {
-      final v = ((ms - land) / (diceRollMs - land)).clamp(0.0, 1.0);
-      // Slam, squash, one bounce, settle.
-      final bounce = v < 0.25 ? 0.0 : sin((v - 0.25) / 0.75 * pi) * (1 - v) * size * 0.35;
-      at = rest - Offset(0, bounce);
-      final squash = v < 0.18 ? sin(v / 0.18 * pi) * 0.22 : 0.0;
-      sx = 1 + squash;
-      sy = 1 - squash;
-      angle = (k == 0 ? -0.14 : 0.16) + (1 - v) * (k == 0 ? -0.4 : 0.35);
-      lift = bounce / size;
-      face = value;
-    }
+    double lift, spin;
     if (landed) {
       at = rest;
-      angle = k == 0 ? -0.14 : 0.16;
-      sx = sy = 1;
       lift = 0;
-      face = value;
+      spin = 0;
+    } else if (ms < land) {
+      // In the air: up from below on an arc, tumbling.
+      final u = ms / land;
+      final e = Curves.easeOutCubic.transform(u);
+      at = Offset.lerp(start, rest - Offset(0, size * 0.25), e)! - Offset(0, sin(u * pi) * size * 1.2);
+      lift = sin(u * pi) * 0.8 + (1 - u) * 0.4;
+      spin = spins * (1 - e) + 0.9;
+    } else {
+      // Down: one low bounce, a skid forward, rocking to a stop.
+      final v = ((ms - land) / (diceRollMs - land)).clamp(0.0, 1.0);
+      final bounce = v < 0.55 ? sin(v / 0.55 * pi) * size * 0.28 : 0.0;
+      final skid = Curves.easeOutCubic.transform(v);
+      at = Offset.lerp(rest - Offset(0, size * 0.25), rest, skid)! - Offset(0, bounce);
+      lift = bounce / size;
+      spin = 0.9 * (1 - Curves.easeOutBack.transform(v));
     }
+    final turn = spin == 0 ? rested : Turn.about(axis, spin) * rested;
     final glow = landed && a == b;
     return [
-      // Its shadow on the felt, smaller and fainter the higher it is.
-      Positioned(
-        left: at.dx - size * 0.5 * (1 - lift * 0.4),
-        top: rest.dy + size * 0.42,
-        child: Opacity(
-          opacity: (0.35 - lift * 0.2).clamp(0.05, 0.35),
-          child: Container(
-            width: size * (1 - lift * 0.4),
-            height: size * 0.22,
-            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(size)),
+      // Its shadow on the felt while it's up, smaller the higher it is.
+      // (On the table the die's own shadow does.)
+      if (lift > 0.02)
+        Positioned(
+          left: at.dx - size * 0.45 * (1 - lift * 0.4),
+          top: rest.dy + size * 0.2,
+          child: Opacity(
+            opacity: (0.3 * min(1.0, lift * 4) - lift * 0.15).clamp(0.0, 0.3),
+            child: Container(
+              width: size * 0.9 * (1 - lift * 0.4),
+              height: size * 0.24,
+              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(size)),
+            ),
           ),
         ),
-      ),
       Positioned(
         left: at.dx - size / 2,
-        top: at.dy - size / 2,
-        child: Transform(
-          alignment: Alignment.bottomCenter,
-          transform: Matrix4.diagonal3Values(sx, sy, 1),
-          child: Container(
-            decoration: glow
-                ? BoxDecoration(
-                    borderRadius: BorderRadius.circular(size * 0.2),
-                    boxShadow: [
-                      BoxShadow(color: Toon.yellow.withValues(alpha: 0.8), blurRadius: 18, spreadRadius: 4),
-                    ],
-                  )
-                : null,
-            child: Die(face, size: size, angle: angle, color: color ?? Toon.cardFace),
+        top: at.dy - size / 2 - lift * size * 0.3,
+        child: Container(
+          decoration: glow
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(size * 0.3),
+                  boxShadow: [
+                    BoxShadow(color: Toon.yellow.withValues(alpha: 0.75), blurRadius: 20, spreadRadius: 2),
+                  ],
+                )
+              : null,
+          child: RepaintBoundary(
+            child: CustomPaint(size: Size.square(size), painter: CubePainter(turn, color ?? Toon.cardFace)),
           ),
         ),
       ),
     ];
   }
+}
 
-  /// A puff of dust where they hit.
-  List<Widget> _dust(double ms, double w, double h) {
-    final u = ((ms - 700) / 300).clamp(0.0, 1.0);
-    final rng = Random(roll);
-    return [
-      for (var i = 0; i < 10; i++)
-        () {
-          final ang = pi + rng.nextDouble() * pi;
-          final d = size * (0.6 + u * (0.7 + rng.nextDouble() * 0.6));
-          final c = Offset(w / 2 + (i.isEven ? -1 : 1) * size * 0.6, h - size * 0.2);
-          final p = c + Offset(cos(ang) * d, sin(ang) * d * 0.35);
-          final r = size * 0.09 * (1 - u * 0.5);
-          return Positioned(
-            left: p.dx - r,
-            top: p.dy - r,
-            child: Opacity(
-              opacity: (1 - u) * 0.7,
-              child: Container(
-                width: r * 2,
-                height: r * 2,
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              ),
-            ),
-          );
-        }(),
-    ];
+/// Swipe up (or tap) to roll: wraps the dice area, says so with a hint
+/// that bobs while [enabled].
+class SwipeToRoll extends StatelessWidget {
+  const SwipeToRoll({super.key, required this.enabled, required this.onRoll, required this.child, this.hint});
+
+  final bool enabled;
+  final VoidCallback onRoll;
+  final Widget child;
+
+  /// Under the dice while you can roll ("Swipe up to roll").
+  final String? hint;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: enabled ? onRoll : null,
+    onVerticalDragEnd: enabled
+        ? (d) {
+            if ((d.primaryVelocity ?? 0) < -150) onRoll();
+          }
+        : null,
+    child: Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        if (enabled && hint != null) Positioned(bottom: -4, child: IgnorePointer(child: _SwipeHint(hint!))),
+      ],
+    ),
+  );
+}
+
+class _SwipeHint extends StatefulWidget {
+  const _SwipeHint(this.text);
+
+  final String text;
+
+  @override
+  State<_SwipeHint> createState() => _SwipeHintState();
+}
+
+class _SwipeHintState extends State<_SwipeHint> with SingleTickerProviderStateMixin {
+  // Bobs a few times, then rests (it's still there).
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
+    ..repeat(count: 3);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
   }
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) =>
+          Transform.translate(offset: Offset(0, -sin(_c.value * pi) * 6), child: child),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.keyboard_double_arrow_up_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 4),
+            Text(
+              widget.text,
+              style: Toon.text(14, weight: FontWeight.w700, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// The bank's total, counting up (or crashing to zero) when it changes.

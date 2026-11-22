@@ -1,6 +1,7 @@
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/games/bank/ui/bank_screen.dart';
 import 'package:duel_engine/difficulty.dart';
+import 'package:duel/games/bank/ui/bank_bits.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -8,7 +9,13 @@ import '../screens.dart';
 
 bool has(Key k) => find.byKey(k).evaluate().isNotEmpty;
 
-bool on(WidgetTester t, Key k) => has(k) && t.widget<ToonButton>(find.byKey(k)).onPressed != null;
+bool on(WidgetTester t, Key k) =>
+    has(k) &&
+    switch (t.widget(find.byKey(k))) {
+      final ToonButton b => b.onPressed != null,
+      final SwipeToRoll s => s.enabled,
+      _ => false,
+    };
 
 void main() {
   for (final bots in [2, 5]) {

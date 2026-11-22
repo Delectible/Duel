@@ -17,7 +17,7 @@ const bankGuide = [
     'roll',
     'Rolling',
     'Players take turns rolling two dice, and every roll goes into the bank, which everyone shares. Bots roll by '
-        'themselves; tap Roll when it\'s yours.',
+        'themselves; on your turn, swipe up on the table (or tap it) to throw the dice.',
     icon: Icons.casino_rounded,
   ),
   GuideStage(
@@ -260,27 +260,35 @@ class _Table extends StatelessWidget {
           ),
           Positioned.fill(
             top: wide ? 110 : 130,
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    safetyChip(g),
-                    SizedBox(height: dice * 0.45),
-                    RollingDice(a: r?.a ?? 6, b: r?.b ?? 6, roll: c.rollId, size: dice),
-                    const SizedBox(height: 12),
-                    Text(
-                      'BANK',
-                      style: Toon.text(15, weight: FontWeight.w700, color: Colors.white70),
-                    ),
-                    // The bank moves once the dice are down.
-                    BankTotal(value: c.tumbling ? (r?.before ?? 0) : g.bank, size: wide ? 46 : 58),
-                    Text(
-                      g.rolls == 0 ? 'First roll coming' : 'Roll ${g.rolls}',
-                      style: Toon.text(13, color: Colors.white70),
-                    ),
-                  ],
+            child: SwipeToRoll(
+              key: const Key('roll'),
+              enabled: c.yourRoll,
+              onRoll: c.roll,
+              hint: 'Swipe up to roll',
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      safetyChip(g),
+                      SizedBox(height: dice * 0.45),
+                      RollingDice(a: r?.a ?? 6, b: r?.b ?? 6, roll: c.rollId, size: dice),
+                      const SizedBox(height: 12),
+                      Text(
+                        'BANK',
+                        style: Toon.text(15, weight: FontWeight.w700, color: Colors.white70),
+                      ),
+                      // The bank moves once the dice are down.
+                      BankTotal(value: c.tumbling ? (r?.before ?? 0) : g.bank, size: wide ? 46 : 58),
+                      Text(
+                        g.rolls == 0 ? 'First roll coming' : 'Roll ${g.rolls}',
+                        style: Toon.text(13, color: Colors.white70),
+                      ),
+                      // Room for the swipe hint.
+                      const SizedBox(height: 30),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -394,11 +402,25 @@ class _Controls extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: ToonButton(
-              key: const Key('roll'),
-              color: Toon.green,
-              onPressed: c.yourRoll ? c.roll : null,
-              child: FittedBox(child: Text(c.yourRoll ? 'Roll!' : '${_roller(c)} rolls', maxLines: 1)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  c.yourRoll ? Icons.swipe_up_rounded : Icons.casino_rounded,
+                  color: c.yourRoll ? Toon.green : Toon.muted,
+                  size: 26,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: FittedBox(
+                    child: Text(
+                      c.yourRoll ? 'Your roll' : '${_roller(c)} rolls',
+                      maxLines: 1,
+                      style: Toon.text(18, weight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
