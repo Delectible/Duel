@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import 'toon.dart';
@@ -90,16 +88,10 @@ class GhostPainter extends CustomPainter {
         ..strokeWidth = 3.2
         ..color = Toon.inkLight,
     );
-    // Eyes, glancing left, a spade glinting in each.
+    // Eyes, glancing left.
     final ink = Paint()..color = Toon.inkLight;
     for (final x in <double>[72, 108]) {
       canvas.drawOval(Rect.fromCenter(center: Offset(x, 94), width: 20, height: 28), ink);
-    }
-    if (glint > 0) {
-      final white = Paint()..color = Colors.white;
-      for (final x in <double>[69, 105]) {
-        canvas.drawPath(spade(x, 88, 4.6 * min(glint, 1.8)), white);
-      }
     }
     canvas.restore();
   }

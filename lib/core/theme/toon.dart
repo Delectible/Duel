@@ -39,6 +39,7 @@ abstract final class Toon {
 
   /// Playing card faces stay white in both modes.
   static const cardFace = Color(0xFFFFFDF7);
+
   /// The card tables' felt and rail: the store's `TableFelt` you picked
   /// (classic green and wood until then).
   static Color get felt => _felt;

@@ -29,15 +29,17 @@ abstract final class Startup {
 }
 
 /// The launch screen carried on into the app (as Darkroom does): on Duel's
-/// yellow, a deck riffles, Duel's ghost rises out of it (the app icon's
-/// ghost: scanlines, RGB split, spade glints winking), "Duel" bounces in,
+/// yellow, a deck riffles, Duel's ghost (the app icon's: scanlines, RGB
+/// split) pops up behind it, swooshes out in front and loops round, cards
+/// spilling from under him into a gently bobbing fan as he flies off,
+/// then "Duel" bounces in,
 /// and a line of table chatter shows, until start-up is done; then it all
 /// fades away. Up at least [minimum], at most [maximum].
 class LaunchCurtain extends StatefulWidget {
   const LaunchCurtain({
     super.key,
     required this.child,
-    this.minimum = const Duration(milliseconds: 1300),
+    this.minimum = const Duration(milliseconds: 2300),
     this.maximum = const Duration(seconds: 5),
   });
 
@@ -67,7 +69,7 @@ class LaunchCurtain extends StatefulWidget {
 }
 
 class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateMixin {
-  late final _intro = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))
+  late final _intro = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200))
     ..forward();
   late final _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
   // The ghost bobs and glitches while start-up finishes.
@@ -107,10 +109,126 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
 
   static final _back = PlayingCard.parse('As');
 
+  // Red and black take turns, as in every hand in Duel.
+  static final _fan = [
+    for (final c in ['As', 'Kh', 'Qc', 'Jd', '10s']) PlayingCard.parse(c),
+  ];
+
   /// The ghost's RGB split: the icon's 5, with a jolt now and then.
   static double _split(double loop) {
     final jolt = (loop > 0.62 && loop < 0.68) || (loop > 0.71 && loop < 0.74);
     return jolt ? 11 : 5 + sin(loop * 2 * pi) * 1.2;
+  }
+
+  static Offset _bez(Offset a, Offset b, Offset c, Offset d, double u) {
+    final v = 1 - u;
+    return a * (v * v * v) + b * (3 * v * v * u) + c * (3 * v * u * u) + d * (u * u * u);
+  }
+
+  // Positions from the middle of the scene (deck at (0, 75)).
+  static const _risen = Offset(0, -25);
+  static const _low = Offset(-95, 80);
+
+  /// The swoosh, [s] 0..1: out in front, down and left round the deck,
+  /// then low across the table (dropping cards) and off to the top right.
+  static Offset _swoosh(double s) => s < 0.4
+      ? _bez(_risen, const Offset(-170, -80), const Offset(-210, 110), _low, s / 0.4)
+      : _bez(_low, const Offset(-20, 130), const Offset(140, 130), const Offset(520, -420), (s - 0.4) / 0.6);
+
+  static Offset _fanAt(int i) => Offset((i - 2) * 30.0, 55 - (2 - (i - 2).abs()) * 8.0);
+
+  /// When (swoosh 0..1) the ghost passes over card [i]'s spot: it drops it.
+  static final List<double> _drops = [
+    for (var i = 0; i < 5; i++)
+      () {
+        for (var k = 40; k <= 100; k++) {
+          if (_swoosh(k / 100).dx >= _fanAt(i).dx - 10) return k / 100;
+        }
+        return 1.0;
+      }(),
+  ];
+
+  static const _swooshFrom = 0.28, _swooshTo = 0.8;
+
+  Widget _scene(double t, double loop) {
+    // 0–0.12 riffle, 0.06–0.28 the ghost rises behind the deck, 0.28–0.8
+    // the swoosh, each card flying to the fan as he passes.
+    final riffle = t < 0.12 ? sin(t / 0.12 * pi * 3) : 0.0;
+    final rise = Curves.easeOutBack.transform(((t - 0.06) / 0.22).clamp(0.0, 1.0));
+    final s = Curves.easeInOutSine.transform(((t - _swooshFrom) / (_swooshTo - _swooshFrom)).clamp(0.0, 1.0));
+    final swooshing = t >= _swooshFrom;
+    final gone = s >= 1;
+    final ghostAt = swooshing ? _swoosh(s) : _risen;
+    final ghostScale = swooshing ? 1 + 0.45 * sin(min(s, 0.5) / 0.5 * pi / 2) : 1.0;
+    // Leans into the turn.
+    final ahead = _swoosh(min(1, s + 0.02)) - _swoosh(s);
+    final lean = swooshing ? (ahead.dx.sign * 0.25 * min(1, ahead.distance / 8)) : 0.0;
+    final split = _split(loop) + (swooshing && !gone ? 6 : 0);
+    Widget ghost() => GhostMark(key: const Key('launch ghost'), size: 128, split: split);
+
+    final cards = <Widget>[];
+    for (var i = 0; i < 5; i++) {
+      final drop = _drops[i];
+      final dropT = _swooshFrom + drop * (_swooshTo - _swooshFrom);
+      final u = ((t - dropT) / 0.16).clamp(0.0, 1.0);
+      if (u <= 0) continue;
+      final from = _swoosh(drop) + const Offset(0, 40);
+      final land = Curves.easeOutBack.transform(u);
+      final bob = u >= 1 ? sin(loop * 2 * pi + i * 0.9) * 3 : 0.0;
+      final at = Offset.lerp(from, _fanAt(i), land)! + Offset(0, bob);
+      cards.add(
+        Transform.translate(
+          offset: at,
+          child: Transform.rotate(
+            angle: (i - 2) * 0.22 * land + (1 - u) * (i.isEven ? 1.2 : -1.2),
+            child: CardView(card: _fan[i], width: 64, faceUp: u > 0.45),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 260,
+      height: 236,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // Rising behind the deck (clipped at its top edge).
+          if (!swooshing)
+            Positioned.fill(
+              bottom: 76,
+              child: ClipRect(
+                child: OverflowBox(
+                  maxHeight: 400,
+                  alignment: Alignment.bottomCenter,
+                  child: Transform.translate(offset: Offset(0, (1 - rise) * 150 - 3), child: ghost()),
+                ),
+              ),
+            ),
+          // The deck, until he sweeps it up.
+          if (s < 0.12)
+            for (var i = 0; i < 4; i++)
+              Transform.translate(
+                offset: Offset(riffle * (i.isEven ? 7 : -7), 75 - i * 2.0),
+                child: Transform.rotate(
+                  angle: (i - 1.5) * 0.03 + riffle * (i.isEven ? 0.06 : -0.06),
+                  child: CardView(card: _back, width: 64, faceUp: false),
+                ),
+              ),
+          ...cards,
+          // Swooshing in front.
+          if (swooshing && !gone)
+            Transform.translate(
+              offset: ghostAt,
+              child: Transform.rotate(
+                angle: lean,
+                child: Transform.scale(scale: ghostScale, child: ghost()),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -131,55 +249,12 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
                   animation: Listenable.merge([_intro, _loop]),
                   builder: (context, _) {
                     final t = _intro.value, loop = _loop.value;
-                    // 0–0.35 riffle, 0.25–0.75 the ghost rises, 0.65–0.85
-                    // its glints pop, 0.55–1 title in.
-                    final riffle = t < 0.35 ? sin(t / 0.35 * pi * 3) : 0.0;
-                    final rise = Curves.easeOutBack.transform(((t - 0.25) / 0.5).clamp(0.0, 1.0));
-                    final pop = Curves.elasticOut.transform(((t - 0.65) / 0.35).clamp(0.0, 1.0));
-                    // Glints wink every loop once they're in.
-                    final wink = 1 + 0.5 * max(0.0, sin((loop - 0.1) * 2 * pi * 2) - 0.6) / 0.4;
-                    final bob = sin(loop * 2 * pi) * 4 * rise;
-                    final title = Curves.elasticOut.transform(((t - 0.55) / 0.45).clamp(0.0, 1.0));
+                    final title = Curves.elasticOut.transform(((t - 0.72) / 0.28).clamp(0.0, 1.0));
                     return Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SizedBox(
-                            width: 240,
-                            height: 236,
-                            child: Stack(
-                              alignment: Alignment.bottomCenter,
-                              children: [
-                                // The ghost comes up from behind the deck
-                                // (clipped at its top edge).
-                                Positioned.fill(
-                                  bottom: 92,
-                                  child: ClipRect(
-                                    child: Align(
-                                      alignment: Alignment.bottomCenter,
-                                      child: Transform.translate(
-                                        offset: Offset(0, (1 - rise) * 140 - 10 + bob),
-                                        child: GhostMark(
-                                          key: const Key('launch ghost'),
-                                          size: 128,
-                                          split: _split(loop),
-                                          glint: pop * wink,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                for (var i = 0; i < 4; i++)
-                                  Transform.translate(
-                                    offset: Offset(riffle * (i.isEven ? 7 : -7), -i * 2.0),
-                                    child: Transform.rotate(
-                                      angle: (i - 1.5) * 0.03 + riffle * (i.isEven ? 0.06 : -0.06),
-                                      child: CardView(card: _back, width: 64, faceUp: false),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+                          _scene(t, loop),
                           const SizedBox(height: 18),
                           Transform.scale(
                             scale: title,
@@ -190,7 +265,7 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
                           ),
                           const SizedBox(height: 6),
                           Opacity(
-                            opacity: ((t - 0.7) / 0.3).clamp(0.0, 1.0),
+                            opacity: ((t - 0.8) / 0.2).clamp(0.0, 1.0),
                             child: Text(
                               '$_line…',
                               key: const Key('launch line'),
