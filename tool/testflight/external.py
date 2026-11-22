@@ -73,11 +73,11 @@ def main():
     if locs:
         for loc in locs:
             call('PATCH', f"/betaBuildLocalizations/{loc['id']}", json={
-                'data': {'type': 'betaBuildLocalizations', 'id': loc['id'], 'attributes': {'whatToTest': notes}}})
+                'data': {'type': 'betaBuildLocalizations', 'id': loc['id'], 'attributes': {'whatsNew': notes}}})
     else:
         call('POST', '/betaBuildLocalizations', json={'data': {
             'type': 'betaBuildLocalizations',
-            'attributes': {'locale': 'en-US', 'whatToTest': notes},
+            'attributes': {'locale': 'en-US', 'whatsNew': notes},
             'relationships': {'build': {'data': {'type': 'builds', 'id': bid}}}}})
 
     call('POST', f'/betaGroups/{gid}/relationships/builds', json={'data': [{'type': 'builds', 'id': bid}]})
