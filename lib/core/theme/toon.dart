@@ -39,9 +39,19 @@ abstract final class Toon {
 
   /// Playing card faces stay white in both modes.
   static const cardFace = Color(0xFFFFFDF7);
-  static const felt = Color(0xFF3DA35D);
+  /// The card tables' felt and rail: the store's `TableFelt` you picked
+  /// (classic green and wood until then).
+  static Color get felt => _felt;
+  static Color get wood => _wood;
+  static Color _felt = feltClassic, _wood = woodBrown;
+  static void useFelt(Color felt, Color rail) {
+    _felt = felt;
+    _wood = rail;
+  }
+
+  static const feltClassic = Color(0xFF3DA35D);
   static const feltDark = Color(0xFF2C7A45);
-  static const wood = Color(0xFFB0703A);
+  static const woodBrown = Color(0xFFB0703A);
   static const woodDark = Color(0xFF7A4520);
   static const yellow = Color(0xFFFFC745);
   static const orange = Color(0xFFFF8A3D);

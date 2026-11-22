@@ -279,10 +279,10 @@ class _ShovelPainter extends CustomPainter {
     canvas.rotate(0.5);
     // Handle: a wooden shaft and a T grip.
     final shaft = RRect.fromRectAndRadius(const Rect.fromLTRB(-2.5, -32, 2.5, 6), const Radius.circular(2));
-    canvas.drawRRect(shaft, _fill(Toon.wood));
+    canvas.drawRRect(shaft, _fill(Toon.woodBrown));
     canvas.drawRRect(shaft, _ink(1.6));
     final grip = RRect.fromRectAndRadius(const Rect.fromLTRB(-8, -36, 8, -30), const Radius.circular(3));
-    canvas.drawRRect(grip, _fill(Toon.wood));
+    canvas.drawRRect(grip, _fill(Toon.woodBrown));
     canvas.drawRRect(grip, _ink(1.6));
     // Blade: the spade suit, point down, in steel.
     final blade = suitPath(Suit.spades, 26).transform(

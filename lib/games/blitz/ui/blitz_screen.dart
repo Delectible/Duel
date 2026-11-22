@@ -620,7 +620,7 @@ class _SwordsPainter extends CustomPainter {
     canvas.drawRRect(guard, Paint()..color = Toon.yellow);
     canvas.drawRRect(guard, ink);
     final grip = Rect.fromLTRB(-r * 0.07, r * 0.56, r * 0.07, r * 0.88);
-    canvas.drawRect(grip, Paint()..color = Toon.wood);
+    canvas.drawRect(grip, Paint()..color = Toon.woodBrown);
     canvas.drawRect(grip, ink);
     canvas.drawCircle(Offset(0, r * 0.94), r * 0.08, Paint()..color = Toon.yellow);
     canvas.drawCircle(Offset(0, r * 0.94), r * 0.08, ink);

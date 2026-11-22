@@ -16,6 +16,7 @@ import '../party/version_notice.dart';
 import '../preview/game_preview_screen.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
+import '../store/store_screen.dart';
 import 'connection_bar.dart';
 
 /// The connection bar, then the games. Games that don't fit the table
@@ -160,6 +161,8 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
+        _StoreButton(ready: account.dailyReady),
+        const SizedBox(width: 10),
         ToonButton(
           key: const Key('settings'),
           color: Toon.card,
@@ -172,6 +175,55 @@ class _TopBar extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The store, with a dot when a daily challenge is ready to collect.
+class _StoreButton extends StatelessWidget {
+  const _StoreButton({required this.ready});
+
+  final int ready;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      ToonButton(
+        key: const Key('store'),
+        color: Toon.yellow,
+        padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+        tooltip: 'Store',
+        onPressed: () =>
+            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const StoreScreen())),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.storefront_rounded, size: 26, color: Toon.inkLight),
+            const SizedBox(width: 6),
+            Text(
+              'Store',
+              style: Toon.text(16, weight: FontWeight.w700, color: Toon.inkLight),
+            ),
+          ],
+        ),
+      ),
+      if (ready > 0)
+        Positioned(
+          right: -5,
+          top: -5,
+          child: Container(
+            key: const Key('store ready'),
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: Toon.box(Toon.red, radius: 11, shadow: 0),
+            child: Text(
+              '$ready',
+              style: Toon.text(12, weight: FontWeight.w700, color: Colors.white),
+            ),
+          ),
+        ),
+    ],
+  );
 }
 
 /// The way into the Poker Lounge (Hold'em in all its forms): a tile in the

@@ -8,6 +8,9 @@ import 'achievements.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/poker/reads.dart';
 import '../sound/sound.dart';
+import '../store/cosmetics.dart';
+import '../store/daily.dart';
+import '../store/shop.dart';
 import '../theme/toon.dart';
 
 /// How money is shown. One pip is one of anything: it's display only.
@@ -96,6 +99,8 @@ class MemoryStore implements AccountStore {
 class Account extends ChangeNotifier {
   Account({AccountStore? store}) : _store = store ?? MemoryStore() {
     _read();
+    CardBack.chosen = _back;
+    TableFelt.chosen = _felt;
     // The app closed at a cash table: those chips come back now.
     if (_cashChips case final chips?) cashOut(chips);
   }
@@ -334,8 +339,140 @@ class Account extends ChangeNotifier {
       }
       st.net += prize - stake;
       _unsynced += prize;
+      _dailyGame(gameId, won: prize > stake, stake: stake);
     });
     return prize - stake;
+  }
+
+  // --- The store -------------------------------------------------------------
+
+  /// Items bought (or worn before the store opened). Free ones are owned
+  /// by everyone.
+  final Set<String> _owned = {};
+  CardBack _back = CardBack.classic;
+  TableFelt _felt = TableFelt.classic;
+  final Set<String> _setsDone = {};
+
+  bool owns(ShopItem item) => item.free || _owned.contains(item.id);
+  bool ownsId(String id) {
+    final item = Shop.byId[id];
+    return item != null && owns(item);
+  }
+
+  /// Enough pips (no buying on credit).
+  bool canAfford(ShopItem item) => balance >= item.price;
+
+  CardBack get cardBack => _back;
+  TableFelt get felt => _felt;
+
+  set cardBack(CardBack b) => _change(() => CardBack.chosen = _back = b);
+  set felt(TableFelt f) => _change(() => TableFelt.chosen = _felt = f);
+
+  /// Sets you've finished (their badges).
+  List<Collection> get collectionsDone => [
+    for (final c in Shop.collections)
+      if (_setsDone.contains(c.id)) c,
+  ];
+
+  /// How many of [c]'s items you own.
+  int ownedIn(Collection c) => c.items.where(ownsId).length;
+
+  /// Buys [item] (and puts it on). Returns the sets it finished (their
+  /// prizes paid), or null if it can't be bought.
+  List<Collection>? buy(ShopItem item) {
+    if (owns(item) || !canAfford(item)) return null;
+    final done = <Collection>[];
+    _change(() {
+      _unsynced -= item.price;
+      _owned.add(item.id);
+      for (final c in Shop.collections) {
+        if (!_setsDone.contains(c.id) && c.items.every(ownsId)) {
+          _setsDone.add(c.id);
+          _unsynced += c.prize;
+          done.add(c);
+        }
+      }
+    });
+    wear(item);
+    return done;
+  }
+
+  /// Puts on an item you own.
+  void wear(ShopItem item) {
+    if (!owns(item)) return;
+    switch (item.kind) {
+      case ItemKind.face:
+        avatar = _avatar.withPart(item.part!, item.value!);
+      case ItemKind.back:
+        cardBack = item.back!;
+      case ItemKind.felt:
+        felt = item.felt!;
+    }
+  }
+
+  /// Wearing [item] now.
+  bool wearing(ShopItem item) => switch (item.kind) {
+    ItemKind.face => _avatar.partValue(item.part!) == item.value,
+    ItemKind.back => _back == item.back,
+    ItemKind.felt => _felt == item.felt,
+  };
+
+  // --- Daily challenges --------------------------------------------------------
+
+  String? _day;
+  List<int> _dailyProgress = [0, 0, 0];
+  final Set<int> _dailyClaimed = {};
+  final Set<String> _dailyPlayed = {};
+
+  void _rollDay() {
+    final today = _today();
+    if (_day == today) return;
+    _day = today;
+    _dailyProgress = [0, 0, 0];
+    _dailyClaimed.clear();
+    _dailyPlayed.clear();
+  }
+
+  /// Today's three challenges.
+  List<Challenge> get daily => Challenge.forDay(_today());
+
+  /// How far along challenge [i] is (capped at its goal).
+  int dailyProgress(int i) {
+    _rollDay();
+    return min(_dailyProgress[i], daily[i].goal);
+  }
+
+  bool dailyDone(int i) => dailyProgress(i) >= daily[i].goal;
+  bool dailyClaimed(int i) {
+    _rollDay();
+    return _dailyClaimed.contains(i);
+  }
+
+  /// Challenges finished and waiting to be collected.
+  int get dailyReady => [0, 1, 2].where((i) => dailyDone(i) && !dailyClaimed(i)).length;
+
+  /// Collects a finished challenge's reward.
+  bool claimDaily(int i) {
+    if (!dailyDone(i) || dailyClaimed(i)) return false;
+    _change(() {
+      _dailyClaimed.add(i);
+      _unsynced += daily[i].reward;
+    });
+    return true;
+  }
+
+  void _dailyGame(String gameId, {required bool won, required int stake, Difficulty? difficulty}) {
+    _rollDay();
+    if (gameId != 'blackjack') _dailyPlayed.add(gameId);
+    final today = daily;
+    for (var i = 0; i < 3; i++) {
+      final c = today[i];
+      if (c.kind == ChallengeKind.variety) {
+        _dailyProgress[i] = _dailyPlayed.length;
+      } else {
+        _dailyProgress[i] += c.progress(gameId: gameId, won: won, stake: stake, difficulty: difficulty);
+      }
+    }
   }
 
   // --- Cash tables (local) ----------------------------------------------------
@@ -405,6 +542,7 @@ class Account extends ChangeNotifier {
         st.tied++;
       }
       st.net += back - staked;
+      _dailyGame(gameId, won: back > staked, stake: staked);
     });
   }
 
@@ -486,6 +624,7 @@ class Account extends ChangeNotifier {
         delta = paid ?? -stake;
     }
     st.net += delta;
+    _dailyGame(gameId, won: outcome == Outcome.win, stake: stake, difficulty: difficulty);
     _save();
     notifyListeners();
     return delta;
@@ -505,6 +644,25 @@ class Account extends ChangeNotifier {
       _name = j['name'] as String? ?? _name;
       final face = j['face'];
       if (face is Map<String, dynamic>) _avatar = Avatar.fromJson(face);
+      // Whatever you wore before the store opened is yours.
+      final owned = j['owned'];
+      if (owned is List) {
+        _owned.addAll(owned.whereType<String>());
+      } else {
+        _owned.addAll(Shop.idsOf(_avatar));
+      }
+      _back = CardBack.values.asNameMap()[j['back']] ?? CardBack.classic;
+      _felt = TableFelt.values.asNameMap()[j['felt']] ?? TableFelt.classic;
+      final sets = j['sets'];
+      if (sets is List) _setsDone.addAll(sets.whereType<String>());
+      final day = j['daily'];
+      if (day is Map && day['d'] is String) {
+        _day = day['d'] as String;
+        final p = day['p'];
+        if (p is List && p.length == 3 && p.every((x) => x is int)) _dailyProgress = p.cast<int>().toList();
+        _dailyClaimed.addAll((day['c'] as List? ?? const []).whereType<int>());
+        _dailyPlayed.addAll((day['g'] as List? ?? const []).whereType<String>());
+      }
       _base = j['balance'] as int? ?? startingBalance;
       _unsynced = j['unsynced'] as int? ?? 0;
       _synced = j['wallet'] as bool? ?? false;
@@ -562,6 +720,17 @@ class Account extends ChangeNotifier {
     jsonEncode({
       'name': _name,
       'face': _avatar.toJson(),
+      'owned': [..._owned],
+      if (_back != CardBack.classic) 'back': _back.name,
+      if (_felt != TableFelt.classic) 'felt': _felt.name,
+      if (_setsDone.isNotEmpty) 'sets': [..._setsDone],
+      if (_day != null)
+        'daily': {
+          'd': _day,
+          'p': _dailyProgress,
+          'c': [..._dailyClaimed],
+          'g': [..._dailyPlayed],
+        },
       'balance': _base,
       if (_unsynced != 0) 'unsynced': _unsynced,
       if (_synced) 'wallet': true,

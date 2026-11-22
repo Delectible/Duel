@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
 import '../../core/avatars/faces.dart';
+import '../../core/store/shop.dart';
 import '../../core/theme/split_page.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
+import '../store/store_screen.dart';
 
 /// Your name, your face, your money and how each game has gone.
 class ProfileScreen extends StatefulWidget {
@@ -86,6 +88,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          if (account.collectionsDone.isNotEmpty) ...[
+            Text('Badges', style: Toon.text(16)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final c in account.collectionsDone)
+                  Tooltip(
+                    message: '${c.name} set',
+                    child: SetBadge(key: Key('badge ${c.id}'), set: c, size: 38),
+                  ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
         ],
         right: [
@@ -134,6 +151,17 @@ class _AvatarPickerState extends State<_AvatarPicker> {
     (FacePart.extra, 'Extras', Icons.auto_awesome_rounded, Extra.values),
   ];
 
+  /// A random face from the parts you own.
+  static Avatar _surprise(Account account) {
+    var face = Avatar.random(Random());
+    for (final part in FacePart.values) {
+      if (!account.owns(ShopItem.face(part, face.partValue(part)))) {
+        face = face.withPart(part, account.avatar.partValue(part));
+      }
+    }
+    return face;
+  }
+
   @override
   Widget build(BuildContext context) {
     final account = widget.account;
@@ -154,7 +182,7 @@ class _AvatarPickerState extends State<_AvatarPicker> {
               color: Toon.yellow,
               radius: 12,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              onPressed: () => account.avatar = Avatar.random(Random()),
+              onPressed: () => account.avatar = _surprise(account),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -206,9 +234,18 @@ class _AvatarPickerState extends State<_AvatarPicker> {
                   () {
                     final option = a.withPart(_part, v);
                     final on = a.partValue(_part) == v;
+                    final item = ShopItem.face(_part, v);
+                    final locked = !account.owns(item);
                     return GestureDetector(
                       key: Key('pick ${_part.name} ${v.name}'),
-                      onTap: () => account.avatar = option,
+                      // Locked: the store, on that item.
+                      onTap: locked
+                          ? () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => StoreScreen(tab: StoreTab.face, item: item),
+                              ),
+                            )
+                          : () => account.avatar = option,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         width: size,
@@ -227,6 +264,42 @@ class _AvatarPickerState extends State<_AvatarPicker> {
                                 )
                               else
                                 Face.of(option, size: size - 8),
+                              if (locked)
+                                Positioned.fill(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Toon.paper.withValues(alpha: 0.45),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                              if (locked)
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: Toon.box(Toon.yellow, radius: 6, shadow: 0),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.lock_rounded, size: 11, color: Toon.inkLight),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            chips(item.price),
+                                            style: Toon.text(
+                                              10,
+                                              weight: FontWeight.w700,
+                                              color: Toon.inkLight,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               if (v.name == 'none')
                                 Positioned(
                                   right: 0,

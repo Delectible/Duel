@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../store/cosmetics.dart';
 import '../theme/toon.dart';
 import 'package:duel_engine/cards.dart';
 
@@ -271,7 +272,7 @@ class _CardBack extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: gold ? const Color(0xFF1E1B1A) : Toon.red,
+      color: gold ? const Color(0xFF1E1B1A) : CardBack.chosen.color,
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(color: gold ? cardGold : Toon.inkLight, width: border),
     ),
@@ -284,7 +285,7 @@ class _CardBack extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius * 0.6),
         child: CustomPaint(
-          painter: _BackPattern(gold: gold),
+          painter: BackPatternPainter(CardBack.chosen, gold: gold),
           child: const SizedBox.expand(),
         ),
       ),
@@ -292,24 +293,3 @@ class _CardBack extends StatelessWidget {
   );
 }
 
-/// Diagonal criss-cross on the card back.
-class _BackPattern extends CustomPainter {
-  _BackPattern({this.gold = false});
-
-  final bool gold;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = (gold ? cardGold : Toon.cardFace).withValues(alpha: 0.35)
-      ..strokeWidth = size.width * 0.08;
-    final step = size.width / 3;
-    for (var x = -size.height; x < size.width + size.height; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), paint);
-      canvas.drawLine(Offset(x + size.height, 0), Offset(x, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_BackPattern old) => old.gold != gold;
-}

@@ -3,7 +3,9 @@ import 'package:duel/core/avatars/faces.dart';
 import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/core/theme/toon.dart';
 import 'package:duel/core/sound/sound.dart';
+import 'package:duel/core/store/shop.dart';
 import 'package:duel/features/profile/profile_screen.dart';
+import 'package:duel/features/store/store_screen.dart';
 import 'package:duel/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +24,12 @@ void main() {
   for (final MapEntry(key: phone, value: size) in phones.entries) {
     testWidgets('profile on $phone: build your face from parts', (tester) async {
       usePhone(tester, size);
-      final a = Account();
+      final a = Account()..setBalance(5000);
+      // Lilac, shiny eyes and the wizard hat come from the store.
+      for (final id in ['color.lilac', 'eyes.shiny', 'hat.wizard']) {
+        expect(a.buy(Shop.byId[id]!), isNotNull);
+      }
+      a.avatar = const Avatar();
       await tester.pumpWidget(_wrap(const ProfileScreen(), a));
       await tester.pumpAndSettle();
       expect(a.avatar, const Avatar());
@@ -76,6 +83,23 @@ void main() {
       await shot(tester, 'profile_$phone');
     });
   }
+
+  testWidgets('a locked part opens the store on it', (tester) async {
+    usePhone(tester, phones.values.first);
+    final a = Account();
+    await tester.pumpWidget(_wrap(const ProfileScreen(), a));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('tab hat')));
+    await tester.tap(find.byKey(const Key('tab hat')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('pick hat crown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pick hat crown')));
+    await tester.pumpAndSettle();
+    expect(find.byType(StoreScreen), findsOneWidget);
+    expect(a.avatar.hat, isNot(Hat.crown));
+    expect(find.text('Crown'), findsOneWidget);
+  });
 
   testWidgets('Surprise me changes the face', (tester) async {
     usePhone(tester, phones.values.first);
