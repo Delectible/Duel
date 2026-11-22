@@ -52,9 +52,7 @@ together, GamePigeon-easy. Let it guide design and development choices.
   are on the phone only, not synced); Tournament and
   Boss Tables are bots only (friends later); Goofspiel, Blackjack and
   Bank! are bots only for now (online next; Blackjack table limits are a
-  first guess); Blackjack online tables' rules are a first guess; new
-  sounds wait on Luca's picks from the samples artifact
-  (https://claude.ai/artifact/7qkGReaZUkhEotHQ8q3JeD); cash stakes / unlocks, boss
+  first guess); Blackjack online tables' rules are a first guess; cash stakes / unlocks, boss
   stakes / quirks and tournament buy-ins are first guesses Luca may
   change; Play's Data safety form still needs the online pips balance
   (App activity > Other actions) and User IDs as required; the release
@@ -315,7 +313,9 @@ weights cut from the variable font.
   gapMs)` (match the game's deal animation; each recording has a `_Pool`
   of players loaded once, stopped and replayed: low-latency players never
   hear a sound end)
-  (audioplayers, SPM on iOS; mp3s in `assets/sounds/`, Kenney CC0). Silent
+  (audioplayers, SPM on iOS; mp3s in `assets/sounds/`: Kenney CC0 plus
+  our own synthesized wins / losses / turn / tension / clash, made by
+  `tool/sounds/synth_round*.py`, see `CREDITS.txt`). Silent
   until `Sound.start()` in main(), so tests stay quiet; Android: game
   usage on the media volume, no audio focus (mixes with Spotify); iOS:
   ambient (mixes, silent switch); music plays from memory on Android; `Account.sound` /

@@ -916,10 +916,13 @@ Bots first; online with a party comes later (each needs the referee).
   `BjService` + `OnlineBjController` (rebuilds each round from the dealt
   cards and plays it back on the same screen, your seat turned to the
   middle).
-- [~] **50.5 New sounds**: samples in three styles (chips & coins,
-  cartoon, soft & musical) at
-  https://claude.ai/artifact/7qkGReaZUkhEotHQ8q3JeD; waiting on Luca's
-  picks.
+- [x] **50.5 New sounds** (picked from the samples artifact
+  https://claude.ai/artifact/7qkGReaZUkhEotHQ8q3JeD): kalimba for small
+  and medium wins, warm keys for the big win and the clash, felt & taps
+  for losses and tension (a soft heartbeat), chip taps for your turn;
+  chips and pot unchanged. Made with `tool/sounds/synth_round*.py`.
+- [x] **50.6 Blackjack Skip**: hurries the bots and dealer along until
+  your move (as in poker); online, bots' cards go by quicker.
   → 1.0.2 · 2026-11-22
 
 ### 49. Promote to TestFlight too (requested 2026-11-22)

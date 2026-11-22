@@ -24,10 +24,9 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Blackjack goes online: shared tables with other players and bots, each table with its own house rules. '
-      'An Online / Local switch on Blackjack and Cash Games (Local Blackjack keeps your own house rules). The '
-      'Blackjack tile opens the tables straight away, with How to play and Play at home there. Bots leaving no '
-      'longer reshuffle the table.';
+      'Blackjack goes online: shared tables with other players and bots, each with its own house rules, and an '
+      'Online / Local switch on Blackjack and Cash Games. Skip hurries the Blackjack bots along. New, gentler win, '
+      'loss and turn sounds. The Blackjack tile opens the tables straight away, with How to play and Play at home.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
@@ -40,6 +39,7 @@ class AppInfo {
         '3D dice: swipe up to roll',
         'A new intro: the ghost takes the deck',
         'Blackjack online; Online / Local switch',
+        'Gentler win and loss sounds',
       ],
     ),
     (

@@ -1,0 +1,8 @@
+Sounds in this folder:
+
+- deal, place, shuffle, chips, pot, collect, book, drop, fall, tap:
+  Kenney (kenney.nl), CC0 (see LICENSE-kenney.txt).
+- win_small, win_medium (kalimba), win_big (warm keys), lose_small,
+  lose_medium, lose_big, tension (felt & taps), clash (warm keys),
+  your_turn (chip taps): made for Duel with tool/sounds/synth_round2.py
+  and synth_round1.py (numpy + ffmpeg). Ours, free to use.
