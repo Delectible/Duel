@@ -182,9 +182,30 @@ class BjController extends ChangeNotifier {
 
   void _after(int ms, VoidCallback f) {
     _timer?.cancel();
-    _timer = Timer(Duration(milliseconds: (ms * pace).round()), () {
+    _next = f;
+    // Skip: everything goes quickly until it's your move (or the round's
+    // over).
+    final wait = hurrying ? min(ms, 120) : ms;
+    _timer = Timer(Duration(milliseconds: (wait * pace).round()), () {
       if (!_disposed) f();
     });
+  }
+
+  VoidCallback? _next;
+
+  /// The skip button: the bots and the dealer play quickly until it's your
+  /// move again or the round's over.
+  bool hurrying = false;
+
+  /// Others are playing (or the dealer is) and can be hurried along.
+  bool get canHurry =>
+      !hurrying && !yourTurn && (phase == BjPhase.playing || phase == BjPhase.dealer) && _next != null;
+
+  void hurry() {
+    if (!canHurry) return;
+    hurrying = true;
+    _after(80, _next!);
+    _notify();
   }
 
   void _notify() {
@@ -376,6 +397,11 @@ class BjController extends ChangeNotifier {
         _settle();
         return;
     }
+    // Online the bots have already played: their cards go by quicker.
+    final who = _seatOf(e);
+    if (!_local && phase != BjPhase.dealing && who != null && who >= 0 && who != youSeat) {
+      wait = (wait * 0.45).round();
+    }
     _notify();
     _after(wait, _playBack);
   }
@@ -387,6 +413,7 @@ class BjController extends ChangeNotifier {
     if (t == null) return; // the dealer's events follow
     phase = BjPhase.playing;
     if (t.$1 == youSeat) {
+      hurrying = false;
       Sound.play(Sfx.yourTurn, gain: 0.7);
       _notify();
       return;
@@ -436,6 +463,7 @@ class BjController extends ChangeNotifier {
   }
 
   void _settle() {
+    hurrying = false;
     final r = round!;
     resultsUp = true;
     phase = BjPhase.paid;
@@ -475,6 +503,11 @@ class BjController extends ChangeNotifier {
     _notify();
     _afterRound();
   }
+
+  static int? _seatOf(BjEvent e) => switch (e) {
+    BjDealt(:final seat) || BjMoved(:final seat) || BjBusted(:final seat) => seat,
+    _ => null,
+  };
 
   /// Insurance is on offer: you decide (Insurance / No); sitting out, the
   /// bots just do.

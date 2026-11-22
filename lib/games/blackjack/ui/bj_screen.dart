@@ -1108,13 +1108,45 @@ class _Controls extends StatelessWidget {
     } else {
       body = SizedBox(
         height: 48,
-        child: Center(
-          child: Text(switch (c.phase) {
-            BjPhase.dealing => 'Dealing…',
-            BjPhase.dealer => 'Dealer\'s turn…',
-            BjPhase.paid => 'Next hand coming up…',
-            _ => 'Waiting…',
-          }, style: Toon.text(16, color: Toon.muted)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                c.hurrying
+                    ? 'Hurrying along…'
+                    : switch (c.phase) {
+                        BjPhase.dealing => 'Dealing…',
+                        BjPhase.dealer => 'Dealer\'s turn…',
+                        BjPhase.paid => 'Next hand coming up…',
+                        BjPhase.playing => 'Others are playing…',
+                        _ => 'Waiting…',
+                      },
+                textAlign: TextAlign.center,
+                style: Toon.text(16, color: Toon.muted),
+              ),
+            ),
+            // Bots and the dealer take their time; this hurries them along.
+            if (c.canHurry) ...[
+              const SizedBox(width: 10),
+              ToonButton(
+                key: const Key('hurry'),
+                color: Toon.yellow,
+                radius: 14,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                tooltip: 'Hurry the bots up',
+                onPressed: c.hurry,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.fast_forward_rounded, size: 20),
+                    const SizedBox(width: 4),
+                    Text('Skip', style: Toon.text(15, weight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
       );
     }

@@ -47,7 +47,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
       }
       await shot(tester, 'bj_bet_$phone');
-      var hands = 0, moves = 0, insured = 0, shotPlay = false, shotPaid = false;
+      var hands = 0, moves = 0, insured = 0, skipped = 0, shotPlay = false, shotPaid = false;
       for (var i = 0; i < 60000; i++) {
         await tester.pump(const Duration(milliseconds: 20));
         expect(tester.takeException(), isNull);
@@ -56,6 +56,9 @@ void main() {
           if (hands == 1) await tester.tap(find.byKey(const Key('chip 50')));
           await tester.tap(find.byKey(const Key('deal')));
           hands++;
+        } else if (hands.isOdd && on(tester, const Key('hurry'))) {
+          await tester.tap(find.byKey(const Key('hurry')));
+          skipped++;
         } else if (on(tester, const Key('no insurance'))) {
           await shot(tester, 'bj_insurance_$phone');
           final take = insured.isEven && on(tester, const Key('insure'));
@@ -85,6 +88,7 @@ void main() {
         }
       }
       expect(hands, 6);
+      expect(skipped, greaterThan(0), reason: 'Skip shows while the others play');
       expect(account.stats('blackjack').played, greaterThanOrEqualTo(5));
       expect(account.balance, isNot(1000), reason: 'money moved');
       expect(account.balance - 1000, account.stats('blackjack').net);

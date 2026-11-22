@@ -211,6 +211,7 @@ class OnlineBjController extends BjController {
   void _decide() {
     final r = round!;
     _idle = true;
+    if (r.turn?.$1 == youSeat) hurrying = false;
     if (r.insuring) return;
     final t = r.turn;
     if (t == null) return;
