@@ -48,18 +48,13 @@ void main() {
     });
   }
 
-  testWidgets('warns about a threat and marks the column', (tester) async {
+  testWidgets('never hints at threats', (tester) async {
     usePhone(tester, phones['pixel9pro']!);
     await tester.pumpWidget(app(d: Difficulty.easy, seed: 3));
-    // Feed the edge columns so the bot builds something we must watch.
-    var warned = false;
-    for (var i = 0; i < 4000 && !warned && !has(const Key('again')); i++) {
+    for (var i = 0; i < 4000 && !has(const Key('again')); i++) {
       await tester.pump(const Duration(milliseconds: 20));
-      if (find.textContaining('Watch out').evaluate().isNotEmpty) {
-        warned = true;
-        await shot(tester, 'row_warning');
-        break;
-      }
+      expect(find.textContaining('Watch out'), findsNothing);
+      expect(find.byIcon(Icons.arrow_downward_rounded), findsNothing);
       for (final col in [0, 6, 0, 6, 1, 5, 2, 4, 3]) {
         if (live(tester, col)) {
           await tester.tap(find.byKey(Key('col $col')));
@@ -67,6 +62,5 @@ void main() {
         }
       }
     }
-    expect(warned || has(const Key('again')), isTrue);
   });
 }

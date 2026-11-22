@@ -18,8 +18,6 @@ abstract interface class RowTable implements Listenable {
   /// The other side is to move.
   bool get thinking;
   bool get yourTurn;
-  List<int> get yourWins;
-  List<int> get threats;
 
   /// The game has ended (online also by a timeout or someone giving up).
   bool get over;
@@ -65,12 +63,6 @@ class RowController extends ChangeNotifier implements RowTable {
   bool get draw => game.draw;
   @override
   bool get youWon => game.winner == 0;
-
-  /// Columns where you'd win now / where the bot would (to block).
-  @override
-  List<int> get yourWins => game.isOver ? const [] : game.winningMoves(0);
-  @override
-  List<int> get threats => game.isOver ? const [] : game.winningMoves(1);
 
   void _start(int first) {
     game = FourInARow(first: first);
@@ -142,13 +134,6 @@ class RowController extends ChangeNotifier implements RowTable {
     if (thinking) {
       final last = g.moves.isEmpty ? null : 'You dropped in column ${g.moves.last + 1}';
       return last == null ? '${bot.name} goes first and is thinking…' : '$last  ·  ${bot.name} is thinking…';
-    }
-    final wins = yourWins, danger = threats;
-    if (wins.isNotEmpty) return 'You can win right now: column ${wins.first + 1}!';
-    if (danger.isNotEmpty) {
-      return danger.length > 1
-          ? "Watch out: ${bot.name} can win in two places (${danger.map((c) => c + 1).join(' and ')}). Block one!"
-          : 'Watch out: ${bot.name} can win in column ${danger.first + 1}. Block it!';
     }
     // On your turn the last move was the bot's.
     final botLast = g.moves.isEmpty ? null : g.moves.last;

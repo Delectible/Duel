@@ -431,17 +431,97 @@ class GopsArt extends StatelessWidget {
   ]);
 }
 
-// --- Blackjack: an Ace and a King, and the chips ----------------------------
+// --- Blackjack Tables: the half-moon table, dealer's tray, an Ace up ---------
 
 class BlackjackArt extends StatelessWidget {
   const BlackjackArt({super.key});
 
   @override
   Widget build(BuildContext context) => _scene([
-    _card('Ac', 34, angle: -0.18, at: const Offset(-18, -2)),
-    _card('Kh', 34, angle: 0.1, at: const Offset(-2, -4)),
-    Positioned(right: 0, bottom: -2, child: _paint(_ChipsPainter(), size: const Size(34, 34))),
+    _paint(_HalfMoonPainter()),
+    Transform.translate(
+      offset: const Offset(-7, 4),
+      child: Transform.rotate(angle: -0.08, child: CardView(card: PlayingCard.parse('As'), width: 22)),
+    ),
+    Transform.translate(
+      offset: const Offset(9, 3),
+      child: Transform.rotate(
+        angle: 0.12,
+        child: CardView(card: PlayingCard.parse('Kh'), width: 22, faceUp: false),
+      ),
+    ),
+    Positioned(right: 2, bottom: 0, child: _paint(_TwentyOnePainter(), size: const Size(22, 22))),
   ]);
+}
+
+/// A blackjack table from above: a half moon of felt (flat side to the
+/// dealer), a gold rail, the "pays 3 to 2" arc and the dealer's chip tray.
+class _HalfMoonPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final top = 8.0, r = w * 0.5 - 2;
+    final table = Path()
+      ..moveTo(w / 2 - r, top)
+      ..lineTo(w / 2 + r, top)
+      ..arcToPoint(Offset(w / 2 - r, top), radius: Radius.elliptical(r, h - top - 4), clockwise: true)
+      ..close();
+    // Rail, then felt inside it.
+    _shape(canvas, table, const Color(0xFF6B3E22), 2.2);
+    final felt = Path()
+      ..moveTo(w / 2 - r + 4, top + 1)
+      ..lineTo(w / 2 + r - 4, top + 1)
+      ..arcToPoint(
+        Offset(w / 2 - r + 4, top + 1),
+        radius: Radius.elliptical(r - 4, h - top - 9),
+        clockwise: true,
+      )
+      ..close();
+    canvas.drawPath(felt, _fill(const Color(0xFF1F8A4C)));
+    // The gold arc where "Blackjack pays 3 to 2" is printed.
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(w / 2, top), width: r * 1.3, height: (h - top) * 1.15),
+      0.35,
+      pi - 0.7,
+      false,
+      Paint()
+        ..color = Toon.yellow
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+    // The dealer's chip tray along the flat edge.
+    final tray = RRect.fromRectAndRadius(Rect.fromLTWH(w / 2 - 17, top - 5, 34, 8), const Radius.circular(2));
+    canvas.drawRRect(tray, _fill(const Color(0xFF3A2414)));
+    for (final (i, c) in [Toon.red, Toon.blue, Toon.green, Toon.yellow, Toon.purple].indexed) {
+      canvas.drawRect(Rect.fromLTWH(w / 2 - 15 + i * 6.2, top - 3.5, 4.6, 5), _fill(c));
+    }
+    canvas.drawRRect(tray, _ink(1.4));
+  }
+
+  @override
+  bool shouldRepaint(_HalfMoonPainter oldDelegate) => false;
+}
+
+/// A gold "21" chip.
+class _TwentyOnePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero), r = size.width / 2 - 1;
+    canvas.drawCircle(c, r, _fill(Toon.yellow));
+    canvas.drawCircle(c, r, _ink(1.6));
+    canvas.drawCircle(c, r * 0.68, _ink(1)..color = Toon.inkLight.withValues(alpha: 0.5));
+    final text = TextPainter(
+      text: TextSpan(
+        text: '21',
+        style: Toon.text(r * 0.95, weight: FontWeight.w700, color: Toon.inkLight),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    text.paint(canvas, c - Offset(text.width / 2, text.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(_TwentyOnePainter oldDelegate) => false;
 }
 
 // --- Bank!: two dice mid-roll ------------------------------------------------

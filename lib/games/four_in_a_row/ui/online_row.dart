@@ -78,11 +78,6 @@ class OnlineRowController extends ChangeNotifier implements RowTable {
   bool get yourTurn => _myTurn && _pending == null;
 
   @override
-  List<int> get yourWins => over || game.isOver ? const [] : game.winningMoves(0);
-  @override
-  List<int> get threats => over || game.isOver ? const [] : game.winningMoves(1);
-
-  @override
   bool get over => _m != null && !live;
   @override
   bool get draw => _result['draw'] == true;
@@ -189,13 +184,6 @@ class OnlineRowController extends ChangeNotifier implements RowTable {
       return last == null ? '$name goes first…' : '$last  ·  $name’s turn…';
     }
     if (_pending != null) return 'Sending your move…';
-    final wins = yourWins, danger = threats;
-    if (wins.isNotEmpty) return 'You can win right now: column ${wins.first + 1}!';
-    if (danger.isNotEmpty) {
-      return danger.length > 1
-          ? 'Watch out: $name can win in two places (${danger.map((c) => c + 1).join(' and ')}). Block one!'
-          : 'Watch out: $name can win in column ${danger.first + 1}. Block it!';
-    }
     final theirs = g.moves.isEmpty ? null : g.moves.last;
     final start = theirs == null ? '' : '$name dropped in column ${theirs + 1}. ';
     return '${start}Your turn: tap a column to drop a red disc.';

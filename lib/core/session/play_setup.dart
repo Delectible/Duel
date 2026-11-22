@@ -39,7 +39,7 @@ class PlaySetup extends ChangeNotifier {
 
   PlayMode _mode = PlayMode.bots;
   Difficulty _difficulty = Difficulty.normal;
-  int _botCount = 3;
+  int _botCount = 1;
   PickRule _pickRule = PickRule.host;
 
   PlayMode get mode => _mode;

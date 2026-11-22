@@ -33,8 +33,8 @@ const rowGuide = [
   GuideStage(
     'block',
     'Watch out',
-    "If the bot has three lined up with a free fourth space, block it on your turn. Duel warns you and "
-        'marks the column in red; a green mark means you can win there.',
+    "If the bot has three lined up with a free fourth space, block it on your turn. Nobody will warn you: "
+        'keep an eye on every line, theirs and yours.',
     icon: Icons.warning_amber_rounded,
   ),
   GuideStage(
@@ -184,7 +184,6 @@ class _RowScreenState extends State<RowScreen> {
 
   String? _stage() {
     if (_c.over) return _c.draw ? 'end' : 'win';
-    if (_c.yourTurn && (_c.threats.isNotEmpty || _c.yourWins.isNotEmpty)) return 'block';
     return 'turn';
   }
 
@@ -231,9 +230,7 @@ class _RowScreenState extends State<RowScreen> {
                   commentary: CommentaryStrip(
                     text: _c.commentary(),
                     yourMove: _c.yourTurn,
-                    leading: _c.threats.isNotEmpty && _c.yourTurn
-                        ? const Icon(Icons.warning_amber_rounded, color: Toon.red, size: 30)
-                        : _Disc(color: _c.yourTurn ? Toon.red : Toon.yellow, size: 28),
+                    leading: _Disc(color: _c.yourTurn ? Toon.red : Toon.yellow, size: 28),
                   ),
                   table: Builder(
                     builder: (context) => GameLayout.wide(context)
@@ -418,8 +415,8 @@ class _Player extends StatelessWidget {
 }
 
 /// The blue board: tap a column to drop. The newest disc falls in and
-/// bounces; winning discs pulse with a line through them; green / red
-/// markers over columns where you can win / must block.
+/// bounces; winning discs pulse with a line through them. No hints: you
+/// spot the threats yourself.
 class _Board extends StatelessWidget {
   const _Board({required this.c});
 
@@ -434,8 +431,6 @@ class _Board extends StatelessWidget {
         final g = c.game;
         final last = g.moves.isEmpty ? null : g.moves.last;
         final lastRow = last == null ? null : g.height(last) - 1;
-        final wins = c.yourTurn ? c.yourWins.toSet() : <int>{};
-        final danger = c.yourTurn ? c.threats.toSet() : <int>{};
         return Center(
           child: SizedBox(
             width: width,
@@ -443,23 +438,6 @@ class _Board extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Column markers.
-                for (var col = 0; col < 7; col++)
-                  if (wins.contains(col) || danger.contains(col))
-                    Positioned(
-                      left: col * cell,
-                      top: 0,
-                      width: cell,
-                      height: 34,
-                      child: Pop(
-                        key: ValueKey('mark$col-${g.moves.length}'),
-                        child: Icon(
-                          wins.contains(col) ? Icons.star_rounded : Icons.arrow_downward_rounded,
-                          color: wins.contains(col) ? Toon.green : Toon.red,
-                          size: 30,
-                        ),
-                      ),
-                    ),
                 // The board in layers, like the real thing: discs sit
                 // behind a blue front with holes cut in it, so a dropped
                 // disc shows through each hole as it falls past.

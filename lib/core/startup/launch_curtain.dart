@@ -5,6 +5,7 @@ import 'package:duel_engine/cards.dart';
 import 'package:flutter/material.dart';
 
 import '../cards/card_view.dart';
+import '../theme/ghost_mark.dart';
 import '../theme/toon.dart';
 
 /// What start-up is still doing: the curtain stays up until it's done (so
@@ -28,7 +29,8 @@ abstract final class Startup {
 }
 
 /// The launch screen carried on into the app (as Darkroom does): on Duel's
-/// yellow, a deck riffles and fans out into five cards, "Duel" bounces in,
+/// yellow, a deck riffles, Duel's ghost rises out of it (the app icon's
+/// ghost: scanlines, RGB split, spade glints winking), "Duel" bounces in,
 /// and a line of table chatter shows, until start-up is done; then it all
 /// fades away. Up at least [minimum], at most [maximum].
 class LaunchCurtain extends StatefulWidget {
@@ -68,6 +70,8 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
   late final _intro = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))
     ..forward();
   late final _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
+  // The ghost bobs and glitches while start-up finishes.
+  late final _loop = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))..repeat();
   final String _line = LaunchCurtain.lines[Random().nextInt(LaunchCurtain.lines.length)];
   Timer? _poll;
   var _polls = 0;
@@ -87,6 +91,7 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
     if (waited < widget.maximum && !Startup.ready) return;
     _poll?.cancel();
     _fade.forward().whenComplete(() {
+      _loop.stop();
       if (mounted) setState(() => _up = false);
     });
   }
@@ -95,14 +100,18 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
   void dispose() {
     _poll?.cancel();
     _intro.dispose();
+    _loop.dispose();
     _fade.dispose();
     super.dispose();
   }
 
-  // Red and black take turns, as in every hand in Duel.
-  static final _fan = [
-    for (final s in ['As', 'Kh', 'Qc', 'Jd', '10s']) PlayingCard.parse(s),
-  ];
+  static final _back = PlayingCard.parse('As');
+
+  /// The ghost's RGB split: the icon's 5, with a jolt now and then.
+  static double _split(double loop) {
+    final jolt = (loop > 0.62 && loop < 0.68) || (loop > 0.71 && loop < 0.74);
+    return jolt ? 11 : 5 + sin(loop * 2 * pi) * 1.2;
+  }
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -119,12 +128,17 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
               color: Toon.yellow,
               child: RepaintBoundary(
                 child: AnimatedBuilder(
-                  animation: _intro,
+                  animation: Listenable.merge([_intro, _loop]),
                   builder: (context, _) {
-                    final t = _intro.value;
-                    // 0–0.35 riffle, 0.3–0.8 fan out, 0.55–1 title in.
-                    final fan = Curves.easeOutBack.transform(((t - 0.3) / 0.5).clamp(0.0, 1.0));
+                    final t = _intro.value, loop = _loop.value;
+                    // 0–0.35 riffle, 0.25–0.75 the ghost rises, 0.65–0.85
+                    // its glints pop, 0.55–1 title in.
                     final riffle = t < 0.35 ? sin(t / 0.35 * pi * 3) : 0.0;
+                    final rise = Curves.easeOutBack.transform(((t - 0.25) / 0.5).clamp(0.0, 1.0));
+                    final pop = Curves.elasticOut.transform(((t - 0.65) / 0.35).clamp(0.0, 1.0));
+                    // Glints wink every loop once they're in.
+                    final wink = 1 + 0.5 * max(0.0, sin((loop - 0.1) * 2 * pi * 2) - 0.6) / 0.4;
+                    final bob = sin(loop * 2 * pi) * 4 * rise;
                     final title = Curves.elasticOut.transform(((t - 0.55) / 0.45).clamp(0.0, 1.0));
                     return Center(
                       child: Column(
@@ -132,20 +146,35 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
                         children: [
                           SizedBox(
                             width: 240,
-                            height: 150,
+                            height: 236,
                             child: Stack(
                               alignment: Alignment.bottomCenter,
                               children: [
-                                for (final (i, card) in _fan.indexed)
-                                  Transform.translate(
-                                    offset: Offset(
-                                      (i - 2) * 30 * fan + riffle * (i.isEven ? 6 : -6),
-                                      -(2 - (i - 2).abs()) * 8.0 * fan,
-                                    ),
-                                    child: Transform.rotate(
-                                      angle: (i - 2) * 0.22 * fan,
+                                // The ghost comes up from behind the deck
+                                // (clipped at its top edge).
+                                Positioned.fill(
+                                  bottom: 92,
+                                  child: ClipRect(
+                                    child: Align(
                                       alignment: Alignment.bottomCenter,
-                                      child: CardView(card: card, width: 64, faceUp: fan > 0.15),
+                                      child: Transform.translate(
+                                        offset: Offset(0, (1 - rise) * 140 - 10 + bob),
+                                        child: GhostMark(
+                                          key: const Key('launch ghost'),
+                                          size: 128,
+                                          split: _split(loop),
+                                          glint: pop * wink,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                for (var i = 0; i < 4; i++)
+                                  Transform.translate(
+                                    offset: Offset(riffle * (i.isEven ? 7 : -7), -i * 2.0),
+                                    child: Transform.rotate(
+                                      angle: (i - 1.5) * 0.03 + riffle * (i.isEven ? 0.06 : -0.06),
+                                      child: CardView(card: _back, width: 64, faceUp: false),
                                     ),
                                   ),
                               ],

@@ -6,7 +6,7 @@ import 'screens.dart';
 
 void main() {
   for (final MapEntry(key: phone, value: size) in phones.entries) {
-    testWidgets('$phone: the launch curtain fans the cards, then lifts', (tester) async {
+    testWidgets('$phone: the ghost rises, then the curtain lifts', (tester) async {
       usePhone(tester, size);
       var taps = 0;
       await tester.pumpWidget(
@@ -23,6 +23,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 900));
       expect(find.byKey(const Key('launch curtain')), findsOneWidget);
       expect(find.byKey(const Key('launch line')), findsOneWidget);
+      expect(find.byKey(const Key('launch ghost')), findsOneWidget);
       await shot(tester, 'launch_$phone');
       await tester.tap(find.text('Play'), warnIfMissed: false);
       expect(taps, 0, reason: 'no taps through the curtain');
