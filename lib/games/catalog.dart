@@ -55,7 +55,12 @@ class GameInfo {
     this.note,
     this.staked = true,
     this.companion,
+    this.direct = false,
   });
+
+  /// The tile opens the game itself, no preview (Blackjack: the floor,
+  /// which has its own Play at home and How to play).
+  final bool direct;
 
   /// False: no stake in the preview; the game bets your pips itself
   /// (Blackjack).
@@ -260,6 +265,7 @@ final games = <GameInfo>[
     minutes: (players) => 8 + players,
     atHome: blackjackAtHome,
     staked: false,
+    direct: true,
     open: (_, _, _) => const BjLobby(),
   ),
   GameInfo(

@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 
 import '../../../core/account/account.dart';
 import '../../../core/avatars/faces.dart';
+import '../../../core/help/game_guide.dart';
+import '../../../core/help/home_guide.dart';
 import '../../../core/sound/sound.dart';
 import '../../../core/table/felts.dart';
 import '../../../core/theme/toon.dart';
+import '../at_home.dart';
 import 'bj_screen.dart';
 import 'bj_tables.dart';
 
@@ -91,6 +94,36 @@ class _BjLobbyState extends State<BjLobby> {
                             style: Toon.text(14, weight: FontWeight.w500, color: Casino.dim),
                           ),
                         ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FloorButton(
+                        key: const Key('how to play'),
+                        icon: Icons.help_outline_rounded,
+                        label: 'How to play',
+                        onTap: () => showGameGuide(context, title: 'Blackjack', stages: blackjackGuide),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _FloorButton(
+                        key: const Key('play at home'),
+                        icon: Icons.home_rounded,
+                        label: 'Play at home',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const HomeGuideScreen(
+                              name: 'Blackjack',
+                              color: Toon.green,
+                              guide: blackjackAtHome,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -621,4 +654,35 @@ class _HalfMoon extends CustomPainter {
 
   @override
   bool shouldRepaint(_HalfMoon old) => old.felt != felt;
+}
+
+class _FloorButton extends StatelessWidget {
+  const _FloorButton({super.key, required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ToonButton(
+    color: Casino.panel,
+    radius: 12,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+    onPressed: onTap,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 20, color: Casino.gold),
+        const SizedBox(width: 6),
+        Flexible(
+          child: FittedBox(
+            child: Text(
+              label,
+              style: Toon.text(15, weight: FontWeight.w700, color: Casino.cream),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

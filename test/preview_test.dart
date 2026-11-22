@@ -32,8 +32,20 @@ void main() {
     expect(holdem.minutes(2), lessThan(holdem.minutes(6)), reason: 'more players, longer game');
   });
 
+  testWidgets('Blackjack opens its floor straight from the tile', (tester) async {
+    usePhone(tester, phones['pixel9pro']!);
+    await tester.pumpWidget(DuelApp(setup: PlaySetup()..botCount = 1));
+    final bj = games.firstWhere((g) => g.id == 'blackjack');
+    expect(bj.direct, isTrue);
+    await openFromHome(tester, bj.id, bj.name);
+    expect(find.byType(GamePreviewScreen), findsNothing);
+    expect(find.byKey(const Key('bj lobby')), findsOneWidget);
+    expect(find.byKey(const Key('how to play')), findsOneWidget);
+    expect(find.byKey(const Key('play at home')), findsOneWidget);
+  });
+
   for (final MapEntry(key: phone, value: size) in phones.entries) {
-    for (final game in games) {
+    for (final game in games.where((g) => !g.direct)) {
       testWidgets('${game.name} preview on $phone', (tester) async {
         usePhone(tester, size);
         await tester.pumpWidget(DuelApp(setup: PlaySetup()..botCount = 1));

@@ -232,6 +232,7 @@ class _Table extends StatelessWidget {
       final spots = [for (final o in places.spots) px(o)];
       final children = <Widget>[
         Positioned.fill(
+          key: const ValueKey('felt'),
           child: RepaintBoundary(
             child: CustomPaint(
               painter: _FeltPainter(
@@ -247,10 +248,16 @@ class _Table extends StatelessWidget {
             ),
           ),
         ),
-        Positioned(right: 26, top: 22, child: _ShoeView(c: c)),
-        At(faceAt, child: const _DealerFace()),
+        Positioned(
+          key: const ValueKey('shoe'),
+          right: 26,
+          top: 22,
+          child: _ShoeView(c: c),
+        ),
+        At(faceAt, key: const ValueKey('dealer face'), child: const _DealerFace()),
         At(
           dealerAt,
+          key: const ValueKey('dealer'),
           child: _Dealer(c: c, width: dealerW, from: shoe - dealerAt + Offset(dealerW, 0)),
         ),
       ];
@@ -258,15 +265,20 @@ class _Table extends StatelessWidget {
         if (i == c.youSeat) continue;
         final at = seats[i], spot = spots[i];
         if (c.seats[i].open) continue;
+        // Keyed by seat and who sits there: someone leaving or sitting
+        // down leaves everyone else's cards where they are.
+        final who = c.seats[i].persona.name;
         children.add(
           At(
             at,
+            key: ValueKey('seat $i $who'),
             child: _BotSeat(c: c, seat: i, width: small, from: shoe - at),
           ),
         );
         children.add(
           At(
             spot,
+            key: ValueKey('bet $i $who'),
             child: _BotBet(c: c, seat: i),
           ),
         );
@@ -274,15 +286,23 @@ class _Table extends StatelessWidget {
       children.add(
         At(
           youAt,
+          key: const ValueKey('you'),
           child: _YourCards(c: c, width: big, from: shoe - youAt + Offset(big * 0.5, big * 0.7)),
         ),
       );
-      children.add(At(betSpot, child: _YourBet(c: c)));
+      children.add(
+        At(
+          betSpot,
+          key: const ValueKey('your bet'),
+          child: _YourBet(c: c),
+        ),
+      );
       // Speech: the dealer's beside the dealer, the bots' above them.
       final said = c.speech[-1];
       if (said != null) {
         children.add(
           Positioned(
+            key: const ValueKey('dealer says'),
             left: size.width / 2 + 60,
             top: 6,
             right: 70,
@@ -301,6 +321,7 @@ class _Table extends StatelessWidget {
         final leftSide = at.dx < size.width / 2;
         children.add(
           Positioned(
+            key: ValueKey('says $i'),
             top: max(4, at.dy - 70),
             left: leftSide ? max(14, at.dx - 40) : null,
             right: leftSide ? null : max(14, size.width - at.dx - 40),
@@ -313,10 +334,16 @@ class _Table extends StatelessWidget {
       if (c.resultsUp && net != null && c.round!.hands[c.youSeat].isNotEmpty) {
         final bigWin = net >= c.table.min * 4 || c.lastBlackjack && net > 0;
         if (bigWin) {
-          children.add(const Positioned.fill(child: IgnorePointer(child: SuitConfetti())));
+          children.add(
+            const Positioned.fill(
+              key: ValueKey('confetti'),
+              child: IgnorePointer(child: SuitConfetti()),
+            ),
+          );
         }
         children.add(
           Positioned.fill(
+            key: const ValueKey('result'),
             child: IgnorePointer(
               child: _ResultPop(
                 key: ValueKey('pop${c.rounds}'),
@@ -338,7 +365,13 @@ class _Table extends StatelessWidget {
           ),
         );
       }
-      children.add(At(Offset(size.width - 46, 66), child: _NewShoe(c: c)));
+      children.add(
+        At(
+          Offset(size.width - 46, 66),
+          key: const ValueKey('new shoe'),
+          child: _NewShoe(c: c),
+        ),
+      );
       return GoldCards(
         on: felt.gold,
         child: Stack(clipBehavior: Clip.none, children: children),

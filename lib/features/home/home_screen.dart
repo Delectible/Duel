@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
+import '../../core/account/stake.dart';
 import '../../core/app_info.dart';
 import '../../core/avatars/faces.dart';
 import '../../core/online/party.dart';
@@ -292,10 +293,27 @@ class _GameTile extends StatelessWidget {
     final playable = blocked == null;
     final why = blocked?.$1;
 
-    // Every game opens its preview first; only Play! there starts it.
+    // Games open their preview first (only Play! there starts one); a
+    // direct one (Blackjack) opens itself.
     void tap() {
       Sound.play(Sfx.tap, gain: 0.6);
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GamePreviewScreen(game: game)));
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => game.direct && game.open != null
+              ? game.open!(
+                  setup,
+                  StakeTicket(
+                    account: AccountScope.read(context),
+                    gameId: game.id,
+                    stake: 0,
+                    opponents: 0,
+                    difficulty: setup.difficulty,
+                  ),
+                  null,
+                )
+              : GamePreviewScreen(game: game),
+        ),
+      );
     }
 
     return Semantics(
