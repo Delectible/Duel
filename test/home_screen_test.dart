@@ -1,3 +1,4 @@
+import 'package:duel/core/app_info.dart';
 import 'package:duel/core/session/play_setup.dart';
 import 'package:duel/games/catalog.dart';
 import 'package:duel/main.dart';
@@ -62,7 +63,7 @@ void main() {
     await tester.scrollUntilVisible(find.byKey(const Key('about')), 200);
     await tester.tap(find.byKey(const Key('about')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Duel 0.'), findsWidgets); // the button and the sheet
+    expect(find.textContaining('Duel ${AppInfo.version}'), findsWidgets); // the button and the sheet
   });
 
   testWidgets('turning the phone fades the new layout in', (tester) async {

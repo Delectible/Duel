@@ -87,6 +87,12 @@ void main() {
         await tester.tap(find.byKey(const Key('pick game')));
         await wait(600);
         expect(find.textContaining('you pick the game'), findsOneWidget);
+        // Four in a Row is at the bottom of the grid.
+        for (var i = 0; i < 30 && find.text('Four in a Row').hitTestable().evaluate().isEmpty; i++) {
+          await tester.drag(find.byType(CustomScrollView).first, const Offset(0, -150), warnIfMissed: false);
+          await tester.pump();
+        }
+        await wait(300);
         await tester.tap(find.text('Four in a Row'));
         await wait(600);
         await tester.tap(find.byKey(const Key('play')));
@@ -139,6 +145,11 @@ void main() {
         await tester.tap(find.byKey(const Key('leave')));
         await wait(800);
         expect(sam.match!['result'], containsPair('reason', 'forfeit'));
+        await tester.scrollUntilVisible(
+          find.text('Pick a game'),
+          -300,
+          scrollable: find.byType(Scrollable).first,
+        );
         expect(find.text('Pick a game'), findsOneWidget);
         expect(party.size, 2);
         expect(tester.takeException(), isNull);
