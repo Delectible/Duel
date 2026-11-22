@@ -375,7 +375,10 @@ class _BuyButton extends StatelessWidget {
         key: const Key('wear'),
         color: on ? Toon.card : Toon.blue,
         onPressed: on ? null : () => account.wear(item),
-        child: Text(on ? 'Wearing' : 'Wear', style: Toon.text(18, weight: FontWeight.w700)),
+        child: Text(
+          item.kind == ItemKind.face ? (on ? 'Wearing' : 'Wear') : (on ? 'In use' : 'Use'),
+          style: Toon.text(18, weight: FontWeight.w700),
+        ),
       );
     }
     final short = item.price - account.balance;
