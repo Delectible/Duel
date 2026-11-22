@@ -27,7 +27,7 @@ void main() {
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: Toon.theme(),
-            home: const BjLobby(pace: 0.05, seed: 2),
+            home: BjLobby(pace: 0.05, seed: 2, now: () => 0),
           ),
         ),
       );
@@ -40,20 +40,20 @@ void main() {
       final list = find.byType(Scrollable).first;
       await tester.scrollUntilVisible(find.byKey(const Key('locked 250')), 120, scrollable: list);
       expect(has(const Key('locked 250')), isTrue, reason: 'High limit needs 2,500');
-      await tester.scrollUntilVisible(find.byKey(const Key('sit 50')), -120, scrollable: list);
+      await tester.scrollUntilVisible(find.byKey(const Key('sit 10')), -120, scrollable: list);
       await tester.pump();
-      await tester.tap(find.byKey(const Key('sit 50')));
+      await tester.tap(find.byKey(const Key('sit 10')));
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
       await shot(tester, 'bj_bet_$phone');
       var hands = 0, moves = 0, insured = 0, shotPlay = false, shotPaid = false;
-      for (var i = 0; i < 20000; i++) {
+      for (var i = 0; i < 60000; i++) {
         await tester.pump(const Duration(milliseconds: 20));
         expect(tester.takeException(), isNull);
         if (on(tester, const Key('deal'))) {
           if (hands == 6) break;
-          if (hands == 1) await tester.tap(find.byKey(const Key('chip 250')));
+          if (hands == 1) await tester.tap(find.byKey(const Key('chip 50')));
           await tester.tap(find.byKey(const Key('deal')));
           hands++;
         } else if (on(tester, const Key('no insurance'))) {
