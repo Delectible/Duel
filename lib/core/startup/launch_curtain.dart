@@ -228,10 +228,12 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
     for (var i = 0; i < 5; i++) {
       final drop = _scoop + 0.025 + i * 0.045;
       final dropT = _timeAt(min(1, drop));
-      final u = ((t - dropT) / 0.17).clamp(0.0, 1.0);
+      final u = ((t - dropT) / 0.24).clamp(0.0, 1.0);
       if (u <= 0) continue;
       final from = _path(drop) + const Offset(0, 45);
       final land = Curves.easeOutBack.transform(u);
+      // The turn over: through the middle of its flight.
+      final flip = Curves.easeInOut.transform(((u - 0.2) / 0.7).clamp(0.0, 1.0));
       final bob = sin(loop * 2 * pi + i * 0.9) * 3 * u;
       final at = Offset.lerp(from, _fanAt(i), land)! + Offset(0, bob);
       cards.add(
@@ -239,7 +241,22 @@ class _LaunchCurtainState extends State<LaunchCurtain> with TickerProviderStateM
           offset: at,
           child: Transform.rotate(
             angle: (i - 2) * 0.22 * land + (1 - u) * (i.isEven ? 1.2 : -1.2),
-            child: CardView(card: _fan[i], width: 64, faceUp: u > 0.45),
+            // It turns over as it flies: about its upright axis, with a
+            // little perspective, back first, face once it's past side on.
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.0015)
+                ..rotateY(pi * flip),
+              child: flip < 0.5
+                  ? CardView(card: _fan[i], width: 64, faceUp: false)
+                  : Transform(
+                      // The far side, turned back the right way round.
+                      alignment: Alignment.center,
+                      transform: Matrix4.rotationY(pi),
+                      child: CardView(card: _fan[i], width: 64),
+                    ),
+            ),
           ),
         ),
       );
