@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '1.0.2';
+  static const version = '1.0.3';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,9 +24,9 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Blackjack goes online: shared tables with other players and bots, each with its own house rules, and an '
-      'Online / Local switch on Blackjack and Cash Games. Skip hurries the Blackjack bots along. New, gentler win, '
-      'loss and turn sounds. The Blackjack tile opens the tables straight away, with How to play and Play at home.';
+      'Online Blackjack fixes: leaving a table frees your seat straight away. Quick stakes in the preview now '
+      'follow how you usually bet, and you can type any amount. Music fades in gently at launch. Tap a badge on '
+      'your profile to see what it is. The intro cards turn over smoothly.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

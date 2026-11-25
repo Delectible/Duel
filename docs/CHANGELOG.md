@@ -899,6 +899,19 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 51. Fixes and touches (requested 2026-11-24)
+
+- [x] **51.1 Intro cards turn over** in 3D instead of snapping face up.
+- [x] **51.2 Online Blackjack: leaving frees the seat at once** (it stayed
+  taken while the round sat unfinished); the dealer stands for you and
+  the round still pays you (`gone`).
+- [x] **51.3 Music fades in** from a second after launch, over a second.
+- [x] **51.4 Badges explain themselves**: tap one on the profile.
+- [x] **51.5 Quick stakes follow you**: Free, a round number a little
+  under the average of your last three stakes, double that, Max; and a
+  box to type any amount (`Account.stakeSuggestions`).
+  → 1.0.3 · 2026-11-25
+
 ### 50. Blackjack online, Online / Local, sounds (requested 2026-11-22)
 
 - [x] **50.1 Bots leave quietly**: every table element is keyed by seat
