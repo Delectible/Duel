@@ -910,7 +910,12 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **51.5 Quick stakes follow you**: Free, a round number a little
   under the average of your last three stakes, double that, Max; and a
   box to type any amount (`Account.stakeSuggestions`).
-  → 1.0.3 · 2026-11-25
+- [x] **51.6 Blackjack online: stale seats clear** (a table nobody's
+  moved for two minutes stands its people up; sitting elsewhere gets you
+  up from your old table).
+- [x] **51.7 Blackjack names and bubbles**: wider seats so names show in
+  full; the dealer's bubble sits on the open left side.
+  → 1.0.3 / 1.0.4 · 2026-11-25
 
 ### 50. Blackjack online, Online / Local, sounds (requested 2026-11-22)
 
