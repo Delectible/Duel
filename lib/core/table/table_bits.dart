@@ -652,7 +652,10 @@ class TurnOver extends StatelessWidget {
 /// A seat's name card under its face: the name, then a line in bold
 /// (books, points, chips).
 class NamePlate extends StatelessWidget {
-  const NamePlate(this.name, {super.key, this.line, this.color, this.lineColor});
+  const NamePlate(this.name, {super.key, this.line, this.color, this.lineColor, this.maxWidth = 96});
+
+  /// How wide it may grow before a long name is cut short.
+  final double maxWidth;
 
   final String name;
   final String? line;
@@ -663,7 +666,7 @@ class NamePlate extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = color ?? Toon.card;
     return Container(
-      constraints: const BoxConstraints(maxWidth: 96),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: Toon.box(bg, radius: 10, shadow: 2),
       child: Column(

@@ -327,11 +327,12 @@ class _Table extends StatelessWidget {
         children.add(
           Positioned(
             key: const ValueKey('dealer says'),
-            left: size.width / 2 + 60,
+            // Left of Dot, where there's room (the shoe's on the right).
+            left: 10,
             top: 6,
-            right: 70,
+            right: size.width / 2 + 40,
             child: Align(
-              alignment: Alignment.topLeft,
+              alignment: Alignment.topRight,
               child: SpeechBubble(said, key: ValueKey('say-1-${c.speechId}')),
             ),
           ),
@@ -746,8 +747,9 @@ class _BotSeat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = c.seats[seat];
+    // Wide enough for the longest names ("Jellybean", "Lady Luck").
     return SizedBox(
-      width: 100,
+      width: 128,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -765,7 +767,7 @@ class _BotSeat extends StatelessWidget {
                 color: c.phase == BjPhase.playing && c.round?.turn?.$1 == seat ? Toon.orange : null,
               ),
               const SizedBox(width: 4),
-              Flexible(child: NamePlate(s.persona.name, line: chips(s.chips))),
+              Flexible(child: NamePlate(s.persona.name, line: chips(s.chips), maxWidth: 100)),
             ],
           ),
         ],
