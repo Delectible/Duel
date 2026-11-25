@@ -199,11 +199,30 @@ extension BjTables on Referee {
     final seats = _bjSeats(doc);
     final seat = seats.indexWhere((s) => s?['id'] == p.uid);
     if (seat < 0) return doc;
-    if (_bjInRound(doc, seat) && doc['phase'] != 'done') {
-      seats[seat]!['leaving'] = true;
-    } else {
-      seats[seat] = null;
-      _bjMap(doc['wants']).remove('$seat');
+    // The seat's free at once (you can sit elsewhere straight away). Mid-
+    // round, the dealer stands for you and you're paid when it settles
+    // (`gone` remembers who to pay).
+    final midRound = _bjInRound(doc, seat) && doc['phase'] != 'done';
+    if (midRound) doc['gone'] = {..._bjMap(doc['gone']), '$seat': p.uid};
+    seats[seat] = null;
+    doc['seats'] = [
+      for (final x in seats) x == null ? null : {...x},
+    ];
+    final wants = _bjMap(doc['wants'])..remove('$seat');
+    doc['wants'] = wants;
+    if (midRound) {
+      if (doc['phase'] == 'insurance') {
+        final answers = _bjMap(doc['answers']);
+        answers['$seat'] = false;
+        doc['answers'] = answers;
+        final waiting = [
+          for (var s = 0; s < bjSeatCount; s++)
+            if (_bjSeats(doc)[s]?['id'] != null && _bjBet(doc, s) != null && !answers.containsKey('$s')) s,
+        ];
+        if (waiting.isEmpty) await _bjResolveInsurance(tx, table, doc, secret);
+      } else if (doc['turn'] == seat) {
+        await _bjPlayOn(tx, table, doc, secret);
+      }
     }
     if (_bjPeople(doc).isEmpty && doc['phase'] == 'betting') doc['phase'] = 'idle';
     _bump(doc);
@@ -228,9 +247,11 @@ extension BjTables on Referee {
       case 'playing':
         if (!due) return false;
         final turn = doc['turn']! as int;
-        final s = _bjSeats(doc)[turn]!;
-        s['timeouts'] = (s['timeouts'] as int? ?? 0) + 1;
-        if ((s['timeouts']! as int) >= 2) s['leaving'] = true;
+        final s = _bjSeats(doc)[turn];
+        if (s != null) {
+          s['timeouts'] = (s['timeouts'] as int? ?? 0) + 1;
+          if ((s['timeouts']! as int) >= 2) s['leaving'] = true;
+        }
         _bjMoves(doc).add([turn, BjMove.stand.name]);
         await _bjPlayOn(tx, table, doc, secret);
         return true;
@@ -274,6 +295,7 @@ extension BjTables on Referee {
       ..['hole'] = null
       ..['turn'] = null
       ..['payouts'] = null
+      ..['gone'] = null
       ..['deadline'] = _now + bjBetting.inMilliseconds
       ..['turnAt'] = _now;
   }
@@ -371,7 +393,12 @@ extension BjTables on Referee {
         return;
       }
       final (s, _) = round.turn!;
-      final seat = _bjSeats(doc)[s]!;
+      final seat = _bjSeats(doc)[s];
+      // Someone who got up mid-round: the dealer stands for them.
+      if (seat == null) {
+        _bjMoves(doc).add([s, BjMove.stand.name]);
+        continue;
+      }
       if (seat['bot'] == true) {
         final bot = _bjBot(table, seat);
         final m = bot.decide(round.current, round.upCard, round.moves(balance: seat['chips']! as int));
@@ -398,7 +425,17 @@ extension BjTables on Referee {
       final net = r.round.net(s);
       payouts['$s'] = net;
       final seat = seats[s];
-      if (seat == null) continue;
+      final goneUid = _bjMap(doc['gone'])['$s'] as String?;
+      if (seat == null || goneUid != null) {
+        // They got up mid-round: still paid.
+        if (goneUid != null) {
+          final w = await tx.get('wallets/$goneUid');
+          if (w != null) {
+            _setWallet(tx, goneUid, {...w, 'balance': (w['balance']! as int) + _bjBet(doc, s)! + net});
+          }
+        }
+        continue;
+      }
       if (seat['bot'] == true) {
         seat['chips'] = (seat['chips']! as int) + net;
       } else {

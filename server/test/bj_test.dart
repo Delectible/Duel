@@ -150,4 +150,36 @@ void main() {
     expect(() => ref.bjBet(luca, 'main', 9000), throwsA(isA<RefereeError>()));
     expect(() => ref.bjSit(luca, 'vault'), throwsA(isA<RefereeError>()));
   });
+
+  test(
+    'leaving mid-round frees the seat at once: you can sit elsewhere, and the round still pays you',
+    () async {
+      await ref.bjSit(luca, 'main');
+      var t = await ref.bjBet(luca, 'main', 50);
+      for (var i = 0; i < 50 && t['phase'] == 'insurance'; i++) {
+        t = await ref.bjInsure(luca, 'main', false);
+      }
+      // Wait for a round you're in that isn't over yet.
+      for (var i = 0; i < 200 && !(t['phase'] == 'playing' && t['turn'] == seatOf(t, 'luca')); i++) {
+        now = now.add(const Duration(seconds: 5));
+        t = await ref.bjTick(luca, 'main');
+        if (seatOf(t, 'luca') == null) break;
+        if (t['phase'] == 'betting') t = await ref.bjBet(luca, 'main', 50);
+        if (t['phase'] == 'insurance') t = await ref.bjInsure(luca, 'main', false);
+      }
+      expect(t['phase'], 'playing');
+      final before = await balance('luca');
+      final seat = seatOf(t, 'luca')!;
+      t = await ref.bjLeave(luca, 'main');
+      expect(seatOf(t, 'luca'), isNull, reason: 'the seat is free straight away');
+      // The dealer stood for them; with no one left, the round settled.
+      expect(t['phase'], 'done');
+      final net = (t['payouts']! as Map)['$seat']! as int;
+      expect(await balance('luca'), before + 50 + net, reason: 'paid on the way out');
+      final lobby = await ref.bjLobby(luca);
+      expect(lobby['mine'], isNull);
+      final corner = await ref.bjSit(luca, 'corner');
+      expect(seatOf(corner, 'luca'), isNotNull, reason: 'free to sit at another table');
+    },
+  );
 }
