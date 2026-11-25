@@ -7,6 +7,7 @@ import '../../core/avatars/faces.dart';
 import '../../core/sound/sound.dart';
 import '../../core/store/cosmetics.dart';
 import '../../core/store/shop.dart';
+import '../../core/theme/sheet.dart';
 import '../../core/theme/split_page.dart';
 import '../../core/theme/toon.dart';
 
@@ -832,3 +833,55 @@ class _Daily extends StatelessWidget {
     );
   }
 }
+
+/// A set's badge, explained: what it is, the pieces it took, the prize.
+Future<void> showSetBadge(BuildContext context, Collection set, Account account) => showToonSheet<void>(
+  context,
+  height: 0.5,
+  builder: (context) => Padding(
+    key: Key('badge sheet ${set.id}'),
+    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SetBadge(set: set, size: 56),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${set.name} set', style: Toon.text(22, weight: FontWeight.w700)),
+                  Text(
+                    account.collectionsDone.contains(set) ? 'Badge earned' : 'Not collected yet',
+                    style: Toon.text(14, weight: FontWeight.w600, color: Toon.muted),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Earned by collecting every piece of the set from the Store. Finishing it paid '
+          '${account.money(set.prize)}.',
+          style: Toon.text(16, weight: FontWeight.w500),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final id in set.items)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: Toon.box(Toon.card, radius: 10, shadow: 0),
+                child: Text(Shop.byId[id]!.name, style: Toon.text(14, weight: FontWeight.w600)),
+              ),
+          ],
+        ),
+      ],
+    ),
+  ),
+);

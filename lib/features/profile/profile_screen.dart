@@ -96,9 +96,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               runSpacing: 8,
               children: [
                 for (final c in account.collectionsDone)
-                  Tooltip(
-                    message: '${c.name} set',
-                    child: SetBadge(key: Key('badge ${c.id}'), set: c, size: 38),
+                  GestureDetector(
+                    key: Key('badge ${c.id}'),
+                    onTap: () => showSetBadge(context, c, account),
+                    child: SetBadge(set: c, size: 38),
                   ),
               ],
             ),

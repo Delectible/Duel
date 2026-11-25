@@ -630,8 +630,43 @@ class Account extends ChangeNotifier {
   /// (capped at [maxStake]).
   int placeStake(int stake) {
     final s = stake.clamp(0, maxStake);
-    if (s > 0) _change(() => _unsynced -= s);
+    if (s > 0) {
+      _change(() {
+        _unsynced -= s;
+        _recentStakes
+          ..add(s)
+          ..removeRange(0, max(0, _recentStakes.length - 3));
+      });
+    }
     return s;
+  }
+
+  /// Your last few stakes (newest last), for the preview's quick amounts.
+  final List<int> _recentStakes = [];
+
+  /// Two quick stakes for the preview, from your last three: a round
+  /// number a little under their average, and double it (10 and 20 to
+  /// start with).
+  (int, int) get stakeSuggestions {
+    if (_recentStakes.isEmpty) return (10, 20);
+    final avg = _recentStakes.reduce((a, b) => a + b) / _recentStakes.length;
+    final low = roundStake(avg * 0.8);
+    return (low, low * 2);
+  }
+
+  /// The nearest round amount to [x]: 1, 2, 5, 10, 20, 25, 50, 100, 200,
+  /// 250, 500, 1,000…
+  static int roundStake(double x) {
+    if (x <= 1) return 1;
+    var best = 1;
+    for (var p = 1; p <= 100000000; p *= 10) {
+      for (final m in const [1, 2, 2.5, 5]) {
+        final v = (p * m).round();
+        if (v < 1 || (m == 2.5 && p < 10)) continue;
+        if ((v - x).abs() < (best - x).abs()) best = v;
+      }
+    }
+    return best;
   }
 
   /// Settles a finished game. Returns what changed your balance compared
@@ -746,6 +781,7 @@ class Account extends ChangeNotifier {
         }
       });
       _freeroll = j['freeroll'] as String?;
+      _recentStakes.addAll(((j['stakes'] as List?) ?? const []).whereType<int>());
       _bjRules = BjRules.fromJson(j['bjRules']);
       final bj = j['bj'];
       if (bj is List && bj.length == 2 && bj.every((x) => x is int)) {
@@ -803,6 +839,7 @@ class Account extends ChangeNotifier {
             e.key: [e.value.played, e.value.cashes, e.value.wins, e.value.best],
         },
       'freeroll': ?_freeroll,
+      if (_recentStakes.isNotEmpty) 'stakes': _recentStakes,
       if (_bjRules != const BjRules()) 'bjRules': _bjRules.toJson(),
       if (_bjBlackjacks > 0 || _bjBest > 0) 'bj': [_bjBlackjacks, _bjBest],
       'cashChips': ?_cashChips,

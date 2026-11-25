@@ -113,6 +113,25 @@ void main() {
     expect(Avatar.forName('Waffles'), Avatar.forName('Waffles'));
     expect(Avatar.forName('Waffles'), isNot(Avatar.forName('Pickle')));
   });
+
+  test('quick stakes follow your last three: a round number under the average, and double', () {
+    final a = Account()..setBalance(100000);
+    expect(a.stakeSuggestions, (10, 20));
+    for (final s in [200, 300, 250]) {
+      a.placeStake(s);
+    }
+    expect(a.stakeSuggestions, (200, 400));
+    for (final s in [10, 12, 9]) {
+      a.placeStake(s);
+    }
+    expect(a.stakeSuggestions, (10, 20));
+    for (final s in [40, 30, 20]) {
+      a.placeStake(s);
+    }
+    expect(a.stakeSuggestions, (25, 50));
+    expect(Account.roundStake(1700), 2000);
+    expect(Account.roundStake(4.1), 5);
+  });
 }
 
 const _face = Avatar(

@@ -56,6 +56,8 @@ abstract final class Sound {
 
   /// Called once from main().
   static Future<void> start() async {
+    // The music's fade-in counts from launch.
+    Music._appStart;
     try {
       // Media volume (not the ringer) and no audio focus on Android, so
       // Spotify and the like keep playing underneath; on iOS "ambient":
@@ -169,6 +171,11 @@ enum Track {
 /// One track on a loop under everything, at its own volume. Quiet while
 /// the app is in the background, and (like [Sound]) until [Sound.start].
 abstract final class Music {
+  /// When the app started: the music comes in a second after, fading up
+  /// over a second (during the launch curtain's intro).
+  static final _appStart = DateTime.now();
+  static var _firstPlay = true;
+
   static Track? _track;
   static double _volume = 0.5;
   static var _away = false;
@@ -238,11 +245,29 @@ abstract final class Music {
           return;
         }
         await p.setReleaseMode(ReleaseMode.loop);
+        // The first track of the day waits a second after launch, then
+        // fades in.
+        final fade = _firstPlay;
+        _firstPlay = false;
+        if (fade) {
+          final wait = const Duration(seconds: 1) - DateTime.now().difference(_appStart);
+          if (wait > Duration.zero) await Future<void>.delayed(wait);
+          if (_playing != want || _want != want) return;
+        }
         try {
-          await p.play(source, volume: volume);
+          await p.play(source, volume: fade ? 0 : volume);
         } on Object {
           // Older Androids can't play from memory: the file it is.
-          await p.play(AssetSource('music/music_${want.name}.mp3'), volume: volume);
+          await p.play(AssetSource('music/music_${want.name}.mp3'), volume: fade ? 0 : volume);
+        }
+        if (fade) {
+          for (var i = 1; i <= 20; i++) {
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+            if (_playing != want || _paused) return;
+            // Eased, so it doesn't jump in at the start.
+            final k = i / 20;
+            await p.setVolume(_volume * 0.6 * k * k);
+          }
         }
         return;
       }

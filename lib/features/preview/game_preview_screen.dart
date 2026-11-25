@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/account/account.dart';
 import '../../core/account/stake.dart';
@@ -454,7 +455,7 @@ class _ChoicePicker extends StatelessWidget {
   );
 }
 
-class _StakePicker extends StatelessWidget {
+class _StakePicker extends StatefulWidget {
   const _StakePicker({
     required this.stake,
     required this.account,
@@ -470,10 +471,34 @@ class _StakePicker extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   @override
+  State<_StakePicker> createState() => _StakePickerState();
+}
+
+class _StakePickerState extends State<_StakePicker> {
+  late final _typed = TextEditingController(text: '${widget.stake}');
+  final _focus = FocusNode();
+
+  @override
+  void didUpdateWidget(_StakePicker old) {
+    super.didUpdateWidget(old);
+    // Picked with a button: the box shows it (unless you're typing).
+    if (!_focus.hasFocus && _typed.text != '${widget.stake}') _typed.text = '${widget.stake}';
+  }
+
+  @override
+  void dispose() {
+    _typed.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final stake = widget.stake, account = widget.account, onChanged = widget.onChanged;
+    final opponents = widget.opponents, difficulty = widget.difficulty;
     final max = account.maxStake;
     final broke = account.balance <= 0;
-    final step = stake < 10 ? 1 : (stake < 50 ? 5 : 10);
+    final (low, high) = account.stakeSuggestions;
     final win = Account.winnings(stake, opponents, difficulty);
     Widget quick(String label, int value, Key key) => Padding(
       padding: const EdgeInsets.only(right: 6),
@@ -519,30 +544,36 @@ class _StakePicker extends StatelessWidget {
           children: [
             quick('Free', 0, const Key('stake free')),
             if (!broke) ...[
-              if (max >= 10) quick('10', 10, const Key('stake 10')),
+              // Two amounts that suit how you usually play.
+              for (final v in [low, high])
+                if (v < max) quick(chips(v), v, Key('stake $v')),
               quick('Max', max, const Key('stake max')),
             ] else
               quick('1 on credit', 1, const Key('stake 1')),
             const Spacer(),
             if (!broke) ...[
-              ToonButton(
-                key: const Key('stake minus'),
-                color: Toon.card,
-                padding: const EdgeInsets.all(6),
-                radius: 10,
-                repeat: true,
-                onPressed: stake > 0 ? () => onChanged((stake - step).clamp(0, max)) : null,
-                child: const Icon(Icons.remove_rounded, size: 18),
-              ),
-              const SizedBox(width: 6),
-              ToonButton(
-                key: const Key('stake plus'),
-                color: Toon.card,
-                padding: const EdgeInsets.all(6),
-                radius: 10,
-                repeat: true,
-                onPressed: stake < max ? () => onChanged((stake + step).clamp(0, max)) : null,
-                child: const Icon(Icons.add_rounded, size: 18),
+              // Or type any amount.
+              SizedBox(
+                width: 62,
+                child: TextField(
+                  key: const Key('stake typed'),
+                  controller: _typed,
+                  focusNode: _focus,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: Toon.text(15, weight: FontWeight.w700),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(9),
+                  ],
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onChanged: (v) => onChanged((int.tryParse(v) ?? 0).clamp(0, max)),
+                  onSubmitted: (_) => _typed.text = '${widget.stake}',
+                ),
               ),
             ],
           ],
