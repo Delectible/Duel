@@ -182,4 +182,25 @@ void main() {
       expect(seatOf(corner, 'luca'), isNotNull, reason: 'free to sit at another table');
     },
   );
+
+  test(
+    'a seat left behind (the app closed hours ago) is cleared from the lobby; sitting elsewhere gets you up',
+    () async {
+      await ref.bjSit(luca, 'main');
+      await ref.bjBet(luca, 'main', 50);
+      // Hours later, nobody's moved the table on.
+      now = now.add(const Duration(hours: 3));
+      final lobby = await ref.bjLobby(luca);
+      expect(lobby['mine'], isNull, reason: 'stood up: nothing happened for hours');
+      final main = (lobby['tables']! as List).cast<Map<String, Object?>>().firstWhere(
+        (t) => t['table'] == 'main',
+      );
+      expect(seatOf(main, 'luca'), isNull);
+      // Sitting at a new table while still at another: you get up from it.
+      await ref.bjSit(luca, 'main');
+      final corner = await ref.bjSit(luca, 'corner');
+      expect(seatOf(corner, 'luca'), isNotNull);
+      expect(seatOf((await store.get('bj/main'))!, 'luca'), isNull);
+    },
+  );
 }

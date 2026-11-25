@@ -24,6 +24,10 @@ extension BjTables on Referee {
   static const bjBetting = Duration(seconds: 15);
   static const bjInsurance = Duration(seconds: 12);
 
+  /// A table nobody's phone has moved on for this long: everyone at it has
+  /// gone (closed the app), and they're stood up.
+  static const bjStale = Duration(minutes: 2);
+
   /// How long a finished round stays up before betting opens again.
   static const bjPause = Duration(seconds: 4);
 
@@ -42,7 +46,8 @@ extension BjTables on Referee {
       // Everyone at it closed the app: their turns run out and they're
       // stood up; then the table goes quiet.
       if (_bjPeople(doc).isNotEmpty &&
-          await _bjCatchUp(tx, table, doc, secret, grace: const Duration(seconds: 60))) {
+          (await _bjClearStale(tx, table, doc, secret) ||
+              await _bjCatchUp(tx, table, doc, secret, grace: const Duration(seconds: 60)))) {
         _bump(doc);
         _bjPut(tx, table, doc, secret);
       }
@@ -63,8 +68,14 @@ extension BjTables on Referee {
     for (final other in bjTables) {
       if (other == table) continue;
       final o = await tx.get('bj/${other.id}');
-      if (o != null && _bjPeople(o).any((s) => s['id'] == p.uid)) {
-        throw RefereeError(409, "You're already at the ${other.name}: leave it first");
+      // Still seated at another table (the app closed there): you get up
+      // from it first, paid for any round in play.
+      final at = o == null ? -1 : _bjSeats(o).indexWhere((s) => s?['id'] == p.uid);
+      if (o != null && at >= 0) {
+        final os = await _bjSecret(tx, other);
+        await _bjStandUp(tx, other, o, os, at);
+        _bump(o);
+        _bjPut(tx, other, o, os);
       }
     }
     final doc = await _bjTable(tx, table);
@@ -196,14 +207,24 @@ extension BjTables on Referee {
     final table = _bjTableOf(tableId);
     final doc = await _bjTable(tx, table);
     final secret = await _bjSecret(tx, table);
-    final seats = _bjSeats(doc);
-    final seat = seats.indexWhere((s) => s?['id'] == p.uid);
+    final seat = _bjSeats(doc).indexWhere((s) => s?['id'] == p.uid);
     if (seat < 0) return doc;
-    // The seat's free at once (you can sit elsewhere straight away). Mid-
-    // round, the dealer stands for you and you're paid when it settles
-    // (`gone` remembers who to pay).
+    await _bjStandUp(tx, table, doc, secret, seat);
+    if (_bjPeople(doc).isEmpty && doc['phase'] == 'betting') doc['phase'] = 'idle';
+    _bump(doc);
+    _bjPut(tx, table, doc, secret);
+    return doc;
+  });
+
+  /// Stands up whoever's in [seat]: the seat's free at once (they can sit
+  /// elsewhere straight away). Mid-round, the dealer stands for them and
+  /// they're paid when it settles (`gone` remembers who to pay).
+  Future<void> _bjStandUp(Tx tx, BjTable table, Doc doc, Doc secret, int seat) async {
+    final seats = _bjSeats(doc);
+    final uid = seats[seat]?['id'] as String?;
+    if (uid == null) return;
     final midRound = _bjInRound(doc, seat) && doc['phase'] != 'done';
-    if (midRound) doc['gone'] = {..._bjMap(doc['gone']), '$seat': p.uid};
+    if (midRound) doc['gone'] = {..._bjMap(doc['gone']), '$seat': uid};
     seats[seat] = null;
     doc['seats'] = [
       for (final x in seats) x == null ? null : {...x},
@@ -224,11 +245,23 @@ extension BjTables on Referee {
         await _bjPlayOn(tx, table, doc, secret);
       }
     }
+  }
+
+  /// Nothing's happened at the table for a while (nobody's phone is moving
+  /// it on): whoever's still seated has gone. Stands them all up.
+  Future<bool> _bjClearStale(Tx tx, BjTable table, Doc doc, Doc secret) async {
+    final last = doc['turnAt'] as int? ?? doc['endedAt'] as int? ?? 0;
+    if (_now - last < bjStale.inMilliseconds) return false;
+    var changed = false;
+    for (var s = 0; s < bjSeatCount; s++) {
+      if (_bjSeats(doc)[s]?['id'] != null) {
+        await _bjStandUp(tx, table, doc, secret, s);
+        changed = true;
+      }
+    }
     if (_bjPeople(doc).isEmpty && doc['phase'] == 'betting') doc['phase'] = 'idle';
-    _bump(doc);
-    _bjPut(tx, table, doc, secret);
-    return doc;
-  });
+    return changed;
+  }
 
   // --- Steps ------------------------------------------------------------------
 
