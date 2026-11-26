@@ -27,6 +27,11 @@ import 'blackjack/ui/bj_lobby.dart';
 import 'bank/at_home.dart';
 import 'bank/ui/bank_screen.dart';
 import 'bank/ui/bank_companion.dart';
+import 'farkle/at_home.dart';
+import 'farkle/ui/farkle_screen.dart';
+import 'liars/at_home.dart';
+import 'liars/ui/liars_screen.dart';
+import 'package:duel_engine/liars/liars.dart';
 import 'previews.dart';
 import 'tile_art.dart';
 import 'spades/ui/spades_screen.dart';
@@ -56,7 +61,11 @@ class GameInfo {
     this.staked = true,
     this.companion,
     this.direct = false,
+    this.tabletop = false,
   });
+
+  /// In Tabletop's games (dice and table games), not on home's grid.
+  final bool tabletop;
 
   /// The tile opens the game itself, no preview (Blackjack: the floor,
   /// which has its own Play at home and How to play).
@@ -465,5 +474,67 @@ final games = <GameInfo>[
     atHome: rowAtHome,
     open: (setup, stake, _) => RowScreen(difficulty: setup.difficulty, stake: stake),
     openOnline: (party) => RowScreen.online(party: party),
+  ),
+  GameInfo(
+    id: 'farkle',
+    name: 'Farkle',
+    blurb: 'Six dice, keep the scorers, don\'t push too far',
+    minPlayers: 2,
+    maxPlayers: 6,
+    color: const Color(0xFF1E5E4E),
+    art: (_) => const FarkleArt(),
+    board: (_) => const FarklePreview(),
+    rules: const [
+      'Roll six dice. Keep at least one that scores: 1 = 100, 5 = 50, three of a kind = face × 100 (1s: 1000), '
+          'straights and three pairs 1500.',
+      'Then roll the rest for more, or bank the turn. A roll with nothing to keep is a Farkle: the turn\'s points '
+          'are gone. Keep all six: hot dice, roll them all again.',
+      'First to the target sets the score to beat; everyone else gets one more turn.',
+    ],
+    minutes: (players) => 6 + players * 3,
+    atHome: farkleAtHome,
+    tabletop: true,
+    choice: const GameChoice(label: 'Play to', values: [5000, 10000], names: ['Quick', 'Classic'], initial: 1),
+    open: (setup, stake, target) =>
+        FarkleScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, target: target ?? 10000),
+  ),
+  GameInfo(
+    id: 'liars',
+    name: 'Liar\'s Dice',
+    blurb: 'Bluff about what\'s under the cups',
+    minPlayers: 2,
+    maxPlayers: 6,
+    color: Tavern.cloth,
+    art: (_) => const LiarsArt(),
+    board: (_) => const LiarsPreview(),
+    rules: const [
+      'Everyone shakes dice under a cup and sees only their own.',
+      'In turn, bid on the whole table: "three 5s" = at least three 5s under all the cups. Raise the count, or the '
+          'face. Ones are wild.',
+      'Or call Liar! All cups come up: a short bid costs the bidder a die, a good one costs you. Spot on: call it '
+          'exactly to win a die back.',
+      'Out of dice, out. The last cup standing wins.',
+    ],
+    minutes: (players) => 4 + players * 2,
+    atHome: liarsAtHome,
+    tabletop: true,
+    choice: const GameChoice(
+      label: 'Dice each',
+      values: [3, 4, 5],
+      names: ['Quick', 'Short', 'Classic'],
+      initial: 2,
+      online: 'dice',
+    ),
+    open: (setup, stake, dice) => LiarsScreen(
+      bots: setup.botCount,
+      difficulty: setup.difficulty,
+      stake: stake,
+      rules: LiarsRules(dice: dice ?? 5),
+    ),
+    openOnline: (party) => OnlineGameFrame(
+      party: party,
+      gameId: 'liars',
+      builder: (link, ticket) => LiarsScreen.online(link: link, stake: ticket),
+    ),
   ),
 ];

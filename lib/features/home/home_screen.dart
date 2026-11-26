@@ -59,7 +59,7 @@ class HomeScreen extends StatelessWidget {
         children: [
           const _LoungeTile(),
           for (final g in games)
-            if (g.id != 'holdem') _GameTile(game: g, setup: setup),
+            if (g.id != 'holdem' && !g.tabletop) GameTile(game: g, setup: setup),
         ],
       ),
     );
@@ -281,8 +281,8 @@ class _LoungeTile extends StatelessWidget {
   );
 }
 
-class _GameTile extends StatelessWidget {
-  const _GameTile({required this.game, required this.setup});
+class GameTile extends StatelessWidget {
+  const GameTile({required this.game, required this.setup});
 
   final GameInfo game;
   final PlaySetup setup;

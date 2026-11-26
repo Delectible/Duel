@@ -1046,6 +1046,19 @@ class _Controls extends StatelessWidget {
   }
 }
 
+/// A dice cup on its own (tile art, previews).
+class LiarsCup extends StatelessWidget {
+  const LiarsCup({super.key, this.width = 40, this.color = const Color(0xFF8B5A2B)});
+
+  final double width;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: CustomPaint(size: Size(width, width * 0.95), painter: _CupPainter(color)),
+  );
+}
+
 /// A die seen from straight above: the face only, pips easy to read
 /// (pickers and small labels).
 class FlatDie extends StatelessWidget {

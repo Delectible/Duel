@@ -9,12 +9,14 @@ import 'package:duel_engine/poker/bot.dart';
 import 'package:duel_engine/poker/cash.dart';
 import 'package:duel_engine/poker/poker_hand.dart';
 import 'package:duel_engine/poker/reads.dart';
+import 'package:duel_engine/scoreboard/scoreboard.dart';
 
 import 'games.dart';
 import 'poker_game.dart';
 import 'store.dart';
 
 part 'bj_tables.dart';
+part 'boards.dart';
 part 'cash_tables.dart';
 
 /// A request the referee turns down: [status] is the HTTP status to send.
@@ -744,7 +746,7 @@ class Referee {
   /// hands) a day after the last move, parties (and their codes) 30 days
   /// after the last change.
   void _put(Tx tx, String path, Doc doc) {
-    final party = path.startsWith('parties/') || path.startsWith('codes/');
+    final party = path.startsWith('parties/') || path.startsWith('codes/') || path.startsWith('boards/');
     final expireAt = _clock().toUtc().add(party ? partyLife : gameLife);
     tx.set(path, {...doc, 'expireAt': expireAt});
     // Keep the code alive as long as its party.

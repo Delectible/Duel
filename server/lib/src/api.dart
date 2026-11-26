@@ -28,6 +28,7 @@ import 'store.dart';
 /// - POST /v1/cash/<stake>/topup     {pips}                  -> table
 /// - POST /v1/cash/<stake>/sitout    {out}                   -> table
 /// - POST /v1/cash/<stake>/say       {line}                  -> table
+/// - POST /v1/boards/<party>       {op...} (none: just read) -> board
 /// - POST /v1/bj                                             -> {tables, mine}
 /// - POST /v1/bj/<table>/sit         {seat, name, avatar}    -> table
 /// - POST /v1/bj/<table>/bet         {amount}                -> table
@@ -168,6 +169,7 @@ Handler api(Referee referee, TokenVerifier verifier) {
       (Request q, String stake) =>
           call(q, (p, b) => referee.cashSay(p, stake, b['line'] is int ? b['line']! as int : -1)),
     )
+    ..post('/v1/boards/<party>', (Request q, String party) => call(q, (p, b) => referee.board(p, party, b)))
     ..post('/v1/bj', (Request q) => call(q, (p, _) => referee.bjLobby(p)))
     ..post(
       '/v1/bj/<table>/sit',

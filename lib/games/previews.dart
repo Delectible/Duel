@@ -7,6 +7,8 @@ import 'package:duel_engine/cards.dart';
 import '../core/theme/toon.dart';
 import '../core/avatars/faces.dart';
 import 'bank/dice.dart';
+import 'farkle/ui/farkle_screen.dart' show Tray;
+import 'liars/ui/liars_screen.dart' show LiarsCup, Tavern, FlatDie;
 
 /// Sample boards for the game previews: a still picture of each game in
 /// play, drawn with the same pieces as the games.
@@ -560,6 +562,100 @@ class BankPreview extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Farkle: the scores, the kept dice, the tray.
+class FarklePreview extends StatelessWidget {
+  const FarklePreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bots = Persona.bots(2, Random(5));
+    Widget player(Persona p, String score) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [Face(p, size: 26), const SizedBox(height: 2), _tag(score)],
+    );
+    return Container(
+      decoration: Toon.box(Tray.wood, radius: 18, shadow: 4),
+      padding: const EdgeInsets.all(8),
+      child: Container(
+        decoration: BoxDecoration(color: Tray.felt, borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [player(bots[0], '6,350'), player(bots[1], '8,900')],
+            ),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [Die(1, size: 34, angle: -0.2), SizedBox(width: 8), Die(1, size: 34, angle: 0.3), SizedBox(width: 8), Die(5, size: 34, angle: 0.1)],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Die(4, size: 26, angle: 0.2),
+                const SizedBox(width: 6),
+                const Die(2, size: 26, angle: -0.3),
+                const SizedBox(width: 6),
+                const Die(6, size: 26, angle: 0.1),
+                const SizedBox(width: 10),
+                _tag('+250', color: Toon.green),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Liar's Dice: cups round the table, the bid on its plaque.
+class LiarsPreview extends StatelessWidget {
+  const LiarsPreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bots = Persona.bots(3, Random(8));
+    Widget seat(Persona p, Color cup, String said) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [LiarsCup(width: 34, color: cup), Face(p, size: 24), const SizedBox(height: 2), _tag(said)],
+    );
+    return Container(
+      decoration: Toon.box(Tavern.cloth, radius: 18, shadow: 4),
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              seat(bots[0], Tavern.cups[1], 'Three 4s'),
+              seat(bots[1], Tavern.cups[2], 'Four 4s'),
+              seat(bots[2], Tavern.cups[3], 'Liar!'),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: Toon.box(Tavern.brass, radius: 10, shadow: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('4 ×', style: Toon.text(22, weight: FontWeight.w700, color: Toon.inkLight)),
+                const SizedBox(width: 6),
+                const FlatDie(4, size: 26),
+              ],
+            ),
+          ),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [Die(4, size: 26), Die(1, size: 26), Die(6, size: 26), Die(4, size: 26), Die(2, size: 26)],
           ),
         ],
       ),

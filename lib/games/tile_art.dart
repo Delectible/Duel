@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../core/cards/card_view.dart';
 import '../core/theme/toon.dart';
 import 'bank/dice.dart';
+import 'liars/ui/liars_screen.dart';
 
 /// The game picker's tile pictures: small cartoon scenes in the app's look
 /// (bold ink outlines, flat Toon colours, real cards). Each fills about
@@ -533,5 +534,34 @@ class BankArt extends StatelessWidget {
   Widget build(BuildContext context) => _scene([
     const Positioned(left: 8, top: 10, child: Die(6, size: 30, angle: -0.3)),
     const Positioned(right: 10, bottom: 4, child: Die(6, size: 30, angle: 0.35)),
+  ]);
+}
+
+// --- Farkle: a handful of dice, two of them kept -------------------------------
+
+class FarkleArt extends StatelessWidget {
+  const FarkleArt({super.key});
+
+  @override
+  Widget build(BuildContext context) => _scene([
+    const Positioned(left: 4, top: 6, child: Die(1, size: 24, angle: -0.3)),
+    const Positioned(left: 30, top: 0, child: Die(5, size: 22, angle: 0.2)),
+    const Positioned(right: 6, top: 10, child: Die(1, size: 24, angle: 0.4)),
+    const Positioned(left: 14, bottom: 2, child: Die(3, size: 22, angle: 0.1)),
+    const Positioned(right: 18, bottom: 0, child: Die(6, size: 24, angle: -0.25)),
+  ]);
+}
+
+// --- Liar's Dice: a cup, a peek of dice ---------------------------------------
+
+class LiarsArt extends StatelessWidget {
+  const LiarsArt({super.key});
+
+  @override
+  Widget build(BuildContext context) => _scene([
+    const Positioned(left: 2, bottom: 2, child: Die(5, size: 20, angle: -0.2)),
+    const Positioned(left: 22, bottom: 0, child: Die(1, size: 20, angle: 0.3)),
+    const Positioned(right: 4, top: 2, child: LiarsCup(width: 46, color: Tavern.cloth)),
+    const Positioned(right: 30, bottom: 2, child: Die(5, size: 18, angle: 0.1)),
   ]);
 }
