@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/help/game_guide.dart';
+import '../../../core/online/online_link.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'bank_bits.dart';
@@ -58,8 +59,17 @@ class BankScreen extends StatefulWidget {
     this.pace = 1,
     this.seed,
     this.stake,
-  });
+  }) : link = null;
 
+  /// With your party, online (inside an [OnlineGameFrame]).
+  BankScreen.online({super.key, required OnlineLink this.link, required StakeTicket this.stake})
+    : bots = link.n - 1,
+      difficulty = Difficulty.normal,
+      rounds = link.state['rounds'] as int? ?? 10,
+      pace = 1,
+      seed = null;
+
+  final OnlineLink? link;
   final int bots;
   final Difficulty difficulty;
   final int rounds;
@@ -89,6 +99,7 @@ class _BankScreenState extends State<BankScreen> {
     pace: widget.pace,
     rng: widget.seed == null ? null : Random(widget.seed),
     you: _account.persona,
+    link: widget.link,
   )..addListener(_settle);
 
   void _settle() {
@@ -118,6 +129,8 @@ class _BankScreenState extends State<BankScreen> {
   }
 
   Future<void> _leave() async {
+    final link = widget.link;
+    if (link != null) return link.leave(context, _ticket, over: _c.phase == BankPhase.over);
     if (_c.phase == BankPhase.over || await confirmLeave(context, _ticket)) {
       if (mounted) Navigator.of(context).pop();
     }
@@ -138,8 +151,9 @@ class _BankScreenState extends State<BankScreen> {
               GameLayout(
                 top: GameTopBar(
                   title: 'Bank!',
-                  subtitle:
-                      'Round ${_c.game.round} of ${_c.game.rounds} · ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
+                  subtitle: widget.link != null
+                      ? 'Round ${_c.game.round} of ${_c.game.rounds} · with your party'
+                      : 'Round ${_c.game.round} of ${_c.game.rounds} · ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
                   onLeave: _leave,
                   ticket: _ticket,
                   guide: bankGuide,
@@ -179,11 +193,15 @@ class _BankScreenState extends State<BankScreen> {
           : '$top to your $mine.',
       ticket: _ticket,
       won: won,
-      onAgain: () {
-        setState(() => _ticket = _ticket.again());
-        _c.playAgain();
-      },
-      onLeave: () => Navigator.of(context).pop(),
+      onAgain: widget.link != null
+          ? widget.link!.rematch
+          : () {
+              setState(() => _ticket = _ticket.again());
+              _c.playAgain();
+            },
+      againLabel: widget.link?.rematchLabel ?? 'Play again',
+      leaveLabel: widget.link == null ? 'Games' : 'Back to party',
+      onLeave: widget.link == null ? () => Navigator.of(context).pop() : _leave,
     );
   }
 }
@@ -264,7 +282,6 @@ class _Table extends StatelessWidget {
               key: const Key('roll'),
               enabled: c.yourRoll,
               onRoll: c.roll,
-              hint: 'Swipe up to roll',
               child: Center(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -285,8 +302,12 @@ class _Table extends StatelessWidget {
                         g.rolls == 0 ? 'First roll coming' : 'Roll ${g.rolls}',
                         style: Toon.text(13, color: Colors.white70),
                       ),
-                      // Room for the swipe hint.
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 10),
+                      // Under the bank, in the same column, so it never covers it.
+                      Opacity(
+                        opacity: c.yourRoll ? 1 : 0,
+                        child: SwipeHint('Swipe up to roll', key: ValueKey('hint${c.rollId}${c.yourRoll}')),
+                      ),
                     ],
                   ),
                 ),
@@ -377,7 +398,11 @@ class _Player extends StatelessWidget {
             line: banked ? '+${g.bankedAt[p]}' : '${g.scores[p]}',
             color: banked ? Toon.green : null,
           ),
-          if (banked) Text('total ${g.scores[p]}', style: Toon.text(10, color: Colors.white70)),
+          if (banked)
+            Text(
+              'total ${g.scores[p]}',
+              style: Toon.text(12, weight: FontWeight.w700, color: Colors.white),
+            ),
           if (said != null)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -414,7 +439,7 @@ class _Controls extends StatelessWidget {
                 Flexible(
                   child: FittedBox(
                     child: Text(
-                      c.yourRoll ? 'Your roll' : '${_roller(c)} rolls',
+                      c.yourRoll ? 'Your roll' : (c.game.roller == 0 ? 'You roll' : '${_roller(c)} rolls'),
                       maxLines: 1,
                       style: Toon.text(18, weight: FontWeight.w700),
                     ),

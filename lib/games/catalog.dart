@@ -372,6 +372,11 @@ final games = <GameInfo>[
     minutes: (_) => 5,
     atHome: goofspielAtHome,
     open: (setup, stake, _) => GopsScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake),
+    openOnline: (party) => OnlineGameFrame(
+      party: party,
+      gameId: 'gops',
+      builder: (link, ticket) => GopsScreen.online(link: link, stake: ticket),
+    ),
   ),
   GameInfo(
     id: 'blitz',
@@ -435,6 +440,12 @@ final games = <GameInfo>[
       values: [10, 15, 20],
       names: ['Quick', 'Normal', 'Long'],
       initial: 1,
+      online: 'rounds',
+    ),
+    openOnline: (party) => OnlineGameFrame(
+      party: party,
+      gameId: 'bank',
+      builder: (link, ticket) => BankScreen.online(link: link, stake: ticket),
     ),
   ),
   GameInfo(

@@ -9,6 +9,7 @@ import '../../../core/account/account.dart';
 import '../../../core/account/stake.dart';
 import '../../../core/cards/card_view.dart';
 import '../../../core/help/game_guide.dart';
+import '../../../core/online/online_link.dart';
 import '../../../core/table/table_bits.dart';
 import '../../../core/theme/toon.dart';
 import 'gops_controller.dart';
@@ -66,8 +67,16 @@ class GopsScreen extends StatefulWidget {
     this.pace = 1,
     this.seed,
     this.stake,
-  });
+  }) : link = null;
 
+  /// With your party, online (inside an [OnlineGameFrame]).
+  GopsScreen.online({super.key, required OnlineLink this.link, required StakeTicket this.stake})
+    : bots = link.n - 1,
+      difficulty = Difficulty.normal,
+      pace = 1,
+      seed = null;
+
+  final OnlineLink? link;
   final int bots;
   final Difficulty difficulty;
   final double pace;
@@ -95,6 +104,7 @@ class _GopsScreenState extends State<GopsScreen> {
     pace: widget.pace,
     rng: widget.seed == null ? null : Random(widget.seed),
     you: _account.persona,
+    link: widget.link,
   )..addListener(_settle);
 
   void _settle() {
@@ -130,6 +140,8 @@ class _GopsScreenState extends State<GopsScreen> {
   };
 
   Future<void> _leave() async {
+    final link = widget.link;
+    if (link != null) return link.leave(context, _ticket, over: _c.phase == GopsPhase.over);
     if (_c.phase == GopsPhase.over || await confirmLeave(context, _ticket)) {
       if (mounted) Navigator.of(context).pop();
     }
@@ -150,8 +162,9 @@ class _GopsScreenState extends State<GopsScreen> {
               GameLayout(
                 top: GameTopBar(
                   title: 'Goofspiel',
-                  subtitle:
-                      'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
+                  subtitle: widget.link != null
+                      ? 'With your party${_c.canBid ? ' · ${widget.link!.secondsLeft}s' : ''}'
+                      : 'You + ${widget.bots} ${widget.bots == 1 ? 'bot' : 'bots'} · ${widget.difficulty.label}',
                   onLeave: _leave,
                   ticket: _ticket,
                   guide: goofspielGuide,
@@ -192,8 +205,10 @@ class _GopsScreenState extends State<GopsScreen> {
           : '$top points to your $mine.',
       ticket: _ticket,
       won: won,
-      onAgain: _playAgain,
-      onLeave: () => Navigator.of(context).pop(),
+      onAgain: widget.link == null ? _playAgain : widget.link!.rematch,
+      againLabel: widget.link?.rematchLabel ?? 'Play again',
+      leaveLabel: widget.link == null ? 'Games' : 'Back to party',
+      onLeave: widget.link == null ? () => Navigator.of(context).pop() : _leave,
     );
   }
 }

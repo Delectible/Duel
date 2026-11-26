@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '1.0.4';
+  static const version = '1.1.0';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,12 +24,13 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Blackjack: bot names show in full, the dealer\'s speech fits on one line, and seats left behind clear '
-      'themselves. Plus 1.0.3: quick stakes that follow how you bet, music fading in at launch, and badges you can '
-      'tap.';
+      'Goofspiel and Bank! now play online with your party: bids stay hidden until everyone is in, and anyone can '
+      'bank between rolls. Plus: Bank\'s swipe hint no longer covers the roll count, a tie in Play at home says '
+      'so, and blackjack buttons and names fit better.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[
+    ('1.1', ['Goofspiel and Bank! online']),
     (
       '1.0',
       [

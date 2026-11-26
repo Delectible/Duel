@@ -119,6 +119,7 @@ class GopsGame extends OnlineGame {
     final done = bids.length ~/ n;
     return {
       'n': n,
+      'order': [for (var i = 0; i < n; i++) i],
       'humans': state['humans'],
       'prizes': prizeOrder(state['seed']! as int).take(min(13, done + 1)).toList(),
       'bids': bids.take(done * n).toList(),
@@ -197,6 +198,7 @@ class BankOnline extends OnlineGame {
     'n': players,
     'rounds': ((options['rounds'] as int?) ?? 10).clamp(1, 30),
     'first': first,
+    'order': [for (var i = 0; i < players; i++) i],
     'levels': List<String?>.filled(players, null),
     'moves': <Doc>[],
   };

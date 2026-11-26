@@ -50,9 +50,8 @@ together, GamePigeon-easy. Let it guide design and development choices.
 - **Open threads** (see `docs/CHANGELOG.md` for detail): store prices,
   set prizes and daily challenge rewards are first guesses (owned items
   are on the phone only, not synced); Tournament and
-  Boss Tables are bots only (friends later); Goofspiel, Blackjack and
-  Bank! are bots only for now (online next; Blackjack table limits are a
-  first guess); Blackjack online tables' rules are a first guess; cash stakes / unlocks, boss
+  Boss Tables are bots only (friends later); Blackjack table limits are a
+  first guess; Blackjack online tables' rules are a first guess; cash stakes / unlocks, boss
   stakes / quirks and tournament buy-ins are first guesses Luca may
   change; Play's Data safety form still needs the online pips balance
   (App activity > Other actions) and User IDs as required; the release
@@ -209,6 +208,17 @@ weights cut from the variable font.
   `OnlineGameFrame`: stake, pause card, ended card, fresh table per match)
   and each controller's `link` (plays the next logged move where a bot
   would decide). Party `mode` (`host` / `vote` / `first`), `Referee.vote`.
+- Online Goofspiel and Bank! (`server/lib/src/party_games.dart`):
+  moves any seat makes at any time skip the version check
+  (`OnlineGame.unversioned`). Goofspiel (`GopsGame`): bids hidden until
+  all are in (public: `prizes` turned up, finished rounds' `bids`,
+  `ready`; your own in `hands`); bots bid first, the clock runs on the
+  first person still to bid. Bank! (`BankOnline`): the referee rolls
+  (seed secret), a bank names its roll (`at`, `round`), bots bank right
+  after a roll (`withBots` gives their levels), and bots' / leavers'
+  rolls wait `botWait` before any phone claims them, so people can bank
+  between rolls. App: `GopsController` / `BankController` take a `link`
+  (`GopsScreen.online`, `BankScreen.online`).
 - Online Four in a Row: `RowScreen.online` with `OnlineRowController`
   (implements `RowTable`, like the bot's `RowController`): you're always
   red (seats remapped), your drop shows at once, turn ring counted from

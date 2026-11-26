@@ -285,6 +285,7 @@ class _Table extends StatelessWidget {
           child: _Dealer(c: c, width: dealerW, from: shoe - dealerAt + Offset(dealerW, 0)),
         ),
       ];
+      var bets = children.length;
       for (var i = 0; i < c.seats.length; i++) {
         if (i == c.youSeat) continue;
         final at = seats[i], spot = spots[i];
@@ -292,18 +293,20 @@ class _Table extends StatelessWidget {
         // Keyed by seat and who sits there: someone leaving or sitting
         // down leaves everyone else's cards where they are.
         final who = c.seats[i].persona.name;
+        // Bets go under the seats, so a pile never hides a name.
+        children.insert(
+          bets++,
+          At(
+            spot,
+            key: ValueKey('bet $i $who'),
+            child: _BotBet(c: c, seat: i),
+          ),
+        );
         children.add(
           At(
             at,
             key: ValueKey('seat $i $who'),
             child: _BotSeat(c: c, seat: i, width: small, from: shoe - at),
-          ),
-        );
-        children.add(
-          At(
-            spot,
-            key: ValueKey('bet $i $who'),
-            child: _BotBet(c: c, seat: i),
           ),
         );
       }

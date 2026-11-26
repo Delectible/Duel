@@ -899,6 +899,23 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 52. Debug sweep, Goofspiel and Bank! online (requested 2026-11-26)
+
+- [x] **52.1 Bank! Play at home: a tie says so** (it named the first
+  player the winner).
+- [x] **52.2 Blackjack move buttons** get side room; bot bets sit under
+  the name plates.
+- [x] **52.3 Bank!**: the swipe hint sits under the bank instead of over
+  the roll count; banked totals are bigger.
+- [x] **52.4 Sweep covers every screen**: Blackjack, Bank!, Goofspiel,
+  Blitz, the Lounge and both lobbies, light / dark, both ways.
+- [x] **52.5 Goofspiel online**: bids any order, hidden until all are in
+  (`GopsGame`; no version check on bids).
+- [x] **52.6 Bank! online**: the referee rolls; anyone in banks at any
+  time (a bank names its roll; one that crosses the next roll is
+  refused); bots bank right after a roll; a bot's roll waits 1.2 s for
+  the others (`OnlineGame.botWait`). → 1.1.0 · 2026-11-26
+
 ### 51. Fixes and touches (requested 2026-11-24)
 
 - [x] **51.1 Intro cards turn over** in 3D instead of snapping face up.

@@ -7,6 +7,7 @@ import 'package:duel_engine/goofspiel/gops_bot.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/avatars/faces.dart';
+import '../../../core/online/online_link.dart';
 import '../../../core/sound/sound.dart';
 
 enum GopsPhase { dealing, bidding, revealing, over }
@@ -19,11 +20,18 @@ class GopsController extends ChangeNotifier {
     Random? rng,
     this.pace = 1,
     this.you = const Persona.you(),
+    this.link,
   }) : _rng = rng ?? Random(),
-       assert(bots >= 1 && bots <= 2) {
-    personas = [you, ...Persona.bots(bots, _rng)];
+       assert(link != null || (bots >= 1 && bots <= 2)) {
+    final l = link;
+    personas = l == null ? [you, ...Persona.bots(bots, _rng)] : l.personas(you);
+    l?.party.addListener(_onServer);
     _start();
   }
+
+  /// With your party, online: the referee keeps the bids; this table plays
+  /// each prize out as its bids come in.
+  final OnlineLink? link;
 
   final Difficulty difficulty;
   final double pace;
@@ -65,10 +73,11 @@ class GopsController extends ChangeNotifier {
   bool get canBid => phase == GopsPhase.bidding && yourBid == null;
 
   void _start() {
-    game = Goofspiel(players: personas.length, rng: _rng);
+    final l = link;
+    game = l == null ? Goofspiel(players: personas.length, rng: _rng) : _online(_serverRounds);
     _bots = [
       for (var p = 0; p < personas.length; p++)
-        p == 0 ? null : GopsBot(me: p, difficulty: difficulty, rng: _rng),
+        p == 0 || l != null ? null : GopsBot(me: p, difficulty: difficulty, rng: _rng),
     ];
     selected = null;
     yourBid = null;
@@ -92,6 +101,65 @@ class GopsController extends ChangeNotifier {
     _timer = Timer(Duration(milliseconds: (ms * pace).round()), () {
       if (!_disposed) f();
     });
+  }
+
+  // --- Online ----------------------------------------------------------------
+
+  /// Every finished round's bids from the server, in seats here (you at 0).
+  List<List<int>> get _serverBids {
+    final l = link!;
+    final bids = (l.state['bids'] as List?) ?? const [];
+    final out = List.generate(bids.length ~/ l.n, (_) => List.filled(l.n, 0));
+    for (final (i, b) in bids.indexed) {
+      out[i ~/ l.n][l.local((b as List)[0] as int)] = b[1] as int;
+    }
+    return out;
+  }
+
+  int get _serverRounds => (((link!.state['bids'] as List?) ?? const []).length) ~/ link!.n;
+
+  /// The game after [rounds] prizes, from the prizes turned up so far (the
+  /// rest, still face down, in any order).
+  Goofspiel _online(int rounds) {
+    final prizes = ((link!.state['prizes'] as List?) ?? const []).cast<int>();
+    final g = Goofspiel(
+      players: link!.n,
+      prizeOrder: [
+        ...prizes,
+        for (var v = 1; v <= 13; v++)
+          if (!prizes.contains(v)) v,
+      ],
+    );
+    for (final bids in _serverBids.take(rounds)) {
+      for (final (p, v) in bids.indexed) {
+        g.bid(p, v);
+      }
+    }
+    return g;
+  }
+
+  /// Who has bid this prize, from the server (once this table has caught up).
+  void _readyFromServer() {
+    final l = link!;
+    if (_serverRounds != game.history.length) return;
+    ready
+      ..clear()
+      ..addAll([for (final s in (l.state['ready'] as List?) ?? const []) l.local(s as int)]);
+    final mine = l.party.mine?['bid'];
+    if (yourBid == null && mine is int && ready.contains(0)) yourBid = mine;
+    if (yourBid != null) ready.add(0);
+  }
+
+  void _onServer() {
+    if (_disposed || phase != GopsPhase.bidding) return;
+    final had = ready.length;
+    _readyFromServer();
+    if (ready.length > had) Sound.play(Sfx.deal);
+    if (_serverRounds > game.history.length) {
+      ready.addAll([for (var p = 0; p < players; p++) p]);
+      _maybeReveal();
+    }
+    _notify();
   }
 
   void _cancel() {
@@ -121,6 +189,7 @@ class GopsController extends ChangeNotifier {
     speech.clear();
     Sound.play(Sfx.place);
     Sound.later(Sfx.yourTurn, 350, gain: 0.7);
+    if (link != null) return _onServer();
     final big = game.potWorth >= 15;
     for (var p = 1; p < players; p++) {
       final think = 700 + _rng.nextInt(big ? 2200 : 1400);
@@ -152,6 +221,11 @@ class GopsController extends ChangeNotifier {
     selected = null;
     ready.add(0);
     Sound.play(Sfx.place);
+    if (link != null) {
+      link!.send({'bid': v});
+      _notify();
+      return;
+    }
     _maybeReveal();
     _notify();
   }
@@ -168,9 +242,17 @@ class GopsController extends ChangeNotifier {
   void _reveal() {
     final pot = game.potWorth;
     GopsRound? r;
-    for (var p = 0; p < players; p++) {
-      final v = p == 0 ? yourBid! : _bots[p]!.decide(game);
-      r = game.bid(p, v);
+    if (link != null) {
+      final done = game.history.length;
+      game = _online(done);
+      for (final (p, v) in _serverBids[done].indexed) {
+        r = game.bid(p, v);
+      }
+    } else {
+      for (var p = 0; p < players; p++) {
+        final v = p == 0 ? yourBid! : _bots[p]!.decide(game);
+        r = game.bid(p, v);
+      }
     }
     shown = r;
     reveals++;
@@ -200,6 +282,7 @@ class GopsController extends ChangeNotifier {
 
   /// Bots say something when it's worth saying.
   void _react(int? winner, int pot, GopsRound r) {
+    if (link != null) return;
     final bots = [for (var p = 1; p < players; p++) p];
     String pickOne(List<String> lines) => lines[_rng.nextInt(lines.length)];
     if (winner == null) {
@@ -283,6 +366,7 @@ class GopsController extends ChangeNotifier {
 
   @override
   void dispose() {
+    link?.party.removeListener(_onServer);
     _disposed = true;
     _cancel();
     super.dispose();

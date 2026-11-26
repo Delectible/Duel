@@ -159,22 +159,23 @@ class SwipeToRoll extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         child,
-        if (enabled && hint != null) Positioned(bottom: -4, child: IgnorePointer(child: _SwipeHint(hint!))),
+        if (enabled && hint != null) Positioned(bottom: -4, child: IgnorePointer(child: SwipeHint(hint!))),
       ],
     ),
   );
 }
 
-class _SwipeHint extends StatefulWidget {
-  const _SwipeHint(this.text);
+/// "Swipe up to roll": bobs a few times, then rests.
+class SwipeHint extends StatefulWidget {
+  const SwipeHint(this.text, {super.key});
 
   final String text;
 
   @override
-  State<_SwipeHint> createState() => _SwipeHintState();
+  State<SwipeHint> createState() => SwipeHintState();
 }
 
-class _SwipeHintState extends State<_SwipeHint> with SingleTickerProviderStateMixin {
+class SwipeHintState extends State<SwipeHint> with SingleTickerProviderStateMixin {
   // Bobs a few times, then rests (it's still there).
   late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
     ..repeat(count: 3);

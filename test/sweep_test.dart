@@ -5,7 +5,15 @@ import 'package:duel/core/theme/toon.dart';
 import 'package:duel/features/home/home_screen.dart';
 import 'package:duel/features/profile/profile_screen.dart';
 import 'package:duel/features/settings/settings_screen.dart';
+import 'package:duel/games/bank/ui/bank_screen.dart';
+import 'package:duel/games/blackjack/ui/bj_lobby.dart';
+import 'package:duel/games/blackjack/ui/bj_screen.dart';
+import 'package:duel/games/blitz/ui/blitz_screen.dart';
 import 'package:duel/games/crazy_eights/ui/eights_screen.dart';
+import 'package:duel/games/goofspiel/ui/gops_screen.dart';
+import 'package:duel/games/poker/lounge/cash_lobby.dart';
+import 'package:duel/games/poker/lounge/lounge_screen.dart';
+import 'package:duel_engine/blackjack/bj_tables.dart';
 import 'package:duel/games/four_in_a_row/ui/row_screen.dart';
 import 'package:duel/games/go_fish/ui/fish_screen.dart';
 import 'package:duel/games/poker/ui/poker_screen.dart';
@@ -38,11 +46,16 @@ void main() {
         ('profile', const ProfileScreen()),
         ('settings', const SettingsScreen()),
         ('store', const StoreScreen(tab: StoreTab.face)),
+        ('lounge', const LoungeScreen()),
+        ('cash_lobby', CashLobbyScreen(now: () => 0)),
+        ('bj_lobby', BjLobby(seed: 2, now: () => 0)),
       ]) {
         testWidgets('$name, $look, $phone', (tester) async {
           usePhone(tester, size);
           await tester.pumpWidget(_wrap(screen, Account()));
-          await tester.pumpAndSettle();
+          for (var i = 0; i < 40; i++) {
+            await tester.pump(const Duration(milliseconds: 50));
+          }
           await shot(tester, 'sweep_${name}_${look}_$phone');
           expect(tester.takeException(), isNull);
         });
@@ -54,6 +67,10 @@ void main() {
         ('fish', const FishScreen(bots: 5, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
         ('row', const RowScreen(difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
         ('spades', const SpadesScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
+        ('blackjack', BjScreen(table: bjTables.first, bots: 4, pace: 0.2, seed: 2)),
+        ('bank', const BankScreen(bots: 5, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
+        ('gops', const GopsScreen(bots: 2, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
+        ('blitz', const BlitzScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
       ]) {
         testWidgets('$name, $look, $phone', (tester) async {
           usePhone(tester, size);
