@@ -653,7 +653,11 @@ class _BankCompanionState extends State<BankCompanion> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          done ? '${widget.names[ranked.first]} wins!' : 'Round ${g.round} done',
+                          done
+                              ? (g.winners.length > 1
+                                    ? 'A tie: ${g.winners.map((i) => widget.names[i]).join(' & ')}!'
+                                    : '${widget.names[g.winners.first]} wins!')
+                              : 'Round ${g.round} done',
                           textAlign: TextAlign.center,
                           style: Toon.text(26, weight: FontWeight.w700),
                         ),

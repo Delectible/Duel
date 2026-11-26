@@ -1092,7 +1092,7 @@ class _Controls extends StatelessWidget {
           child: ToonButton(
             key: Key(mv.name),
             color: color,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
             onPressed: moves.contains(mv) ? () => c.act(mv) : null,
             child: FittedBox(child: Text(label, maxLines: 1)),
           ),
