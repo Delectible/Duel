@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '1.1.0';
+  static const version = '1.2.0';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,9 +24,9 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Goofspiel and Bank! now play online with your party: bids stay hidden until everyone is in, and anyone can '
-      'bank between rolls. Plus: Bank\'s swipe hint no longer covers the roll count, a tie in Play at home says '
-      'so, and blackjack buttons and names fit better.';
+      'New: Tabletop, for games at a real table. A score counter for any game (presets for Hearts, Spades, '
+      'Cribbage, Euchre, Farkle and more; share one board with your party), Liar\'s Dice (bots or your party: bluff '
+      'about what\'s under the cups), Farkle, and every Play at home guide in one place.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

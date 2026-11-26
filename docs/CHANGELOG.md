@@ -899,6 +899,33 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 53. Tabletop, score counter, Liar's Dice, Farkle (requested 2026-11-26)
+
+- [x] **53.1 Tabletop** (button beside the Store; icons only when
+  narrow): Dice & tools (Score counter, Liar's Dice, Farkle, Bank!'s
+  table helper) and every Play at home guide in one list.
+  `GameInfo.tabletop` keeps those games off home's grid.
+- [x] **53.2 Score counter** (after napps' "Score Counter: Count
+  Anything"): coloured tiles (tap top +step, bottom −step, hold for a
+  number pad), steps, round-by-round tables, history, undo, target,
+  lowest-wins, starting score, sort, dice roller (coin to d100), turn
+  timer, boards saved on the phone. Presets: Counter, Round by round,
+  Life, Hearts (shoot the moon), Spades (bid / tricks / nil / bags
+  calculator), Euchre, Cribbage, Rummy, Crazy Eights, Go Fish, Golf,
+  Farkle, Bank!, Yacht. Not done: keeping the screen awake (needs a
+  plugin).
+- [x] **53.3 Party scoreboard**: one board per party on the referee
+  (`boards/{party}`); everyone adds themselves once and changes their
+  own score; the host adds anyone and changes anything, and can let
+  anyone score anyone.
+- [x] **53.4 Liar's Dice**: bots (probability, reads of who bluffs,
+  spot on, tells) or online with the party (cups secret on the referee);
+  a candle-lit tavern table, leather cups that shake and lift, the bid on
+  a brass plaque, dice counted one by one at the reveal; odds hints.
+- [x] **53.5 Farkle**: bots; six thrown 3D dice (`ThrownDice`), a felt
+  tray, kept dice on a shelf, hot dice, FARKLE! stamp; to 5,000 or 10,000.
+  → 1.2.0 · 2026-11-26
+
 ### 52. Debug sweep, Goofspiel and Bank! online (requested 2026-11-26)
 
 - [x] **52.1 Bank! Play at home: a tie says so** (it named the first

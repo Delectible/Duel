@@ -32,7 +32,7 @@ void main() {
         for (var i = 0; i < 60000 && !has(const Key('again')); i++) {
           await tester.pump(const Duration(milliseconds: 20));
           expect(tester.takeException(), isNull);
-          if (shots.length < 1 && find.text('Counting… 1').evaluate().isNotEmpty) {
+          if (shots.isEmpty && find.text('Counting… 1').evaluate().isNotEmpty) {
             shots.add('count');
             await shot(tester, 'liars_${bots}bots_reveal_$phone');
           }

@@ -12,6 +12,7 @@ import '../../core/sound/sound.dart';
 import '../../core/theme/toon.dart';
 import '../../games/catalog.dart';
 import '../../games/poker/lounge/lounge_screen.dart';
+import '../tabletop/tabletop_screen.dart';
 import '../../games/tile_art.dart';
 import '../party/version_notice.dart';
 import '../preview/game_preview_screen.dart';
@@ -116,6 +117,11 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final account = AccountScope.of(context);
+    // Narrow: Tabletop and Store as icons only.
+    return LayoutBuilder(builder: (context, box) => _bar(context, account, narrow: box.maxWidth < 460));
+  }
+
+  Widget _bar(BuildContext context, Account account, {required bool narrow}) {
     return Row(
       children: [
         Expanded(
@@ -162,7 +168,29 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        _StoreButton(ready: account.dailyReady),
+        ToonButton(
+          key: const Key('tabletop'),
+          color: Toon.green,
+          padding: EdgeInsets.fromLTRB(10, 10, narrow ? 10 : 14, 10),
+          tooltip: 'Tabletop',
+          onPressed: () =>
+              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TabletopScreen())),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.casino_rounded, size: 26, color: Toon.on(Toon.green)),
+              if (!narrow) ...[
+                const SizedBox(width: 6),
+                Text(
+                  'Tabletop',
+                  style: Toon.text(16, weight: FontWeight.w700, color: Toon.on(Toon.green)),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        _StoreButton(ready: account.dailyReady, narrow: narrow),
         const SizedBox(width: 10),
         ToonButton(
           key: const Key('settings'),
@@ -180,9 +208,10 @@ class _TopBar extends StatelessWidget {
 
 /// The store, with a dot when a daily challenge is ready to collect.
 class _StoreButton extends StatelessWidget {
-  const _StoreButton({required this.ready});
+  const _StoreButton({required this.ready, this.narrow = false});
 
   final int ready;
+  final bool narrow;
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -191,7 +220,7 @@ class _StoreButton extends StatelessWidget {
       ToonButton(
         key: const Key('store'),
         color: Toon.yellow,
-        padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+        padding: EdgeInsets.fromLTRB(10, 10, narrow ? 10 : 14, 10),
         tooltip: 'Store',
         onPressed: () =>
             Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const StoreScreen())),
@@ -199,11 +228,13 @@ class _StoreButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.storefront_rounded, size: 26, color: Toon.inkLight),
-            const SizedBox(width: 6),
-            Text(
-              'Store',
-              style: Toon.text(16, weight: FontWeight.w700, color: Toon.inkLight),
-            ),
+            if (!narrow) ...[
+              const SizedBox(width: 6),
+              Text(
+                'Store',
+                style: Toon.text(16, weight: FontWeight.w700, color: Toon.inkLight),
+              ),
+            ],
           ],
         ),
       ),
@@ -282,7 +313,7 @@ class _LoungeTile extends StatelessWidget {
 }
 
 class GameTile extends StatelessWidget {
-  const GameTile({required this.game, required this.setup});
+  const GameTile({super.key, required this.game, required this.setup});
 
   final GameInfo game;
   final PlaySetup setup;

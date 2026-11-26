@@ -189,7 +189,8 @@ class LiarsController extends ChangeNotifier {
   /// Online: something new from the referee (a move, your cup).
   void _heard() {
     if (_disposed) return;
-    if (_waitingForCup && _cupFromServer() != null) {
+    if (_waitingForCup &&
+        (_cupFromServer() != null || game.round < ((link!.state['cups'] as List?)?.length ?? 0))) {
       _waitingForCup = false;
       _step();
     } else {
@@ -267,12 +268,22 @@ class LiarsController extends ChangeNotifier {
     final l = link;
     List<List<int>> cups;
     if (l != null) {
-      final mine = _cupFromServer();
-      if (mine == null) {
-        _waitingForCup = true;
-        return;
+      final public = (l.state['cups'] as List?) ?? const [];
+      if (game.round < public.length) {
+        // A round the table has already finished (this phone's behind):
+        // its cups are public now.
+        final real = public[game.round] as List;
+        cups = [
+          for (var q = 0; q < players; q++) [for (final d in real[l.order![l.pos(q)]] as List) d as int],
+        ];
+      } else {
+        final mine = _cupFromServer();
+        if (mine == null) {
+          _waitingForCup = true;
+          return;
+        }
+        cups = [for (var p = 0; p < players; p++) p == 0 ? mine : List.filled(game.counts[p], 0)];
       }
-      cups = [for (var p = 0; p < players; p++) p == 0 ? mine : List.filled(game.counts[p], 0)];
     } else {
       cups = game.rollFor(_rng);
     }

@@ -269,6 +269,23 @@ class Account extends ChangeNotifier {
     _change(() => _memory[name] = memoryOf(name).remember(game));
   }
 
+  // --- Tabletop: scoreboards kept on this phone --------------------------------
+
+  /// Scoreboards on this phone (the Score counter), newest first.
+  final List<Map<String, Object?>> _boards = [];
+
+  List<Map<String, Object?>> get scoreBoards => List.unmodifiable(_boards);
+
+  /// Saves a board under [id] (moved to the front); null removes it.
+  void saveScoreBoard(String id, Map<String, Object?>? board) {
+    _boards.removeWhere((b) => b['id'] == id);
+    if (board != null) _boards.insert(0, {...board, 'id': id});
+    while (_boards.length > 12) {
+      _boards.removeLast();
+    }
+    _save();
+  }
+
   // --- The lounge: Boss Tables and tournaments --------------------------------
 
   /// A boss or tournament game in progress (saved after every hand), so
@@ -773,6 +790,9 @@ class Account extends ChangeNotifier {
       memory.forEach((k, v) => _memory[k] = ReadMemory.fromJson(v));
       final lounge = j['lounge'];
       if (lounge is Map<String, dynamic>) _loungeGame = lounge;
+      for (final b in (j['boards'] as List?) ?? const []) {
+        if (b is Map<String, dynamic>) _boards.add(b);
+      }
       _bosses = j['bosses'] as int? ?? 0;
       final tourneys = j['tourneys'] as Map<String, dynamic>? ?? {};
       tourneys.forEach((k, v) {
@@ -832,6 +852,7 @@ class Account extends ChangeNotifier {
         },
       if (_memory.isNotEmpty) 'memory': {for (final e in _memory.entries) e.key: e.value.toJson()},
       'lounge': ?_loungeGame,
+      if (_boards.isNotEmpty) 'boards': _boards,
       if (_bosses > 0) 'bosses': _bosses,
       if (_tourneys.isNotEmpty)
         'tourneys': {

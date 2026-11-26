@@ -220,8 +220,9 @@ class ScoreBoard {
         need(p != null, 'No such player');
         need(boss || mine(p!), 'Only the host can change other players');
         final name = op['name'];
-        if (name is String && name.trim().isNotEmpty)
+        if (name is String && name.trim().isNotEmpty) {
           p!.name = name.trim().substring(0, min(24, name.trim().length));
+        }
         if (op['color'] is int) p!.color = op['color']! as int;
       case 'score':
         final p = player('${op['id']}');
@@ -293,8 +294,8 @@ class ScoreBoard {
   }
 
   void _settings(Map<Object?, Object?> op) {
-    if (op['name'] is String)
-      name = (op['name']! as String).trim().isEmpty ? name : (op['name']! as String).trim();
+    final n = op['name'];
+    if (n is String && n.trim().isNotEmpty) name = n.trim();
     if (op['preset'] is String) preset = op['preset']! as String;
     if (op['start'] is int) start = op['start']! as int;
     if (op.containsKey('target')) target = op['target'] as int?;

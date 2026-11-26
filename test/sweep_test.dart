@@ -5,7 +5,11 @@ import 'package:duel/core/theme/toon.dart';
 import 'package:duel/features/home/home_screen.dart';
 import 'package:duel/features/profile/profile_screen.dart';
 import 'package:duel/features/settings/settings_screen.dart';
+import 'package:duel/features/tabletop/scorer/scorer_screen.dart';
+import 'package:duel/features/tabletop/tabletop_screen.dart';
 import 'package:duel/games/bank/ui/bank_screen.dart';
+import 'package:duel/games/farkle/ui/farkle_screen.dart';
+import 'package:duel/games/liars/ui/liars_screen.dart';
 import 'package:duel/games/blackjack/ui/bj_lobby.dart';
 import 'package:duel/games/blackjack/ui/bj_screen.dart';
 import 'package:duel/games/blitz/ui/blitz_screen.dart';
@@ -49,6 +53,9 @@ void main() {
         ('lounge', const LoungeScreen()),
         ('cash_lobby', CashLobbyScreen(now: () => 0)),
         ('bj_lobby', BjLobby(seed: 2, now: () => 0)),
+        ('tabletop', const TabletopScreen()),
+        ('scorer', const ScorerHome()),
+        ('scorer_setup', const ScorerSetup()),
       ]) {
         testWidgets('$name, $look, $phone', (tester) async {
           usePhone(tester, size);
@@ -71,6 +78,8 @@ void main() {
         ('bank', const BankScreen(bots: 5, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
         ('gops', const GopsScreen(bots: 2, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
         ('blitz', const BlitzScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
+        ('farkle', const FarkleScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
+        ('liars', const LiarsScreen(bots: 3, pace: 0.2, seed: 2)),
       ]) {
         testWidgets('$name, $look, $phone', (tester) async {
           usePhone(tester, size);

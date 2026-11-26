@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:duel/games/catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Phone sizes the screen tests run at (logical px), upright and on their
@@ -44,6 +45,11 @@ Future<void> openFromHome(
   Future<void> Function()? settle,
 ]) async {
   final wait = settle ?? () => tester.pumpAndSettle();
+  // Tabletop's games open from the Tabletop screen.
+  if (games.any((g) => g.id == gameId && g.tabletop)) {
+    await tester.tap(find.byKey(const Key('tabletop')));
+    await wait();
+  }
   final tile = gameId == 'holdem' ? find.byKey(const Key('poker lounge')) : find.text(name);
   await tester.scrollUntilVisible(tile, 150, scrollable: find.byType(Scrollable).last);
   await wait();

@@ -595,7 +595,13 @@ class FarklePreview extends StatelessWidget {
             ),
             const Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [Die(1, size: 34, angle: -0.2), SizedBox(width: 8), Die(1, size: 34, angle: 0.3), SizedBox(width: 8), Die(5, size: 34, angle: 0.1)],
+              children: [
+                Die(1, size: 34, angle: -0.2),
+                SizedBox(width: 8),
+                Die(1, size: 34, angle: 0.3),
+                SizedBox(width: 8),
+                Die(5, size: 34, angle: 0.1),
+              ],
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -625,7 +631,12 @@ class LiarsPreview extends StatelessWidget {
     final bots = Persona.bots(3, Random(8));
     Widget seat(Persona p, Color cup, String said) => Column(
       mainAxisSize: MainAxisSize.min,
-      children: [LiarsCup(width: 34, color: cup), Face(p, size: 24), const SizedBox(height: 2), _tag(said)],
+      children: [
+        LiarsCup(width: 34, color: cup),
+        Face(p, size: 24),
+        const SizedBox(height: 2),
+        _tag(said),
+      ],
     );
     return Container(
       decoration: Toon.box(Tavern.cloth, radius: 18, shadow: 4),
@@ -647,7 +658,10 @@ class LiarsPreview extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('4 ×', style: Toon.text(22, weight: FontWeight.w700, color: Toon.inkLight)),
+                Text(
+                  '4 ×',
+                  style: Toon.text(22, weight: FontWeight.w700, color: Toon.inkLight),
+                ),
                 const SizedBox(width: 6),
                 const FlatDie(4, size: 26),
               ],
@@ -655,7 +669,13 @@ class LiarsPreview extends StatelessWidget {
           ),
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [Die(4, size: 26), Die(1, size: 26), Die(6, size: 26), Die(4, size: 26), Die(2, size: 26)],
+            children: [
+              Die(4, size: 26),
+              Die(1, size: 26),
+              Die(6, size: 26),
+              Die(4, size: 26),
+              Die(2, size: 26),
+            ],
           ),
         ],
       ),

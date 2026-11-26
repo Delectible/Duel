@@ -551,6 +551,34 @@ weights cut from the variable font.
   (`BankCompanionSetup` / `BankCompanion`: playing in person, dice on the
   phone or scores only, undo by replaying steps). `GameInfo.companion`
   makes Play at home ask: helper or rules.
+- **Tabletop** (`lib/features/tabletop/`, the button beside the Store):
+  `TabletopScreen` (Dice & tools: Score counter, the `GameInfo.tabletop`
+  games (Liar's Dice, Farkle; not on home's grid), Bank!'s helper; Play
+  at home: every guide). Score counter (`scorer/`): engine
+  `duel_engine/scoreboard/scoreboard.dart` (`ScoreBoard`: players, a log
+  of changes, settings; `apply(op, by:, host:)` checks rights: add
+  yourself once, score your own (anyone's with `anyoneScores`), the host
+  anything), `presets.dart` (`ScorePreset`s, `QuickScore`s,
+  `spadesRound`), `ScorerController` (local: saved in
+  `Account.scoreBoards`; shared: referee `boards/{party}` via
+  `POST /v1/boards/<party>`, `server/lib/src/boards.dart`),
+  `scorer_screen.dart` (`ScorerHome`, `ScorerSetup`, `ScorerScreen`:
+  tiles or rounds table), `scorer_tools.dart` (keypad, dice, timer,
+  history, round entry, Spades calculator).
+- `lib/games/liars/` (Liar's Dice): engine `liars/liars.dart`
+  (`LiarsGame`, `LiarsRules`: dice, wild ones, spot on; odds helpers) +
+  `liars_bot.dart` (`LiarsBot`: believes bids by reads (`LiarsReads`),
+  calls by comparing risks, bluffs by style, tempo tells); referee
+  `LiarsOnline` in `party_games.dart` (cups rolled from the secret seed,
+  your cup in `hands`, finished rounds' `cups` public);
+  `ui/liars_controller.dart` (bots here or the link; a phone behind uses
+  the public cups) and `ui/liars_screen.dart` (`Tavern` colours, cups,
+  plaque, reveal count, `FlatDie`).
+- `lib/games/farkle/`: engine `farkle/farkle.dart` (`farkleScore`,
+  `farkleBestKeep`, `FarkleGame`: keep, hot dice, last round) +
+  `farkle_bot.dart`; `ui/farkle_controller.dart`, `ui/farkle_screen.dart`
+  (`Tray` colours); dice thrown by `games/bank/thrown_dice.dart`
+  (`ThrownDice`: any number, tappable).
 - `lib/core/help/home_guide.dart`: "Play at home" (preview button):
   `HomeGuide` (what you need, setup, gameplay, winning) per game in
   `lib/games/<game>/at_home.dart`, `GameInfo.atHome`. Written for someone

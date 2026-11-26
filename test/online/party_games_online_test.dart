@@ -17,7 +17,14 @@ import 'fake_server.dart';
 /// rebuilds the table from the server's log while both people's moves are
 /// made on the server (as a timed-out turn would be), to the end.
 void main() {
-  for (final (game, bots) in [('gops', 1), ('gops', 0), ('bank', 1), ('bank', 0)]) {
+  for (final (game, bots) in [
+    ('gops', 1),
+    ('gops', 0),
+    ('bank', 1),
+    ('bank', 0),
+    ('liars', 1),
+    ('liars', 0),
+  ]) {
     testWidgets(timeout: const Timeout(Duration(seconds: 120)), '$game online plays to the end', (
       tester,
     ) async {
@@ -68,7 +75,7 @@ void main() {
           ]),
         );
       }
-      expect(await run(() => party.start(game, options: const {'rounds': 3})), isNull);
+      expect(await run(() => party.start(game, options: const {'rounds': 3, 'dice': 2})), isNull);
       await wait(1500);
       final id = party.match!['id']! as String;
       final rng = Random(1);
@@ -101,6 +108,7 @@ void main() {
       for (var i = 0; i < 150 && find.text('Back to party').evaluate().isEmpty; i++) {
         await wait(2000);
       }
+      await shot(tester, 'online_${game}_end');
       expect(find.text('Back to party'), findsWidgets);
       expect(tester.takeException(), isNull);
       await shot(tester, 'online_${game}_over');

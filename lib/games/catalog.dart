@@ -481,7 +481,7 @@ final games = <GameInfo>[
     blurb: 'Six dice, keep the scorers, don\'t push too far',
     minPlayers: 2,
     maxPlayers: 6,
-    color: const Color(0xFF1E5E4E),
+    color: const Color(0xFF2BA58A),
     art: (_) => const FarkleArt(),
     board: (_) => const FarklePreview(),
     rules: const [
@@ -494,9 +494,18 @@ final games = <GameInfo>[
     minutes: (players) => 6 + players * 3,
     atHome: farkleAtHome,
     tabletop: true,
-    choice: const GameChoice(label: 'Play to', values: [5000, 10000], names: ['Quick', 'Classic'], initial: 1),
-    open: (setup, stake, target) =>
-        FarkleScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, target: target ?? 10000),
+    choice: const GameChoice(
+      label: 'Play to',
+      values: [5000, 10000],
+      names: ['Quick', 'Classic'],
+      initial: 1,
+    ),
+    open: (setup, stake, target) => FarkleScreen(
+      bots: setup.botCount,
+      difficulty: setup.difficulty,
+      stake: stake,
+      target: target ?? 10000,
+    ),
   ),
   GameInfo(
     id: 'liars',
@@ -504,7 +513,7 @@ final games = <GameInfo>[
     blurb: 'Bluff about what\'s under the cups',
     minPlayers: 2,
     maxPlayers: 6,
-    color: Tavern.cloth,
+    color: const Color(0xFFD0604C),
     art: (_) => const LiarsArt(),
     board: (_) => const LiarsPreview(),
     rules: const [

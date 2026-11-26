@@ -43,7 +43,7 @@ class FakeServer {
       } else if (w.path.startsWith('cash/') || w.path.startsWith('bj/')) {
         visible = doc != null;
       } else {
-        final key = w.path.startsWith('parties/') ? 'members' : 'seats';
+        final key = w.path.startsWith('parties/') || w.path.startsWith('boards/') ? 'members' : 'seats';
         visible = doc != null && (doc[key]! as List).contains(w.uid);
       }
       final json = visible ? jsonEncode(doc) : null;

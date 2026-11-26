@@ -9,10 +9,7 @@ const liarsAtHome = HomeGuide(
     (Icons.local_drink_rounded, 'A cup for each player that you can\'t see through (a mug works).'),
     (Icons.groups_rounded, '2 to 6 players. Best with 3 or more.'),
   ],
-  setup: [
-    'Everyone puts their five dice in their cup.',
-    'Decide who starts. Turns go round to the left.',
-  ],
+  setup: ['Everyone puts their five dice in their cup.', 'Decide who starts. Turns go round to the left.'],
   play: [
     'Everyone shakes their cup and slams it upside down on the table. Peek at your own dice without letting anyone '
         'else see.',

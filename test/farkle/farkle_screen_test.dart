@@ -26,7 +26,13 @@ void main() {
           MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: Toon.theme(),
-            home: FarkleScreen(bots: bots, difficulty: Difficulty.normal, target: 3000, pace: 0.05, seed: bots),
+            home: FarkleScreen(
+              bots: bots,
+              difficulty: Difficulty.normal,
+              target: 3000,
+              pace: 0.05,
+              seed: bots,
+            ),
           ),
         );
         var rolls = 0, picks = 0;
