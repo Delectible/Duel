@@ -6,6 +6,7 @@ export 'src/auth.dart';
 export 'src/card_games.dart';
 export 'src/firestore_store.dart';
 export 'src/games.dart';
+export 'src/party_games.dart';
 export 'src/poker_game.dart';
 export 'src/referee.dart';
 export 'src/store.dart';

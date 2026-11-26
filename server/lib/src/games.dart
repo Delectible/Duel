@@ -4,6 +4,7 @@ import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/four_in_a_row/four_in_a_row.dart';
 
 import 'card_games.dart';
+import 'party_games.dart';
 import 'poker_game.dart';
 import 'store.dart';
 
@@ -47,6 +48,21 @@ abstract class OnlineGame {
   /// seats people sit in (the rest are bots); [options] are the game's own
   /// (Spades: the target score).
   Doc start(int players, Random rng, {required int first, required Set<int> humans, Doc options = const {}});
+
+  /// The bots' settings ({name, look, difficulty} per seat, null for
+  /// people), for games that need them outside their turns (Bank!: bots
+  /// bank after anyone's roll).
+  Doc withBots(Doc state, List<Object?> bots) => state;
+
+  /// Moves the game checks for itself, made by any seat at any time
+  /// (Goofspiel's bids, banking in Bank!): no version check, so two people
+  /// moving at once don't trip over each other.
+  bool unversioned(Doc move) => false;
+
+  /// Bots (and people who left) don't move at once but after this long,
+  /// claimed by any phone like a timeout, so the others get a moment
+  /// (Bank!: to bank between rolls). Null: they move straight away.
+  Duration? get botWait => null;
 
   /// Whose turn it is, or null when the game is over.
   int? turn(Doc state);
@@ -158,4 +174,6 @@ const onlineGames = <String, OnlineGame>{
   'gofish': FishGame(),
   'spades': SpadesGame(),
   'blitz': BlitzGame(),
+  'gops': GopsGame(),
+  'bank': BankOnline(),
 };

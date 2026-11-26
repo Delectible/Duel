@@ -342,7 +342,10 @@ class Referee {
         _setWallet(tx, seats[i], {...w, 'balance': balance - stake});
       }
     }
-    final state = game.start(seats.length, _rng, first: first, humans: humans, options: options);
+    final state = game.withBots(
+      game.start(seats.length, _rng, first: first, humans: humans, options: options),
+      bots,
+    );
     final match = <String, Object?>{
       'id': _id(),
       'game': game.id,
@@ -380,9 +383,11 @@ class Referee {
     final match = await _match(tx, id);
     if (match['status'] != 'live') throw const RefereeError(409, 'The game is over');
     if (match['paused'] != null) throw const RefereeError(409, 'Paused: waiting for the host');
-    if (match['version'] != version) throw const RefereeError(409, 'Out of date: the game moved on');
-    final seat = _seat(match, p);
     final game = onlineGames[match['game']]!;
+    if (match['version'] != version && !game.unversioned(move)) {
+      throw const RefereeError(409, 'Out of date: the game moved on');
+    }
+    final seat = _seat(match, p);
     final before = await _state(tx, id);
     final Doc state;
     try {
@@ -410,6 +415,24 @@ class Referee {
     final game = onlineGames[match['game']]!;
     final seat = match['turn']! as int;
     final before = await _state(tx, id);
+    if (game.botWait != null) {
+      // A bot's (or a leaver's) turn, waited out: it moves now.
+      final bot = (match['bots']! as List)[seat] ?? _standIns(match)['$seat'];
+      if (bot != null) {
+        await _commit(
+          tx,
+          match,
+          game,
+          before,
+          game.play(before, seat, game.botMove(before, seat, (bot as Map).cast<String, Object?>(), _rng)),
+        );
+        return match;
+      }
+      if ((match['gone']! as List).contains(seat)) {
+        await _commit(tx, match, game, before, game.play(before, seat, game.autoMove(before, seat, _rng)));
+        return match;
+      }
+    }
     final timeouts = (match['timeouts']! as List).cast<int>();
     timeouts[seat]++;
     match['timeouts'] = timeouts;
@@ -785,7 +808,8 @@ class Referee {
     final bots = match['bots']! as List;
     final gone = (match['gone']! as List).cast<int>();
     final standIns = _standIns(match);
-    for (var guard = 0; guard < 5000 && game.result(state) == null; guard++) {
+    final wait = game.botWait;
+    for (var guard = 0; wait == null && guard < 5000 && game.result(state) == null; guard++) {
       final turn = game.turn(state);
       if (turn == null) break;
       final bot = bots[turn] ?? standIns['$turn'];
@@ -805,7 +829,10 @@ class Referee {
       _finish(match, result, reason: result.draw ? 'draw' : 'won');
     } else if (!keepClock || match['turn'] != game.turn(state)) {
       match['turn'] = game.turn(state);
-      match['deadline'] = _now + (turnTime + game.show(before, state)).inMilliseconds;
+      final t = game.turn(state);
+      final waits =
+          wait != null && t != null && (bots[t] != null || standIns['$t'] != null || gone.contains(t));
+      match['deadline'] = _now + ((waits ? wait : turnTime) + game.show(before, state)).inMilliseconds;
       match['turnAt'] = _now;
     }
     _put(tx, 'secrets/$id', {'state': state});
