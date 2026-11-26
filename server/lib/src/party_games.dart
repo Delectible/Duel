@@ -5,6 +5,8 @@ import 'package:duel_engine/bank/bank_bot.dart';
 import 'package:duel_engine/difficulty.dart';
 import 'package:duel_engine/goofspiel/goofspiel.dart';
 import 'package:duel_engine/goofspiel/gops_bot.dart';
+import 'package:duel_engine/liars/liars.dart';
+import 'package:duel_engine/liars/liars_bot.dart';
 
 import 'games.dart';
 import 'store.dart';
@@ -281,5 +283,150 @@ class BankOnline extends OnlineGame {
     final rolls = b.skip(a.length).where((m) => m['k'] == 'roll').length;
     final rounds = replay(after, settle: false).round - replay(before, settle: false).round;
     return Duration(milliseconds: rolls * 1500 + rounds * 2600);
+  }
+}
+
+/// Liar's Dice: every cup is rolled by the referee (seed secret); each
+/// player sees only their own (`hands`), and the cups come up in public
+/// (`cups`, per finished round) once someone calls. The log is
+/// `{p, kind: bid, count, face, tempo}` and `{p, kind: liar | spotOn}`.
+class LiarsOnline extends OnlineGame {
+  const LiarsOnline();
+
+  @override
+  String get id => 'liars';
+  @override
+  int get minPlayers => 2;
+  @override
+  int get maxPlayers => 6;
+
+  static List<Map<Object?, Object?>> _moves(Doc state) =>
+      (state['moves']! as List).cast<Map<Object?, Object?>>();
+
+  static List<List<int>> _cups(LiarsGame g, int seed) => g.rollFor(Random(seed ^ ((g.round + 1) * 7919)));
+
+  /// The game after the log, the next round rolled if one's due. [reads]
+  /// collects how each player's bids held up when called.
+  static LiarsGame replay(Doc state, {LiarsReads? reads}) {
+    final seed = state['seed']! as int;
+    final g = LiarsGame(
+      players: state['n']! as int,
+      rules: LiarsRules.fromJson(state['rules'] as Map?),
+      first: state['first']! as int,
+    );
+    for (final m in _moves(state)) {
+      if (g.needsRoll) g.roll(_cups(g, seed));
+      final p = m['p']! as int;
+      if (m['kind'] == 'bid') {
+        g.raise(p, LiarsBid(m['count']! as int, m['face']! as int));
+      } else {
+        final r = g.challenge(p, LiarsCall.values.byName(m['kind']! as String));
+        reads?.saw(r);
+      }
+    }
+    if (g.needsRoll) g.roll(_cups(g, seed));
+    return g;
+  }
+
+  @override
+  Doc start(
+    int players,
+    Random rng, {
+    required int first,
+    required Set<int> humans,
+    Doc options = const {},
+  }) => {
+    'seed': rng.nextInt(1 << 31),
+    'n': players,
+    'first': first,
+    'order': [for (var i = 0; i < players; i++) i],
+    'rules': LiarsRules.fromJson((options['rules'] as Map?) ?? options).toJson(),
+    'moves': <Doc>[],
+  };
+
+  @override
+  int? turn(Doc state) {
+    final g = replay(state);
+    return g.isOver ? null : g.turn;
+  }
+
+  @override
+  Doc play(Doc state, int seat, Doc move) {
+    final g = replay(state);
+    if (g.isOver) throw const MoveError('The game is over');
+    if (g.turn != seat) throw const MoveError('Not your turn');
+    final kind = move['kind'];
+    final Doc clean;
+    if (kind == 'bid') {
+      final count = move['count'], face = move['face'];
+      if (count is! int || face is! int || !g.beats(LiarsBid(count, face))) {
+        throw const MoveError("That bid doesn't beat the last one");
+      }
+      clean = {'p': seat, 'kind': 'bid', 'count': count, 'face': face, 'tempo': ?move['tempo']};
+    } else if (kind == 'liar' || (kind == 'spotOn' && g.rules.spotOn)) {
+      if (!g.canCall) throw const MoveError('Nothing to call yet');
+      clean = {'p': seat, 'kind': kind, 'tempo': ?move['tempo']};
+    } else {
+      throw const MoveError('Bid, or call');
+    }
+    return {
+      ...state,
+      'moves': [..._moves(state), clean],
+    };
+  }
+
+  @override
+  Result? result(Doc state) {
+    final g = replay(state);
+    return g.isOver ? Result(winner: g.winner) : null;
+  }
+
+  @override
+  Doc botMove(Doc state, int seat, Doc bot, Random rng) {
+    final reads = LiarsReads(state['n']! as int);
+    final g = replay(state, reads: reads);
+    final seed = state['seed']! as int;
+    return LiarsBot(
+      me: seat,
+      difficulty: _level(bot['difficulty']),
+      style: LiarsStyle.values[(seed + seat) % 3],
+      rng: rng,
+      reads: reads,
+    ).decide(g).toJson();
+  }
+
+  @override
+  Doc autoMove(Doc state, int seat, Random rng) => botMove(state, seat, const {'difficulty': 'easy'}, rng);
+
+  @override
+  Doc? leave(Doc state, int seat) => state;
+
+  /// No dice but those already shown: each finished round's cups.
+  @override
+  Doc public(Doc state) {
+    final g = replay(state);
+    final cups = <List<List<int>>>[
+      for (final e in g.events)
+        if (e is LiarsCalled) e.reveal.dice,
+    ];
+    return {...state, 'cups': cups, 'round': g.round}..remove('seed');
+  }
+
+  /// Your cup this round.
+  @override
+  Doc? private(Doc state, int seat) {
+    final g = replay(state);
+    return {'round': g.round, 'dice': g.isOver ? <int>[] : g.dice[seat]};
+  }
+
+  /// Bots think (their tempo), calls take a while to show.
+  @override
+  Duration show(Doc before, Doc after) {
+    final a = _moves(before), b = _moves(after);
+    var ms = 0;
+    for (final m in b.skip(a.length)) {
+      ms += m['kind'] == 'bid' ? 1500 + (m['tempo'] as int? ?? 50) * 25 : 5000;
+    }
+    return Duration(milliseconds: min(60000, ms));
   }
 }

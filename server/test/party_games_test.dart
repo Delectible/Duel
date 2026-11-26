@@ -117,4 +117,29 @@ void main() {
     m = await ref.move(who(m, 1 - turn), mid, 0, {'k': 'bank', 'at': 1, 'round': 1});
     expect(((m['state']! as Map)['moves']! as List).last, {'p': 1 - turn, 'k': 'bank'});
   });
+
+  test('liars: cups stay hidden until called; plays to the end with bots', () async {
+    final (ref, id) = await party(bots: [bot]);
+    var m = await ref.startMatch(luca, id, 'liars', options: const {'dice': 3});
+    final mid = m['id']! as String;
+    var state = m['state']! as Map;
+    expect(state.containsKey('seed'), isFalse);
+    expect(state['cups'], isEmpty);
+    final mine = await ref.store.get('matches/$mid/hands/luca');
+    expect((mine!['dice']! as List).length, 3);
+    final rng = Random(2);
+    for (var i = 0; i < 500 && m['status'] == 'live'; i++) {
+      final turn = m['turn']! as int;
+      final secret = (await ref.store.get('secrets/$mid'))!['state']! as Map<String, Object?>;
+      m = await ref.move(
+        who(m, turn),
+        mid,
+        m['version']! as int,
+        onlineGames['liars']!.autoMove(secret, turn, rng),
+      );
+    }
+    expect(m['status'], 'over');
+    state = m['state']! as Map;
+    expect((state['cups']! as List), isNotEmpty);
+  });
 }
