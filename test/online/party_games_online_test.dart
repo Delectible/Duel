@@ -24,6 +24,8 @@ void main() {
     ('bank', 0),
     ('liars', 1),
     ('liars', 0),
+    ('sunk', 1),
+    ('sunk', 0),
   ]) {
     testWidgets(timeout: const Timeout(Duration(seconds: 120)), '$game online plays to the end', (
       tester,
@@ -75,7 +77,10 @@ void main() {
           ]),
         );
       }
-      expect(await run(() => party.start(game, options: const {'rounds': 3, 'dice': 2})), isNull);
+      expect(
+        await run(() => party.start(game, options: const {'rounds': 3, 'dice': 2, 'target': 40})),
+        isNull,
+      );
       await wait(1500);
       final id = party.match!['id']! as String;
       final rng = Random(1);

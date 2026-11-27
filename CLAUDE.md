@@ -584,6 +584,16 @@ weights cut from the variable font.
   `farkle_bot.dart`; `ui/farkle_controller.dart`, `ui/farkle_screen.dart`
   (`Tray` colours); dice thrown by `games/bank/thrown_dice.dart`
   (`ThrownDice`: any number, tappable).
+- `lib/games/sunk/` (Sunk, our own push-your-luck game): engine
+  `sunk/sunk.dart` (`SunkGame`: the sea, bags, Spare Air, Boo! / Hook /
+  Cut Line / Map, run and haul bonuses, rounds to the target; `source` /
+  `peekAt` let a phone replay from the referee's drawn cards) +
+  `sunk_bot.dart` (`SunkBot`: risk vs gain, styles, aims, maps;
+  `tool/sunk/simulate.dart`); referee `SunkOnline` in `party_games.dart`
+  (public `taken`, the Map's card in `hands`); `ui/sunk_controller.dart`
+  (bots here or the link; `GhostMood`), `ui/sunk_art.dart` (`Deep`
+  colours, `SeaPainter`, `BubblesPainter`, `CaptainBoo`, `SunkCardView`,
+  `TreasureToken`), `ui/sunk_screen.dart` (`sunkGuide`).
 - `lib/core/help/home_guide.dart`: "Play at home" (preview button):
   `HomeGuide` (what you need, setup, gameplay, winning) per game in
   `lib/games/<game>/at_home.dart`, `GameInfo.atHome`. Written for someone

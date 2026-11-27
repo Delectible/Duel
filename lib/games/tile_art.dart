@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:duel_engine/sunk/sunk.dart';
+
 import 'package:duel_engine/cards.dart';
 import 'package:flutter/material.dart';
 
@@ -7,6 +9,7 @@ import '../core/cards/card_view.dart';
 import '../core/theme/toon.dart';
 import 'bank/dice.dart';
 import 'liars/ui/liars_screen.dart';
+import 'sunk/ui/sunk_art.dart';
 
 /// The game picker's tile pictures: small cartoon scenes in the app's look
 /// (bold ink outlines, flat Toon colours, real cards). Each fills about
@@ -563,5 +566,26 @@ class LiarsArt extends StatelessWidget {
     const Positioned(left: 22, bottom: 0, child: Die(1, size: 20, angle: 0.3)),
     const Positioned(right: 4, top: 2, child: LiarsCup(width: 46, color: Tavern.cloth)),
     const Positioned(right: 30, bottom: 2, child: Die(5, size: 18, angle: 0.1)),
+  ]);
+}
+
+// --- Sunk: Captain Boo over a treasure card ---------------------------------------
+
+class SunkArt extends StatelessWidget {
+  const SunkArt({super.key});
+
+  @override
+  Widget build(BuildContext context) => _scene([
+    const Positioned(
+      left: 4,
+      bottom: 0,
+      child: SunkCardView(card: SunkCard(SunkKind.treasure, 8), width: 30),
+    ),
+    const Positioned(
+      left: 22,
+      bottom: 4,
+      child: SunkCardView(card: SunkCard(SunkKind.treasure, 6), width: 26),
+    ),
+    const Positioned(right: 2, top: -4, child: CaptainBoo(size: 52, t: 0.1)),
   ]);
 }

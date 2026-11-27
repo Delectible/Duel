@@ -10,6 +10,7 @@ import 'package:duel/features/tabletop/tabletop_screen.dart';
 import 'package:duel/games/bank/ui/bank_screen.dart';
 import 'package:duel/games/farkle/ui/farkle_screen.dart';
 import 'package:duel/games/liars/ui/liars_screen.dart';
+import 'package:duel/games/sunk/ui/sunk_screen.dart';
 import 'package:duel/games/blackjack/ui/bj_lobby.dart';
 import 'package:duel/games/blackjack/ui/bj_screen.dart';
 import 'package:duel/games/blitz/ui/blitz_screen.dart';
@@ -80,6 +81,7 @@ void main() {
         ('blitz', const BlitzScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
         ('farkle', const FarkleScreen(bots: 3, difficulty: Difficulty.normal, pace: 0.2, seed: 2)),
         ('liars', const LiarsScreen(bots: 3, pace: 0.2, seed: 2)),
+        ('sunk', const SunkScreen(bots: 3, pace: 0.2, seed: 2)),
       ]) {
         testWidgets('$name, $look, $phone', (tester) async {
           usePhone(tester, size);

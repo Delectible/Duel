@@ -33,6 +33,8 @@ import 'liars/at_home.dart';
 import 'liars/ui/liars_screen.dart';
 import 'package:duel_engine/liars/liars.dart';
 import 'previews.dart';
+import 'sunk/at_home.dart';
+import 'sunk/ui/sunk_screen.dart';
 import 'tile_art.dart';
 import 'spades/ui/spades_screen.dart';
 import '../core/online/online_link.dart';
@@ -524,6 +526,38 @@ final games = <GameInfo>[
       party: party,
       gameId: 'liars',
       builder: (link, ticket) => LiarsScreen.online(link: link, stake: ticket),
+    ),
+  ),
+  GameInfo(
+    id: 'sunk',
+    name: 'Sunk',
+    blurb: 'Dive Captain Boo\'s wreck for treasure',
+    minPlayers: 2,
+    maxPlayers: 6,
+    color: const Color(0xFF2B8FB3),
+    art: (_) => const SunkArt(),
+    board: (_) => const SunkPreview(),
+    rules: const [
+      'Dive (draw a card) or surface to bank your bag. Treasures are worth 1 to 8.',
+      'Draw a number you already hold and you sink: the bag\'s lost. Spare Air saves you once.',
+      'A run of three adds 10; six different treasures surface you with 20 more.',
+      'Boo! makes everyone else still diving draw. Hook steals, Cut Line sinks, a Map peeks.',
+      'First past the target after a round: the most treasure wins.',
+    ],
+    minutes: (players) => 6 + players * 2,
+    atHome: sunkAtHome,
+    choice: const GameChoice(
+      label: 'Play to',
+      values: [80, 120, 180],
+      names: ['Quick', 'Normal', 'Long'],
+      initial: 1,
+    ),
+    open: (setup, stake, target) =>
+        SunkScreen(bots: setup.botCount, difficulty: setup.difficulty, stake: stake, target: target ?? 120),
+    openOnline: (party) => OnlineGameFrame(
+      party: party,
+      gameId: 'sunk',
+      builder: (link, ticket) => SunkScreen.online(link: link, stake: ticket),
     ),
   ),
   GameInfo(

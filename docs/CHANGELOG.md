@@ -899,6 +899,19 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 56. Sunk (requested 2026-11-27)
+
+- [x] **56.1 Sunk**, our own push-your-luck card game (not a copy of any
+  commercial game): dive Captain Boo's haunted wreck; treasures 1–8, a
+  duplicate sinks your bag (Spare Air saves you), a run of three +10, six
+  different +20 and up you come; Boo! (the others draw), Hook, Cut Line,
+  Map. Bots by style and level, tuned by `tool/sunk/simulate.dart` (about
+  6½ rounds to 120, hauls 13% of surfaces, Hard clearly beats Easy).
+  Online with the party: the referee keeps the sea secret and publishes
+  only the cards drawn (`taken`); the Map's card goes to its reader alone.
+  Underwater table, light rays, bubbles, the wreck, Captain Boo's moods.
+  → 1.4.0 · 2026-11-27
+
 ### 55. Tabletop tools (requested 2026-11-27)
 
 - [x] **55.1 Who's first**: fingers on the screen, held still, one picked

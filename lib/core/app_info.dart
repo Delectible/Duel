@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '1.3.0';
+  static const version = '1.4.0';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,9 +24,9 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'Tabletop tools: who goes first (fingers on the screen), a team picker, a dice tray, a coin flip and a spinner, '
-      'a card dealer (with your party, each phone holds its own hand), and a chip bank that works out who owes whom. '
-      'Plus: your pips at Blackjack and cash tables, + and − bets, and Skip moved out of the way.';
+      'New game: Sunk! Dive Captain Boo\'s haunted wreck for treasure, one card at a time: a number you already '
+      'hold sinks your bag. Hook, Cut Line, Maps and the ghost\'s Boo! keep everyone on edge. Play with bots or '
+      'your party.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

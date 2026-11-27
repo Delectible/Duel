@@ -9,6 +9,9 @@ import '../core/avatars/faces.dart';
 import 'bank/dice.dart';
 import 'farkle/ui/farkle_screen.dart' show Tray;
 import 'liars/ui/liars_screen.dart' show LiarsCup, Tavern, FlatDie;
+import 'sunk/ui/sunk_art.dart';
+import 'sunk/ui/sunk_controller.dart' show GhostMood;
+import 'package:duel_engine/sunk/sunk.dart';
 
 /// Sample boards for the game previews: a still picture of each game in
 /// play, drawn with the same pieces as the games.
@@ -678,6 +681,52 @@ class LiarsPreview extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Sunk: the sea, Captain Boo over the wreck, divers' bags.
+class SunkPreview extends StatelessWidget {
+  const SunkPreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bots = Persona.bots(2, Random(13));
+    Widget diver(Persona p, List<int> bag) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Face(p, size: 26),
+        const SizedBox(height: 2),
+        Row(mainAxisSize: MainAxisSize.min, children: [for (final v in bag) TreasureToken(v, size: 16)]),
+      ],
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: CustomPaint(
+        painter: SeaPainter(0.2),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  diver(bots[0], [2, 5, 7]),
+                  diver(bots[1], [3, 4]),
+                ],
+              ),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  SunkCardView(card: SunkCard(SunkKind.treasure, 8), width: 46),
+                  CaptainBoo(size: 70, t: 0.3, mood: GhostMood.watching),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
