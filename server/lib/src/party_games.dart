@@ -7,6 +7,8 @@ import 'package:duel_engine/goofspiel/goofspiel.dart';
 import 'package:duel_engine/goofspiel/gops_bot.dart';
 import 'package:duel_engine/liars/liars.dart';
 import 'package:duel_engine/liars/liars_bot.dart';
+import 'package:duel_engine/sunk/sunk.dart';
+import 'package:duel_engine/sunk/sunk_bot.dart';
 
 import 'games.dart';
 import 'store.dart';
@@ -426,6 +428,177 @@ class LiarsOnline extends OnlineGame {
     var ms = 0;
     for (final m in b.skip(a.length)) {
       ms += m['kind'] == 'bid' ? 1500 + (m['tempo'] as int? ?? 50) * 25 : 5000;
+    }
+    return Duration(milliseconds: min(60000, ms));
+  }
+}
+
+/// Sunk: the sea is dealt from the secret seed. Phones never see what's
+/// still in it, only the cards drawn so far (`taken`, in order, which is
+/// all a phone's replay needs) and, for whoever's reading a Map, the card
+/// it shows (`hands`). The log is `{p, kind: draw | surface | aim |
+/// chart, target, take, tempo}`.
+class SunkOnline extends OnlineGame {
+  const SunkOnline();
+
+  @override
+  String get id => 'sunk';
+  @override
+  int get minPlayers => 2;
+  @override
+  int get maxPlayers => 6;
+
+  static List<Map<Object?, Object?>> _moves(Doc state) =>
+      (state['moves']! as List).cast<Map<Object?, Object?>>();
+
+  static SunkGame replay(Doc state) {
+    final seed = state['seed']! as int;
+    var shuffles = 0;
+    final g = SunkGame(
+      players: state['n']! as int,
+      sea: sunkDeck()..shuffle(Random(seed)),
+      target: state['target'] as int? ?? 120,
+      first: state['first']! as int,
+    )..reshuffle = (cards) => cards.shuffle(Random(seed + (++shuffles) * 7919));
+    for (final m in _moves(state)) {
+      _apply(g, m);
+    }
+    return g;
+  }
+
+  static void _apply(SunkGame g, Map<Object?, Object?> m) {
+    final p = m['p']! as int;
+    switch (m['kind']) {
+      case 'draw':
+        g.draw(p);
+      case 'surface':
+        g.surface(p);
+      case 'aim':
+        g.aim(p, m['target']! as int);
+      case 'chart':
+        g.chart(p, take: m['take'] == true);
+    }
+  }
+
+  @override
+  Doc start(
+    int players,
+    Random rng, {
+    required int first,
+    required Set<int> humans,
+    Doc options = const {},
+  }) => {
+    'seed': rng.nextInt(1 << 31),
+    'n': players,
+    'first': first,
+    'target': ((options['target'] as int?) ?? 120).clamp(40, 400),
+    'order': [for (var i = 0; i < players; i++) i],
+    'levels': List<String?>.filled(players, null),
+    'moves': <Doc>[],
+  };
+
+  @override
+  Doc withBots(Doc state, List<Object?> bots) => {
+    ...state,
+    'levels': [for (final b in bots) b is Map ? (b['difficulty'] as String? ?? 'normal') : null],
+  };
+
+  @override
+  int? turn(Doc state) {
+    final g = replay(state);
+    return g.isOver ? null : g.turn;
+  }
+
+  @override
+  Doc play(Doc state, int seat, Doc move) {
+    final g = replay(state);
+    if (g.isOver) throw const MoveError('The game is over');
+    if (g.turn != seat) throw const MoveError('Not your turn');
+    final kind = move['kind'];
+    final clean = <String, Object?>{'p': seat, 'kind': kind};
+    try {
+      switch (kind) {
+        case 'draw':
+        case 'surface':
+          break;
+        case 'aim':
+          clean['target'] = move['target'];
+        case 'chart':
+          clean['take'] = move['take'] == true;
+        default:
+          throw const MoveError('Draw, surface, aim or chart');
+      }
+      if (move['tempo'] is int) clean['tempo'] = move['tempo'];
+      _apply(g, clean);
+    } on StateError catch (e) {
+      throw MoveError(e.message);
+    } on TypeError {
+      throw const MoveError('Not a move');
+    }
+    return {
+      ...state,
+      'moves': [..._moves(state), clean],
+    };
+  }
+
+  @override
+  Result? result(Doc state) {
+    final g = replay(state);
+    return g.isOver ? _top(g.winners, g.players) : null;
+  }
+
+  @override
+  Doc botMove(Doc state, int seat, Doc bot, Random rng) {
+    final g = replay(state);
+    final seed = state['seed']! as int;
+    final b = SunkBot(
+      me: seat,
+      difficulty: _level(bot['difficulty']),
+      style: SunkStyle.values[(seed + seat) % 3],
+      rng: rng,
+    );
+    return {...b.decide(g).toJson(), 'tempo': (b.tempo(g) * 100).round()};
+  }
+
+  @override
+  Doc autoMove(Doc state, int seat, Random rng) {
+    // Out of time: surface (or aim at anyone, or pass on the map).
+    final g = replay(state);
+    return switch (g.pending) {
+      SunkKind.hook || SunkKind.cut => {'kind': 'aim', 'target': g.targets.first},
+      SunkKind.map => {'kind': 'chart', 'take': false},
+      _ => {'kind': g.bags[seat].isEmpty ? 'draw' : 'surface'},
+    };
+  }
+
+  @override
+  Doc? leave(Doc state, int seat) => state;
+
+  /// Everything but the seed: the cards drawn so far, in order.
+  @override
+  Doc public(Doc state) {
+    final g = replay(state);
+    return {
+      ...state,
+      'taken': [for (final c in g.taken) c?.id],
+      'round': g.round,
+    }..remove('seed');
+  }
+
+  /// What your Map shows.
+  @override
+  Doc? private(Doc state, int seat) {
+    final g = replay(state);
+    final peek = g.turn == seat ? g.peeked : null;
+    return {'peek': peek?.id, 'at': _moves(state).length};
+  }
+
+  @override
+  Duration show(Doc before, Doc after) {
+    final a = _moves(before), b = _moves(after);
+    var ms = 0;
+    for (final m in b.skip(a.length)) {
+      ms += 1100 + (m['tempo'] as int? ?? 0) * 15;
     }
     return Duration(milliseconds: min(60000, ms));
   }

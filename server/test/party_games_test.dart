@@ -1,5 +1,8 @@
 import 'dart:math';
 
+import 'package:duel_engine/difficulty.dart';
+import 'package:duel_engine/sunk/sunk.dart';
+import 'package:duel_engine/sunk/sunk_bot.dart';
 import 'package:duel_server/duel_server.dart';
 import 'package:test/test.dart';
 
@@ -141,5 +144,50 @@ void main() {
     expect(m['status'], 'over');
     state = m['state']! as Map;
     expect((state['cups']! as List), isNotEmpty);
+  });
+
+  test('sunk: the sea stays secret; plays to the end with bots', () async {
+    final (ref, id) = await party(bots: [bot]);
+    var m = await ref.startMatch(luca, id, 'sunk', options: const {'target': 60});
+    final mid = m['id']! as String;
+    final state = m['state']! as Map;
+    expect(state.containsKey('seed'), isFalse);
+    final rng = Random(3);
+    for (var i = 0; i < 2000 && m['status'] == 'live'; i++) {
+      final turn = m['turn']! as int;
+      final secret = (await ref.store.get('secrets/$mid'))!['state']! as Map<String, Object?>;
+      final move = SunkBot(
+        me: turn,
+        difficulty: Difficulty.normal,
+        style: SunkStyle.steady,
+        rng: rng,
+      ).decide(SunkOnline.replay(secret)).toJson();
+      m = await ref.move(who(m, turn), mid, m['version']! as int, move);
+    }
+    expect(m['status'], 'over');
+    // A phone replaying from the drawn cards alone reaches the same table.
+    final pub = m['state']! as Map;
+    final taken = [for (final c in pub['taken']! as List) c == null ? null : SunkCard.parse(c as String)];
+    var i = 0;
+    final phone = SunkGame(players: pub['n']! as int, sea: const [], target: 60, first: pub['first']! as int)
+      ..source = (() => taken[i++]);
+    for (final mv in (pub['moves']! as List).cast<Map<Object?, Object?>>()) {
+      final p = mv['p']! as int;
+      switch (mv['kind']) {
+        case 'draw':
+          phone.draw(p);
+        case 'surface':
+          phone.surface(p);
+        case 'aim':
+          phone.aim(p, mv['target']! as int);
+        case 'chart':
+          phone.chart(p, take: mv['take'] == true);
+      }
+    }
+    final server = SunkOnline.replay(
+      (await ref.store.get('secrets/$mid'))!['state']! as Map<String, Object?>,
+    );
+    expect(phone.scores, server.scores);
+    expect(phone.isOver, isTrue);
   });
 }

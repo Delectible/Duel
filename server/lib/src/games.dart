@@ -177,4 +177,5 @@ const onlineGames = <String, OnlineGame>{
   'gops': GopsGame(),
   'bank': BankOnline(),
   'liars': LiarsOnline(),
+  'sunk': SunkOnline(),
 };
