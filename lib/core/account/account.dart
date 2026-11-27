@@ -286,6 +286,20 @@ class Account extends ChangeNotifier {
     _save();
   }
 
+  /// Tabletop tools' saved state (team names, the chip bank), by tool.
+  final Map<String, Map<String, Object?>> _tools = {};
+
+  Map<String, Object?>? toolState(String tool) => _tools[tool];
+
+  void saveToolState(String tool, Map<String, Object?>? state) {
+    if (state == null) {
+      _tools.remove(tool);
+    } else {
+      _tools[tool] = state;
+    }
+    _save();
+  }
+
   // --- The lounge: Boss Tables and tournaments --------------------------------
 
   /// A boss or tournament game in progress (saved after every hand), so
@@ -790,6 +804,9 @@ class Account extends ChangeNotifier {
       memory.forEach((k, v) => _memory[k] = ReadMemory.fromJson(v));
       final lounge = j['lounge'];
       if (lounge is Map<String, dynamic>) _loungeGame = lounge;
+      ((j['tools'] as Map?) ?? const {}).forEach((k, v) {
+        if (v is Map<String, dynamic>) _tools['$k'] = v;
+      });
       for (final b in (j['boards'] as List?) ?? const []) {
         if (b is Map<String, dynamic>) _boards.add(b);
       }
@@ -853,6 +870,7 @@ class Account extends ChangeNotifier {
       if (_memory.isNotEmpty) 'memory': {for (final e in _memory.entries) e.key: e.value.toJson()},
       'lounge': ?_loungeGame,
       if (_boards.isNotEmpty) 'boards': _boards,
+      if (_tools.isNotEmpty) 'tools': _tools,
       if (_bosses > 0) 'bosses': _bosses,
       if (_tourneys.isNotEmpty)
         'tourneys': {

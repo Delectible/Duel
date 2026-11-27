@@ -899,6 +899,23 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 55. Tabletop tools (requested 2026-11-27)
+
+- [x] **55.1 Who's first**: fingers on the screen, held still, one picked
+  (or all numbered for the order).
+- [x] **55.2 Team picker**: names (the party's, kept), 2–6 teams, shuffled.
+- [x] **55.3 Dice tray**: up to 8 dice thrown like Bank!'s, tap to set
+  aside, total and recent rolls.
+- [x] **55.4 Card dealer**: a deck on the table; with the party each phone
+  holds its own hand (referee `deck/{party}`, hands per uid); on one
+  phone, hold Peek. Deal, draw, play face up, take, gather.
+- [x] **55.5 Chip bank**: buy-ins / rebuys, cash-outs, a check that the
+  chips add up, and who pays whom (fewest payments).
+- [x] **55.6 Coin flip and spinner**: a real 3D coin (faces, milled edge
+  in slices, perspective, lighting) thumbed up on an arc, tumbling, rocking
+  to rest; a wheel of your own choices with a clicking pointer.
+  → 1.3.0 · 2026-11-27
+
 ### 54. Betting touches (requested 2026-11-27)
 
 - [x] **54.1 Your pips in view** at Blackjack (`BalancePill` in the
@@ -909,7 +926,7 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **54.3 Skip** moved to the table's bottom-right corner, away from
   Hit / Stand / Double.
 - [x] **54.4 Farkle and Liar's Dice on home** (after Bank!); Tabletop
-  keeps the Score counter, Bank!'s helper and the guides. → 1.2.1 · 2026-11-27
+  keeps the Score counter, Bank!'s helper and the guides. → 1.3.0 · 2026-11-27
 
 ### 53. Tabletop, score counter, Liar's Dice, Farkle (requested 2026-11-26)
 

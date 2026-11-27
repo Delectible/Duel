@@ -22,6 +22,7 @@ class ThrownDice extends StatelessWidget {
     required this.area,
     this.picked = const {},
     this.faded = const {},
+    this.hidden = const {},
     this.onTap,
     this.color,
   });
@@ -34,6 +35,10 @@ class ThrownDice extends StatelessWidget {
   final Size area;
   final Set<int> picked;
   final Set<int> faded;
+
+  /// Dice taken off the tray (set aside elsewhere): not drawn, the rest
+  /// stay where they landed.
+  final Set<int> hidden;
   final ValueChanged<int>? onTap;
   final Color? color;
 
