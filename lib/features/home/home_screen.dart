@@ -178,7 +178,7 @@ class _TopBar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.casino_rounded, size: 26, color: Toon.on(Toon.green)),
+              Icon(Icons.table_restaurant_rounded, size: 26, color: Toon.on(Toon.green)),
               if (!narrow) ...[
                 const SizedBox(width: 6),
                 Text(

@@ -552,7 +552,7 @@ weights cut from the variable font.
   phone or scores only, undo by replaying steps). `GameInfo.companion`
   makes Play at home ask: helper or rules.
 - **Tabletop** (`lib/features/tabletop/`, the button beside the Store):
-  `TabletopScreen` (Dice & tools: Score counter, then the tools in
+  `TabletopScreen` (Tools: Score counter, then the tools in
   `tools/` (`TurnPicker`, `TeamPicker`, `DiceTray`, `FlipSpin` (`Coin3D`:
   layered faces + edge slices with perspective; `CoinToss`; `SpinWheel`),
   `CardDealer` (engine `duel_engine/deck_table/deck_table.dart`; party:

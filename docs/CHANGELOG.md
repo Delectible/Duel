@@ -911,6 +911,9 @@ Bots first; online with a party comes later (each needs the referee).
   phone, hold Peek. Deal, draw, play face up, take, gather.
 - [x] **55.5 Chip bank**: buy-ins / rebuys, cash-outs, a check that the
   chips add up, and who pays whom (fewest payments).
+- [x] **55.7 Tabletop wording**: the tab is "Tools", the line under the
+  title "Tools and instructions for playing at home.", and the home
+  button shows a table.
 - [x] **55.6 Coin flip and spinner**: a real 3D coin (faces, milled edge
   in slices, perspective, lighting) thumbed up on an arc, tumbling, rocking
   to rest; a wheel of your own choices with a clicking pointer.

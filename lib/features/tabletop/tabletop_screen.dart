@@ -14,7 +14,7 @@ import 'tools/team_picker.dart';
 import 'tools/turn_picker.dart';
 
 enum TabletopTab {
-  hybrid('Dice & tools', Icons.casino_rounded),
+  hybrid('Tools', Icons.handyman_rounded),
   atHome('Play at home', Icons.menu_book_rounded);
 
   const TabletopTab(this.label, this.icon);
@@ -63,7 +63,7 @@ class _TabletopScreenState extends State<TabletopScreen> {
                           children: [
                             Text('Tabletop', style: Toon.text(26, weight: FontWeight.w700)),
                             Text(
-                              'Real dice and cards, with your phone on the table',
+                              'Tools and instructions for playing at home.',
                               maxLines: 2,
                               style: Toon.text(14, weight: FontWeight.w500, color: Toon.muted),
                             ),
