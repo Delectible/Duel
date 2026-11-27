@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../account/account.dart';
 import '../account/stake.dart';
 import '../avatars/faces.dart';
 import '../cards/card_view.dart';
@@ -684,6 +685,43 @@ class NamePlate extends StatelessWidget {
               maxLines: 1,
               style: Toon.text(12, weight: FontWeight.w700, color: lineColor ?? Toon.on(bg)),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Your pips (what's in the bank, off the table), kept in view where you
+/// bet (Blackjack, cash tables). Red when you're in debt.
+class BalancePill extends StatelessWidget {
+  const BalancePill({super.key, required this.account, this.label = 'Bank'});
+
+  final Account account;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) =>
+      ListenableBuilder(listenable: account, builder: (context, _) => _pill());
+
+  Widget _pill() {
+    final a = account;
+    final debt = a.inDebt;
+    return Container(
+      key: const Key('balance'),
+      constraints: const BoxConstraints(minWidth: 56),
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 6),
+      decoration: Toon.box(debt ? Toon.red : Toon.cardFace, radius: 10, shadow: 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            child: Text(
+              debt ? '−${a.money(-a.balance)}' : a.money(a.balance),
+              maxLines: 1,
+              style: Toon.text(15, weight: FontWeight.w700, color: debt ? Colors.white : Toon.inkLight),
+            ),
+          ),
+          Text(label, style: Toon.text(10, color: debt ? Colors.white : Toon.inkLight)),
         ],
       ),
     );

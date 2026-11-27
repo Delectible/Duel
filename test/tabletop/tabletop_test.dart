@@ -35,12 +35,9 @@ void main() {
       final account = Account();
       await tester.pumpWidget(DuelApp(account: account, setup: PlaySetup()));
       await settle(tester);
-      expect(find.byKey(const Key('liars')), findsNothing, reason: 'tabletop games are not on home');
       await tester.tap(find.byKey(const Key('tabletop')));
       await settle(tester);
       expect(find.byKey(const Key('score counter')), findsOneWidget);
-      expect(find.text('Liar\'s Dice'), findsWidgets);
-      expect(find.text('Farkle'), findsWidgets);
       await shot(tester, 'tabletop_$phone');
       expect(tester.takeException(), isNull, reason: 'hybrid');
       await tester.tap(find.byKey(const Key('tabletop atHome')));

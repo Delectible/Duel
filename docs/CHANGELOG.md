@@ -899,6 +899,18 @@ Bots first; online with a party comes later (each needs the referee).
 - [x] **45.4 Consistency**: shared card motions in `table_bits.dart`
   (poker uses them too), noted in CLAUDE.md for every new game.
 
+### 54. Betting touches (requested 2026-11-27)
+
+- [x] **54.1 Your pips in view** at Blackjack (`BalancePill` in the
+  commentary strip) and cash tables ("Bank …" under the blinds).
+- [x] **54.2 Blackjack + / −** beside the chips: ones at a tap; held, the
+  step grows (5, 10, 50, … up to a tenth of the table max), landing on
+  round numbers (`BjController.nudge`).
+- [x] **54.3 Skip** moved to the table's bottom-right corner, away from
+  Hit / Stand / Double.
+- [x] **54.4 Farkle and Liar's Dice on home** (after Bank!); Tabletop
+  keeps the Score counter, Bank!'s helper and the guides. → 1.2.1 · 2026-11-27
+
 ### 53. Tabletop, score counter, Liar's Dice, Farkle (requested 2026-11-26)
 
 - [x] **53.1 Tabletop** (button beside the Store; icons only when

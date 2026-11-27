@@ -238,6 +238,39 @@ class BjController extends ChangeNotifier {
     _notify();
   }
 
+  /// Held +/− presses in a row (they speed up), and when the last was.
+  int _nudges = 0;
+  DateTime _lastNudge = DateTime(0);
+
+  /// One more (or less, [dir] −1) on the bet: ones at first; held down, the
+  /// step grows (5, 10, 50, …, up to a tenth of the table's max) so big
+  /// amounts come quickly, landing on round numbers.
+  void nudge(int dir) {
+    if (phase != BjPhase.betting) return;
+    final now = DateTime.now();
+    _nudges = now.difference(_lastNudge).inMilliseconds < 420 ? _nudges + 1 : 0;
+    _lastNudge = now;
+    final steps = [
+      1,
+      5,
+      10,
+      50,
+      100,
+      500,
+      1000,
+      5000,
+      10000,
+    ].where((s) => s == 1 || s * 10 <= table.max).toList();
+    final step = steps[min(steps.length - 1, _nudges ~/ 5)];
+    var next = bet + dir * step;
+    if (step > 1) next = dir > 0 ? (next ~/ step) * step : ((next + step - 1) ~/ step) * step;
+    next = next.clamp(0, maxBet);
+    if (next == bet) return;
+    bet = next;
+    if (_nudges % 3 == 0) Sound.play(Sfx.chips, gain: 0.5);
+    _notify();
+  }
+
   void clearBet() {
     if (phase != BjPhase.betting) return;
     bet = 0;

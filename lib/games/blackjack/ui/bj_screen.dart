@@ -110,6 +110,10 @@ class BjScreen extends StatefulWidget {
 }
 
 class _BjScreenState extends State<BjScreen> {
+  /// The table (tests).
+  @visibleForTesting
+  BjController get controllerForTests => _c;
+
   late final Account _account = AccountScope.maybeRead(context) ?? Account();
   late final BjController _c = widget.doc != null
       ? OnlineBjController(service: widget.service!, doc: widget.doc!, account: _account, pace: widget.pace)
@@ -175,6 +179,7 @@ class _BjScreenState extends State<BjScreen> {
             commentary: CommentaryStrip(
               text: _c.commentary(),
               yourMove: _c.yourTurn || _c.phase == BjPhase.betting,
+              leading: BalancePill(account: _c.account),
             ),
             table: _Table(c: _c),
             controls: _Controls(c: _c),
@@ -400,6 +405,33 @@ class _Table extends StatelessWidget {
           child: _NewShoe(c: c),
         ),
       );
+      // Skip sits on the table's corner, away from Hit / Stand / Double, so a
+      // hurried tap can't land on it by mistake.
+      if (c.canHurry) {
+        children.add(
+          Positioned(
+            key: const ValueKey('skip'),
+            right: 4,
+            bottom: 4,
+            child: ToonButton(
+              key: const Key('hurry'),
+              color: Toon.yellow,
+              radius: 14,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              tooltip: 'Hurry the bots up',
+              onPressed: c.hurry,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.fast_forward_rounded, size: 18),
+                  const SizedBox(width: 3),
+                  Text('Skip', style: Toon.text(14, weight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
       return GoldCards(
         on: felt.gold,
         child: Stack(clipBehavior: Clip.none, children: children),
@@ -1005,6 +1037,30 @@ class _Controls extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Ones at a tap; held, it speeds up in bigger steps.
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: ToonButton(
+                    key: const Key('bet minus'),
+                    color: Toon.card,
+                    repeat: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+                    onPressed: c.bet > 0 ? () => c.nudge(-1) : null,
+                    child: const Icon(Icons.remove_rounded, size: 20),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: ToonButton(
+                    key: const Key('bet plus'),
+                    color: Toon.card,
+                    repeat: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+                    onPressed: c.bet < c.maxBet ? () => c.nudge(1) : null,
+                    child: const Icon(Icons.add_rounded, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 for (final v in c.table.chips)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -1131,26 +1187,6 @@ class _Controls extends StatelessWidget {
                 style: Toon.text(16, color: Toon.muted),
               ),
             ),
-            // Bots and the dealer take their time; this hurries them along.
-            if (c.canHurry) ...[
-              const SizedBox(width: 10),
-              ToonButton(
-                key: const Key('hurry'),
-                color: Toon.yellow,
-                radius: 14,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                tooltip: 'Hurry the bots up',
-                onPressed: c.hurry,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.fast_forward_rounded, size: 20),
-                    const SizedBox(width: 4),
-                    Text('Skip', style: Toon.text(15, weight: FontWeight.w700)),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       );

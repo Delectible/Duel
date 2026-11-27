@@ -3,7 +3,7 @@ class AppInfo {
   const AppInfo._();
 
   static const name = 'Duel';
-  static const version = '1.2.0';
+  static const version = '1.2.1';
 
   /// Whether [other] (another app's version) is a newer x.Y than ours: the
   /// middle number goes up when old and new apps may not play well together
@@ -24,9 +24,9 @@ class AppInfo {
   /// What changed in this build, in plain words: Google Play's "What's new"
   /// (tool/play/whats_new.py). Replace it every build.
   static const latest =
-      'New: Tabletop, for games at a real table. A score counter for any game (presets for Hearts, Spades, '
-      'Cribbage, Euchre, Farkle and more; share one board with your party), Liar\'s Dice (bots or your party: bluff '
-      'about what\'s under the cups), Farkle, and every Play at home guide in one place.';
+      'Your pips now show at Blackjack and cash tables. Blackjack bets get + and − (hold to speed up), and Skip '
+      'moved to the table\'s corner so it can\'t be hit by mistake. Farkle and Liar\'s Dice are on the home '
+      'screen. Plus 1.2: Tabletop with a score counter for any game, shared with your party.';
 
   /// About: the main ideas of each version, a few words each.
   static const revisions = <(String, List<String>)>[

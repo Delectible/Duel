@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/help/home_guide.dart';
-import '../../core/session/play_setup.dart';
 import '../../core/sound/sound.dart';
 import '../../core/theme/toon.dart';
 import '../../games/bank/ui/bank_companion.dart';
 import '../../games/catalog.dart';
-import '../home/home_screen.dart';
 import 'scorer/scorer_screen.dart';
 
 enum TabletopTab {
@@ -35,8 +33,6 @@ class _TabletopScreenState extends State<TabletopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final setup = PlaySetupScope.of(context);
-    final wide = MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
@@ -122,19 +118,6 @@ class _TabletopScreenState extends State<TabletopScreen> {
                       context,
                     ).push(MaterialPageRoute<void>(builder: (_) => const ScorerHome())),
                   ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                sliver: SliverGrid.count(
-                  crossAxisCount: wide ? 4 : 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: wide ? 1.0 : 0.82,
-                  children: [
-                    for (final g in games)
-                      if (g.tabletop) GameTile(game: g, setup: setup),
-                  ],
                 ),
               ),
               SliverPadding(

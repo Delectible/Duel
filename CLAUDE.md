@@ -552,9 +552,9 @@ weights cut from the variable font.
   phone or scores only, undo by replaying steps). `GameInfo.companion`
   makes Play at home ask: helper or rules.
 - **Tabletop** (`lib/features/tabletop/`, the button beside the Store):
-  `TabletopScreen` (Dice & tools: Score counter, the `GameInfo.tabletop`
-  games (Liar's Dice, Farkle; not on home's grid), Bank!'s helper; Play
-  at home: every guide). Score counter (`scorer/`): engine
+  `TabletopScreen` (Dice & tools: Score counter, Bank!'s helper (and any
+  `GameInfo.tabletop` game, kept off home's grid; none now: Liar's Dice
+  and Farkle are on home); Play at home: every guide). Score counter (`scorer/`): engine
   `duel_engine/scoreboard/scoreboard.dart` (`ScoreBoard`: players, a log
   of changes, settings; `apply(op, by:, host:)` checks rights: add
   yourself once, score your own (anyone's with `anyoneScores`), the host

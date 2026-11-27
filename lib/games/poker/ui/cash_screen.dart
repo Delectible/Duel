@@ -430,6 +430,20 @@ class _CashHud extends StatelessWidget {
                     style: Toon.text(13, weight: FontWeight.w500, color: Toon.muted),
                   ),
                   CashWhere(online: online),
+                  if (AccountScope.maybeRead(context) case final a?)
+                    ListenableBuilder(
+                      listenable: a,
+                      builder: (context, _) => Text(
+                        'Bank ${a.inDebt ? '−${a.money(-a.balance)}' : a.money(a.balance)}',
+                        key: const Key('balance'),
+                        maxLines: 1,
+                        style: Toon.text(
+                          13,
+                          weight: FontWeight.w700,
+                          color: a.inDebt ? Toon.red : Toon.muted,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],
